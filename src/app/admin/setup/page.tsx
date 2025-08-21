@@ -73,7 +73,8 @@ ON CONFLICT (slug) DO NOTHING;
                     Ir al SQL Editor
                   </h3>
                   <p className="text-gray-600">
-                    En el panel lateral, busca y haz clic en "SQL Editor"
+                    En el panel lateral, busca y haz clic en &quot;SQL
+                    Editor&quot;
                   </p>
                 </div>
               </div>
@@ -88,7 +89,7 @@ ON CONFLICT (slug) DO NOTHING;
                   </h3>
                   <p className="text-gray-600">
                     Copia y pega los comandos de abajo en el editor y haz clic
-                    en "Run"
+                    en &quot;Run&quot;
                   </p>
                 </div>
               </div>

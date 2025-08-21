@@ -12,7 +12,6 @@ export async function GET() {
       .from("categories")
       .select("*");
 
-    console.log("Categorías disponibles:", categories);
     if (catError) {
       console.error("Error obteniendo categorías:", catError);
     }
@@ -33,12 +32,9 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    console.log("Datos recibidos para crear producto:", body);
-
     // Validar datos
     const validationErrors = validateProductData(body);
     if (validationErrors.length > 0) {
-      console.log("Errores de validación:", validationErrors);
       return NextResponse.json(
         { error: "Datos inválidos", details: validationErrors },
         { status: 400 }

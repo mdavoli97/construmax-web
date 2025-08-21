@@ -4,13 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { productService } from "@/lib/services";
 import { Product } from "@/types";
-import {
-  PlusIcon,
-  PencilIcon,
-  TrashIcon,
-  SearchIcon,
-  FilterIcon,
-} from "lucide-react";
+import { PlusIcon, PencilIcon, TrashIcon, SearchIcon } from "lucide-react";
 
 export default function ProductsAdminPage() {
   const [products, setProducts] = useState<Product[]>([]);

@@ -3,18 +3,26 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { productService } from "@/lib/services";
 import { ArrowLeftIcon, SaveIcon } from "lucide-react";
+import { ProductImage } from "@/types";
 
 export default function NewProductPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [productCreated, setProductCreated] = useState(false);
+  const [createdProductId, setCreatedProductId] = useState<string | null>(null);
+  const [images, setImages] = useState<ProductImage[]>([]);
+  const [showUrlInput, setShowUrlInput] = useState(false);
+  const [newImageUrl, setNewImageUrl] = useState("");
+  const [addingUrlImage, setAddingUrlImage] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     description: "",
     price: "",
     category: "",
-    image: "",
+    primary_image: "",
     stock: "",
     unit: "",
     brand: "",
@@ -112,15 +120,40 @@ export default function NewProductPage() {
         return;
       }
 
+      // Validar URL de imagen si se proporcionó
+      if (formData.primary_image.trim()) {
+        if (formData.primary_image.length > 1000) {
+          alert(
+            "La URL de la imagen es demasiado larga (máximo 1000 caracteres)"
+          );
+          setLoading(false);
+          return;
+        }
+
+        try {
+          new URL(formData.primary_image);
+        } catch {
+          alert("La URL de la imagen no es válida");
+          setLoading(false);
+          return;
+        }
+      }
+
       // Generar SKU si no se proporcionó uno
       const sku = formData.sku.trim() || generateSKU();
+
+      // Determinar imagen principal desde las imágenes subidas o URL manual
+      const primaryImageUrl =
+        images.find((img) => img.is_primary)?.image_url ||
+        formData.primary_image.trim() ||
+        undefined;
 
       const productData = {
         name: formData.name.trim(),
         description: formData.description.trim() || undefined,
         price: parseFloat(formData.price),
         category: formData.category,
-        image: formData.image.trim() || undefined,
+        primary_image: primaryImageUrl,
         stock: parseInt(formData.stock),
         unit: formData.unit.trim(),
         brand: formData.brand.trim() || undefined,
@@ -128,10 +161,32 @@ export default function NewProductPage() {
         featured: formData.featured,
       };
 
-      console.log("Enviando datos del producto:", productData);
-      await productService.create(productData);
-      alert("Producto creado exitosamente");
-      router.push("/admin/productos");
+      const createdProduct = await productService.create(productData);
+      setCreatedProductId(createdProduct.id);
+      setProductCreated(true);
+
+      // Si se proporcionó una imagen por URL, agregarla automáticamente a la lista
+      if (primaryImageUrl) {
+        try {
+          const primaryImage = await productService.addImage(
+            createdProduct.id,
+            {
+              image_url: primaryImageUrl,
+              alt_text: `Imagen principal de ${formData.name}`,
+              is_primary: true,
+              display_order: 0,
+            }
+          );
+          setImages([primaryImage]);
+        } catch (error) {
+          console.error("Error adding primary image:", error);
+          // No bloqueamos el flujo si falla la imagen
+        }
+      }
+
+      alert(
+        "Producto creado exitosamente. Ahora puedes agregar más imágenes si lo deseas."
+      );
     } catch (error) {
       console.error("Error creating product:", error);
       alert(
@@ -141,6 +196,49 @@ export default function NewProductPage() {
       );
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleFinish = () => {
+    router.push("/admin/productos");
+  };
+
+  const handleAddUrlImage = async () => {
+    if (!newImageUrl.trim() || !createdProductId) return;
+
+    // Validar URL
+    if (newImageUrl.length > 1000) {
+      alert("La URL es demasiado larga (máximo 1000 caracteres)");
+      return;
+    }
+
+    try {
+      new URL(newImageUrl);
+    } catch {
+      alert("La URL no es válida");
+      return;
+    }
+
+    setAddingUrlImage(true);
+    try {
+      const newImage = await productService.addImage(createdProductId, {
+        image_url: newImageUrl.trim(),
+        alt_text: `Imagen de ${formData.name}`,
+        is_primary: images.length === 0,
+        display_order: images.length,
+      });
+
+      setImages([...images, newImage]);
+      setNewImageUrl("");
+      setShowUrlInput(false);
+    } catch (error) {
+      console.error("Error adding URL image:", error);
+      alert(
+        "Error al agregar la imagen por URL: " +
+          (error instanceof Error ? error.message : "Error desconocido")
+      );
+    } finally {
+      setAddingUrlImage(false);
     }
   };
 
@@ -159,19 +257,79 @@ export default function NewProductPage() {
             </Link>
           </div>
           <h1 className="text-3xl font-bold text-gray-900">
-            Agregar Nuevo Producto
+            {!productCreated
+              ? "Agregar Nuevo Producto"
+              : "Agregar Imágenes del Producto"}
           </h1>
           <p className="text-gray-800 mt-2">
-            Complete la información del producto
+            {!productCreated
+              ? "Paso 1: Complete la información básica del producto"
+              : "Paso 2: Agregue imágenes adicionales (opcional)"}
           </p>
+
+          {/* Indicador de progreso */}
+          <div className="mt-6">
+            <div className="flex items-center">
+              <div
+                className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium ${
+                  !productCreated
+                    ? "bg-blue-600 text-white"
+                    : "bg-green-600 text-white"
+                }`}
+              >
+                1
+              </div>
+              <div
+                className={`flex-1 h-1 mx-4 ${
+                  productCreated ? "bg-green-600" : "bg-gray-300"
+                }`}
+              ></div>
+              <div
+                className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium ${
+                  productCreated
+                    ? "bg-blue-600 text-white"
+                    : "bg-gray-300 text-gray-500"
+                }`}
+              >
+                2
+              </div>
+            </div>
+            <div className="flex justify-between mt-2 text-sm">
+              <span
+                className={
+                  productCreated
+                    ? "text-green-600 font-medium"
+                    : "text-blue-600 font-medium"
+                }
+              >
+                Información básica
+              </span>
+              <span
+                className={
+                  productCreated ? "text-blue-600 font-medium" : "text-gray-500"
+                }
+              >
+                Imágenes (opcional)
+              </span>
+            </div>
+          </div>
         </div>
 
         {/* Formulario */}
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="bg-white rounded-lg shadow">
+          <div
+            className={`bg-white rounded-lg shadow ${
+              productCreated ? "opacity-60" : ""
+            }`}
+          >
             <div className="px-6 py-4 border-b border-gray-200">
               <h2 className="text-lg font-semibold text-gray-900">
                 Información Básica
+                {productCreated && (
+                  <span className="ml-2 text-sm text-green-600 font-medium">
+                    ✓ Completado
+                  </span>
+                )}
               </h2>
             </div>
             <div className="p-6 space-y-6">
@@ -188,9 +346,10 @@ export default function NewProductPage() {
                     id="name"
                     name="name"
                     required
+                    disabled={productCreated}
                     value={formData.name}
                     onChange={handleInputChange}
-                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-500"
+                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
                     placeholder="Ej: Cemento Portland"
                   />
                 </div>
@@ -206,9 +365,10 @@ export default function NewProductPage() {
                     type="text"
                     id="brand"
                     name="brand"
+                    disabled={productCreated}
                     value={formData.brand}
                     onChange={handleInputChange}
-                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-500"
+                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
                     placeholder="Ej: ANCAP"
                   />
                 </div>
@@ -225,9 +385,10 @@ export default function NewProductPage() {
                   id="description"
                   name="description"
                   rows={3}
+                  disabled={productCreated}
                   value={formData.description}
                   onChange={handleInputChange}
-                  className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-500"
+                  className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
                   placeholder="Descripción detallada del producto"
                 />
               </div>
@@ -244,9 +405,10 @@ export default function NewProductPage() {
                     id="category"
                     name="category"
                     required
+                    disabled={productCreated}
                     value={formData.category}
                     onChange={handleInputChange}
-                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900"
+                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 disabled:bg-gray-100 disabled:cursor-not-allowed"
                   >
                     <option value="">Seleccionar categoría</option>
                     {categories.map((category) => (
@@ -268,9 +430,10 @@ export default function NewProductPage() {
                     type="text"
                     id="sku"
                     name="sku"
+                    disabled={productCreated}
                     value={formData.sku}
                     onChange={handleInputChange}
-                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-500"
+                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
                     placeholder="Se generará automáticamente si se deja vacío"
                   />
                 </div>
@@ -278,10 +441,19 @@ export default function NewProductPage() {
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow">
+          <div
+            className={`bg-white rounded-lg shadow ${
+              productCreated ? "opacity-60" : ""
+            }`}
+          >
             <div className="px-6 py-4 border-b border-gray-200">
               <h2 className="text-lg font-semibold text-gray-900">
                 Precio e Inventario
+                {productCreated && (
+                  <span className="ml-2 text-sm text-green-600 font-medium">
+                    ✓ Completado
+                  </span>
+                )}
               </h2>
             </div>
             <div className="p-6 space-y-6">
@@ -303,9 +475,10 @@ export default function NewProductPage() {
                       name="price"
                       required
                       step="0.01"
+                      disabled={productCreated}
                       value={formData.price}
                       onChange={handleInputChange}
-                      className="pl-8 w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-500"
+                      className="pl-8 w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
                       placeholder="0.00"
                     />
                   </div>
@@ -324,9 +497,10 @@ export default function NewProductPage() {
                     name="stock"
                     required
                     min="0"
+                    disabled={productCreated}
                     value={formData.stock}
                     onChange={handleInputChange}
-                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-500"
+                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
                     placeholder="0"
                   />
                 </div>
@@ -342,9 +516,10 @@ export default function NewProductPage() {
                     id="unit"
                     name="unit"
                     required
+                    disabled={productCreated}
                     value={formData.unit}
                     onChange={handleInputChange}
-                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900"
+                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 disabled:bg-gray-100 disabled:cursor-not-allowed"
                   >
                     <option value="">Seleccionar unidad</option>
                     {units.map((unit) => (
@@ -361,27 +536,134 @@ export default function NewProductPage() {
           <div className="bg-white rounded-lg shadow">
             <div className="px-6 py-4 border-b border-gray-200">
               <h2 className="text-lg font-semibold text-gray-900">
-                Imagen y Configuración
+                Imágenes del Producto
               </h2>
             </div>
             <div className="p-6 space-y-6">
-              <div>
-                <label
-                  htmlFor="image"
-                  className="block text-sm font-medium text-gray-800 mb-2"
-                >
-                  URL de la Imagen
-                </label>
-                <input
-                  type="url"
-                  id="image"
-                  name="image"
-                  value={formData.image}
-                  onChange={handleInputChange}
-                  className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-500"
-                  placeholder="https://ejemplo.com/imagen.jpg"
-                />
-              </div>
+              {productCreated && createdProductId ? (
+                // Mostrar ImageUpload después de crear el producto
+                <div className="space-y-6">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <h3 className="text-lg font-medium text-gray-900">
+                        Gestión de Imágenes
+                      </h3>
+                      <p className="text-sm text-gray-600">
+                        Sube archivos desde tu computadora o agrega URLs de
+                        imágenes
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowUrlInput(!showUrlInput)}
+                      className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    >
+                      {showUrlInput ? "Cancelar URL" : "Agregar por URL"}
+                    </button>
+                  </div>
+
+                  {showUrlInput && (
+                    <div className="bg-gray-50 p-4 rounded-lg border">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        URL de la imagen
+                      </label>
+                      <div className="flex space-x-3">
+                        <div className="flex-1">
+                          <input
+                            type="url"
+                            value={newImageUrl}
+                            onChange={(e) => setNewImageUrl(e.target.value)}
+                            placeholder="https://ejemplo.com/imagen.jpg"
+                            maxLength={1000}
+                            className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                          />
+                          <div className="text-right text-xs text-gray-500 mt-1">
+                            <span
+                              className={
+                                newImageUrl.length > 900
+                                  ? "text-orange-600"
+                                  : ""
+                              }
+                            >
+                              {newImageUrl.length}/1000
+                            </span>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleAddUrlImage}
+                          disabled={
+                            !newImageUrl.trim() ||
+                            addingUrlImage ||
+                            newImageUrl.length > 1000
+                          }
+                          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                        >
+                          {addingUrlImage ? "Agregando..." : "Agregar"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                // Mostrar campo manual antes de crear el producto
+                <div className="space-y-4">
+                  <div>
+                    <label
+                      htmlFor="primary_image"
+                      className="block text-sm font-medium text-gray-800 mb-2"
+                    >
+                      URL de la Imagen Principal (Opcional)
+                    </label>
+                    <input
+                      type="url"
+                      id="primary_image"
+                      name="primary_image"
+                      value={formData.primary_image}
+                      onChange={handleInputChange}
+                      className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-500"
+                      placeholder="https://ejemplo.com/imagen.jpg"
+                      maxLength={1000}
+                    />
+                    <div className="flex justify-between text-sm text-gray-500 mt-1">
+                      <span>
+                        Si ya tienes una imagen en línea, puedes agregar su URL
+                        aquí. También podrás subir imágenes desde tu computadora
+                        en el siguiente paso.
+                      </span>
+                      <span
+                        className={
+                          formData.primary_image.length > 900
+                            ? "text-orange-600"
+                            : ""
+                        }
+                      >
+                        {formData.primary_image.length}/1000
+                      </span>
+                    </div>
+                  </div>
+
+                  {formData.primary_image && (
+                    <div className="mt-4">
+                      <p className="text-sm font-medium text-gray-800 mb-2">
+                        Vista previa:
+                      </p>
+                      <div className="w-32 h-32 border border-gray-300 rounded-lg overflow-hidden relative">
+                        <Image
+                          src={formData.primary_image}
+                          alt="Vista previa"
+                          fill
+                          className="object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display =
+                              "none";
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div className="flex items-center">
                 <input
@@ -410,18 +692,39 @@ export default function NewProductPage() {
             >
               Cancelar
             </Link>
-            <button
-              type="submit"
-              disabled={loading}
-              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
-            >
-              {loading ? (
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-              ) : (
-                <SaveIcon className="h-4 w-4 mr-2" />
-              )}
-              {loading ? "Guardando..." : "Guardar Producto"}
-            </button>
+
+            {!productCreated ? (
+              <button
+                type="submit"
+                disabled={loading}
+                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+              >
+                {loading ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                ) : (
+                  <SaveIcon className="h-4 w-4 mr-2" />
+                )}
+                {loading ? "Creando..." : "Continuar a Imágenes"}
+              </button>
+            ) : (
+              <div className="flex space-x-3">
+                <button
+                  type="button"
+                  onClick={handleFinish}
+                  className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  Omitir Imágenes
+                </button>
+                <button
+                  type="button"
+                  onClick={handleFinish}
+                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                >
+                  <SaveIcon className="h-4 w-4 mr-2" />
+                  Finalizar
+                </button>
+              </div>
+            )}
           </div>
         </form>
       </div>

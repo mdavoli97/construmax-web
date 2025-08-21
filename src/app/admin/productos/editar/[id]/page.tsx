@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { productService } from "@/lib/services";
-import { Product } from "@/types";
+import { Product, ProductImage } from "@/types";
 import { ArrowLeftIcon, SaveIcon } from "lucide-react";
 
 export default function EditProductPage() {
@@ -13,6 +13,7 @@ export default function EditProductPage() {
   const productId = params.id as string;
 
   const [product, setProduct] = useState<Product | null>(null);
+  const [productImages, setProductImages] = useState<ProductImage[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
@@ -20,7 +21,7 @@ export default function EditProductPage() {
     description: "",
     price: "",
     category: "",
-    image: "",
+    primary_image: "",
     stock: "",
     unit: "",
     brand: "",
@@ -62,18 +63,30 @@ export default function EditProductPage() {
           description: productData.description || "",
           price: productData.price.toString(),
           category: productData.category,
-          image: productData.image || "",
+          primary_image: productData.primary_image || "",
           stock: productData.stock.toString(),
           unit: productData.unit,
           brand: productData.brand || "",
           sku: productData.sku,
           featured: productData.featured || false,
         });
+
+        // Cargar imágenes del producto
+        loadProductImages();
       }
     } catch (error) {
       console.error("Error loading product:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadProductImages = async () => {
+    try {
+      const images = await productService.getImages(productId);
+      setProductImages(images);
+    } catch (error) {
+      console.error("Error loading product images:", error);
     }
   };
 
@@ -100,7 +113,7 @@ export default function EditProductPage() {
         description: formData.description || undefined,
         price: parseFloat(formData.price),
         category: formData.category,
-        image: formData.image || undefined,
+        primary_image: formData.primary_image || undefined,
         stock: parseInt(formData.stock),
         unit: formData.unit,
         brand: formData.brand || undefined,
@@ -359,19 +372,24 @@ export default function EditProductPage() {
             <div className="p-6 space-y-6">
               <div>
                 <label
-                  htmlFor="image"
+                  htmlFor="primary_image"
                   className="block text-sm font-medium text-gray-800 mb-2"
                 >
-                  URL de la Imagen
+                  URL de la Imagen Principal (opcional)
                 </label>
                 <input
                   type="url"
-                  id="image"
-                  name="image"
-                  value={formData.image}
+                  id="primary_image"
+                  name="primary_image"
+                  value={formData.primary_image}
                   onChange={handleInputChange}
                   className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-500"
+                  placeholder="Se establecerá automáticamente desde las imágenes subidas"
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  Puedes usar el gestor de imágenes arriba o ingresar una URL
+                  directamente
+                </p>
               </div>
 
               <div className="flex items-center">

@@ -56,14 +56,25 @@ export const productService = {
 
   // Obtener producto por ID
   async getById(id: string): Promise<Product | null> {
-    const { data, error } = await supabase
-      .from("products")
-      .select("*")
-      .eq("id", id)
-      .single();
+    try {
+      const { data, error } = await supabase
+        .from("products")
+        .select("*")
+        .eq("id", id)
+        .single();
 
-    if (error) throw error;
-    return data;
+      if (error) {
+        if (error.code === "PGRST116") {
+          // No rows returned
+          return null;
+        }
+        throw error;
+      }
+      return data;
+    } catch (error) {
+      console.warn("Error fetching product by ID:", error);
+      return null;
+    }
   },
 
   // Buscar productos
@@ -94,7 +105,7 @@ export const productService = {
     description?: string;
     price: number;
     category: string;
-    image?: string;
+    primary_image?: string;
     stock: number;
     unit: string;
     brand?: string;
@@ -137,7 +148,7 @@ export const productService = {
       description?: string;
       price?: number;
       category?: string;
-      image?: string;
+      primary_image?: string;
       stock?: number;
       unit?: string;
       brand?: string;
@@ -195,6 +206,76 @@ export const productService = {
     if (!response.ok) {
       const error = await response.json();
       throw new Error(error.error || "Error al eliminar producto");
+    }
+  },
+
+  // Obtener imágenes de un producto
+  async getImages(productId: string) {
+    try {
+      const { data, error } = await supabase
+        .from("product_images")
+        .select("*")
+        .eq("product_id", productId)
+        .order("display_order", { ascending: true });
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error("Error fetching product images:", error);
+      return [];
+    }
+  },
+
+  // Agregar imagen a un producto
+  async addImage(
+    productId: string,
+    imageData: {
+      image_url: string;
+      alt_text?: string;
+      is_primary?: boolean;
+      display_order?: number;
+    }
+  ) {
+    try {
+      const response = await fetch(`/api/products/${productId}/images`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(imageData),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Error al agregar imagen");
+      }
+
+      return response.json();
+    } catch (error) {
+      console.error("Error adding product image:", error);
+      throw error;
+    }
+  },
+
+  // Eliminar imagen de un producto
+  async deleteImage(productId: string, imageId: string) {
+    try {
+      const response = await fetch(
+        `/api/products/${productId}/images?imageId=${imageId}`,
+        {
+          method: "DELETE",
+        }
+      );
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Error al eliminar imagen");
+      }
+
+      return response.json();
+    } catch (error) {
+      console.error("Error deleting product image:", error);
+      throw error;
     }
   },
 };
