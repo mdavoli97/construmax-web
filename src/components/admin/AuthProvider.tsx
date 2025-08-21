@@ -13,8 +13,8 @@ const AuthContext = createContext<AuthContextType | null>(null);
 
 // Credenciales de administrador (deben estar en variables de entorno)
 const ADMIN_CREDENTIALS = {
-  username: process.env.NEXT_PUBLIC_ADMIN_USERNAME,
-  password: process.env.NEXT_PUBLIC_ADMIN_PASSWORD,
+  username: process.env.ADMIN_USERNAME,
+  password: process.env.ADMIN_PASSWORD,
 };
 
 const AUTH_TOKEN_KEY = "admin_auth_token";
