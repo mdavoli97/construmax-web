@@ -11,12 +11,6 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-// Credenciales de administrador (deben estar en variables de entorno)
-const ADMIN_CREDENTIALS = {
-  username: process.env.ADMIN_USERNAME,
-  password: process.env.ADMIN_PASSWORD,
-};
-
 const AUTH_TOKEN_KEY = "admin_auth_token";
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -49,27 +43,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     username: string,
     password: string
   ): Promise<boolean> => {
-    // Simular delay de autenticación
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    try {
+      const response = await fetch("/api/admin/auth", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ username, password }),
+      });
 
-    if (
-      username === ADMIN_CREDENTIALS.username &&
-      password === ADMIN_CREDENTIALS.password
-    ) {
-      // Crear token simple (en producción usar JWT real)
-      const tokenData = {
-        username,
-        exp: Date.now() + 24 * 60 * 60 * 1000, // 24 horas
-        role: "admin",
-      };
+      if (response.ok) {
+        const { token } = await response.json();
+        localStorage.setItem(AUTH_TOKEN_KEY, token);
+        setIsAuthenticated(true);
+        return true;
+      }
 
-      const token = btoa(JSON.stringify(tokenData));
-      localStorage.setItem(AUTH_TOKEN_KEY, token);
-      setIsAuthenticated(true);
-      return true;
+      return false;
+    } catch (error) {
+      console.error("Error during login:", error);
+      return false;
     }
-
-    return false;
   };
 
   const logout = () => {
