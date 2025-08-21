@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { productService } from "@/lib/services";
-import { Product, ProductImage } from "@/types";
+import { Product } from "@/types";
 import { ArrowLeftIcon, SaveIcon } from "lucide-react";
 
 export default function EditProductPage() {
@@ -13,7 +13,6 @@ export default function EditProductPage() {
   const productId = params.id as string;
 
   const [product, setProduct] = useState<Product | null>(null);
-  const [productImages, setProductImages] = useState<ProductImage[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
@@ -49,11 +48,7 @@ export default function EditProductPage() {
     "paquete",
   ];
 
-  useEffect(() => {
-    loadProduct();
-  }, [productId]);
-
-  const loadProduct = async () => {
+  const loadProduct = useCallback(async () => {
     try {
       const productData = await productService.getById(productId);
       if (productData) {
@@ -70,25 +65,17 @@ export default function EditProductPage() {
           sku: productData.sku,
           featured: productData.featured || false,
         });
-
-        // Cargar imágenes del producto
-        loadProductImages();
       }
     } catch (error) {
       console.error("Error loading product:", error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [productId]);
 
-  const loadProductImages = async () => {
-    try {
-      const images = await productService.getImages(productId);
-      setProductImages(images);
-    } catch (error) {
-      console.error("Error loading product images:", error);
-    }
-  };
+  useEffect(() => {
+    loadProduct();
+  }, [loadProduct]);
 
   const handleInputChange = (
     e: React.ChangeEvent<

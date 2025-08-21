@@ -46,7 +46,7 @@ export async function POST() {
 
     for (const policy of policies) {
       try {
-        const { data, error } = await adminClient.rpc("exec_sql", {
+        const { error } = await adminClient.rpc("exec_sql", {
           sql: policy,
         });
         if (error) {

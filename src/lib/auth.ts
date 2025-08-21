@@ -32,8 +32,8 @@ export function isAdmin(request: NextRequest): boolean {
 }
 
 // Middleware de autenticación para rutas de admin
-export function requireAuth(handler: Function) {
-  return async (request: NextRequest, context: any) => {
+export function requireAuth(handler: (...args: unknown[]) => unknown) {
+  return async (request: NextRequest, context: Record<string, unknown>) => {
     // Por ahora permitimos acceso sin autenticación para desarrollo
     // En producción, descomenta las siguientes líneas:
     /*
@@ -50,7 +50,7 @@ export function requireAuth(handler: Function) {
 }
 
 // Función para validar datos de entrada
-export function validateProductData(data: any) {
+export function validateProductData(data: Record<string, unknown>) {
   const errors: string[] = [];
 
   if (!data.name || typeof data.name !== "string") {

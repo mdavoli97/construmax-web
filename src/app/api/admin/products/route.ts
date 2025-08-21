@@ -8,7 +8,7 @@ export async function GET() {
     const { supabase } = await import("@/lib/supabase");
 
     // Primero verificar la conexión con las categorías
-    const { data: categories, error: catError } = await supabase
+    const { error: catError } = await supabase
       .from("categories")
       .select("*");
 

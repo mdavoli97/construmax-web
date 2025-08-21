@@ -31,7 +31,7 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  let body: any;
+  let body: Record<string, unknown> = {};
   try {
     const { id } = await params;
     body = await request.json();
@@ -70,12 +70,12 @@ export async function POST(
     }
 
     return NextResponse.json(data);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error adding product image:", error);
 
     // Manejo específico de errores de base de datos
-    if (error?.code === "22001") {
-      const urlLength = body.image_url?.length || 0;
+    if (error && typeof error === 'object' && 'code' in error && error.code === "22001") {
+      const urlLength = typeof body === 'object' && body && 'image_url' in body && typeof body.image_url === 'string' ? body.image_url.length : 0;
       return NextResponse.json(
         {
           error: `La URL de la imagen es demasiado larga (${urlLength} caracteres). La base de datos necesita ser actualizada a TEXT.`,
@@ -88,8 +88,8 @@ export async function POST(
 
     return NextResponse.json(
       {
-        error: error?.message || "Error interno del servidor",
-        code: error?.code || "UNKNOWN",
+        error: error && typeof error === 'object' && 'message' in error ? error.message : "Error interno del servidor",
+        code: error && typeof error === 'object' && 'code' in error ? error.code : "UNKNOWN",
       },
       { status: 500 }
     );

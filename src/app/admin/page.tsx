@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { productService, categoryService } from "@/lib/services";
-import { Product, Category } from "@/types";
+import { productService } from "@/lib/services";
+import { Product } from "@/types";
 import {
   PlusIcon,
   BoxIcon,
@@ -14,7 +14,6 @@ import {
 
 export default function AdminDashboard() {
   const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
   const [stats, setStats] = useState({
     totalProducts: 0,
     totalCategories: 0,
@@ -29,13 +28,9 @@ export default function AdminDashboard() {
 
   const loadData = async () => {
     try {
-      const [productsData, categoriesData] = await Promise.all([
-        productService.getAll(),
-        categoryService.getAll(),
-      ]);
+      const productsData = await productService.getAll();
 
       setProducts(productsData);
-      setCategories(categoriesData);
 
       // Calcular estadísticas
       const totalStock = productsData.reduce(
@@ -49,7 +44,7 @@ export default function AdminDashboard() {
 
       setStats({
         totalProducts: productsData.length,
-        totalCategories: categoriesData.length,
+        totalCategories: 0, // Se puede calcular dinámicamente si es necesario
         totalStock,
         totalValue,
       });
