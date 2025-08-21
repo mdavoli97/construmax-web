@@ -1,5 +1,5 @@
-import { supabase } from './supabase'
-import { Product, Category, Order } from '@/types'
+import { supabase } from "./supabase";
+import { Product, Category, Order } from "@/types";
 
 // Productos
 export const productService = {
@@ -7,16 +7,16 @@ export const productService = {
   async getAll(): Promise<Product[]> {
     try {
       const { data, error } = await supabase
-        .from('products')
-        .select('*')
-        .order('created_at', { ascending: false })
+        .from("products")
+        .select("*")
+        .order("created_at", { ascending: false });
 
-      if (error) throw error
-      return data || []
+      if (error) throw error;
+      return data || [];
     } catch (error) {
-      console.warn('Error connecting to Supabase, using fallback data:', error)
+      console.warn("Error connecting to Supabase, using fallback data:", error);
       // Fallback a datos estáticos si no hay conexión a Supabase
-      return []
+      return [];
     }
   },
 
@@ -24,16 +24,16 @@ export const productService = {
   async getByCategory(category: string): Promise<Product[]> {
     try {
       const { data, error } = await supabase
-        .from('products')
-        .select('*')
-        .eq('category', category)
-        .order('created_at', { ascending: false })
+        .from("products")
+        .select("*")
+        .eq("category", category)
+        .order("created_at", { ascending: false });
 
-      if (error) throw error
-      return data || []
+      if (error) throw error;
+      return data || [];
     } catch (error) {
-      console.warn('Error connecting to Supabase, using fallback data:', error)
-      return []
+      console.warn("Error connecting to Supabase, using fallback data:", error);
+      return [];
     }
   },
 
@@ -41,53 +41,163 @@ export const productService = {
   async getFeatured(): Promise<Product[]> {
     try {
       const { data, error } = await supabase
-        .from('products')
-        .select('*')
-        .eq('featured', true)
-        .order('created_at', { ascending: false })
+        .from("products")
+        .select("*")
+        .eq("featured", true)
+        .order("created_at", { ascending: false });
 
-      if (error) throw error
-      return data || []
+      if (error) throw error;
+      return data || [];
     } catch (error) {
-      console.warn('Error connecting to Supabase, using fallback data:', error)
-      return []
+      console.warn("Error connecting to Supabase, using fallback data:", error);
+      return [];
     }
   },
 
   // Obtener producto por ID
   async getById(id: string): Promise<Product | null> {
     const { data, error } = await supabase
-      .from('products')
-      .select('*')
-      .eq('id', id)
-      .single()
+      .from("products")
+      .select("*")
+      .eq("id", id)
+      .single();
 
-    if (error) throw error
-    return data
+    if (error) throw error;
+    return data;
   },
 
   // Buscar productos
   async search(query: string): Promise<Product[]> {
     const { data, error } = await supabase
-      .from('products')
-      .select('*')
+      .from("products")
+      .select("*")
       .or(`name.ilike.%${query}%,description.ilike.%${query}%`)
-      .order('created_at', { ascending: false })
+      .order("created_at", { ascending: false });
 
-    if (error) throw error
-    return data || []
+    if (error) throw error;
+    return data || [];
   },
 
   // Actualizar stock
   async updateStock(id: string, quantity: number): Promise<void> {
     const { error } = await supabase
-      .from('products')
+      .from("products")
       .update({ stock: quantity })
-      .eq('id', id)
+      .eq("id", id);
 
-    if (error) throw error
-  }
-}
+    if (error) throw error;
+  },
+
+  // Crear producto
+  async create(productData: {
+    name: string;
+    description?: string;
+    price: number;
+    category: string;
+    image?: string;
+    stock: number;
+    unit: string;
+    brand?: string;
+    sku: string;
+    featured?: boolean;
+  }): Promise<Product> {
+    // Obtener token de autenticación si está disponible
+    const token =
+      typeof window !== "undefined"
+        ? localStorage.getItem("admin_auth_token")
+        : null;
+
+    const headers: HeadersInit = {
+      "Content-Type": "application/json",
+    };
+
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+
+    const response = await fetch("/api/admin/products", {
+      method: "POST",
+      headers,
+      body: JSON.stringify(productData),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || "Error al crear producto");
+    }
+
+    return response.json();
+  },
+
+  // Actualizar producto
+  async update(
+    id: string,
+    productData: {
+      name?: string;
+      description?: string;
+      price?: number;
+      category?: string;
+      image?: string;
+      stock?: number;
+      unit?: string;
+      brand?: string;
+      sku?: string;
+      featured?: boolean;
+    }
+  ): Promise<Product> {
+    // Obtener token de autenticación si está disponible
+    const token =
+      typeof window !== "undefined"
+        ? localStorage.getItem("admin_auth_token")
+        : null;
+
+    const headers: HeadersInit = {
+      "Content-Type": "application/json",
+    };
+
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+
+    const response = await fetch(`/api/admin/products/${id}`, {
+      method: "PUT",
+      headers,
+      body: JSON.stringify(productData),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || "Error al actualizar producto");
+    }
+
+    return response.json();
+  },
+
+  // Eliminar producto
+  async delete(id: string): Promise<void> {
+    // Obtener token de autenticación si está disponible
+    const token =
+      typeof window !== "undefined"
+        ? localStorage.getItem("admin_auth_token")
+        : null;
+
+    const headers: HeadersInit = {};
+
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+
+    const response = await fetch(`/api/admin/products/${id}`, {
+      method: "DELETE",
+      headers,
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || "Error al eliminar producto");
+    }
+  },
+};
 
 // Categorías
 export const categoryService = {
@@ -95,50 +205,50 @@ export const categoryService = {
   async getAll(): Promise<Category[]> {
     try {
       const { data, error } = await supabase
-        .from('categories')
-        .select('*')
-        .order('name', { ascending: true })
+        .from("categories")
+        .select("*")
+        .order("name", { ascending: true });
 
-      if (error) throw error
-      return data || []
+      if (error) throw error;
+      return data || [];
     } catch (error) {
-      console.warn('Error connecting to Supabase, using fallback data:', error)
-      return []
+      console.warn("Error connecting to Supabase, using fallback data:", error);
+      return [];
     }
   },
 
   // Obtener categoría por slug
   async getBySlug(slug: string): Promise<Category | null> {
     const { data, error } = await supabase
-      .from('categories')
-      .select('*')
-      .eq('slug', slug)
-      .single()
+      .from("categories")
+      .select("*")
+      .eq("slug", slug)
+      .single();
 
-    if (error) throw error
-    return data
-  }
-}
+    if (error) throw error;
+    return data;
+  },
+};
 
 // Órdenes
 export const orderService = {
   // Crear nueva orden
   async create(orderData: {
-    user_id: string
-    total: number
-    shipping_address: string
-    shipping_city: string
-    shipping_zip: string
-    payment_method: string
+    user_id: string;
+    total: number;
+    shipping_address: string;
+    shipping_city: string;
+    shipping_zip: string;
+    payment_method: string;
     items: Array<{
-      product_id: string
-      quantity: number
-      price: number
-    }>
+      product_id: string;
+      quantity: number;
+      price: number;
+    }>;
   }): Promise<string> {
     // Crear la orden
     const { data: order, error: orderError } = await supabase
-      .from('orders')
+      .from("orders")
       .insert({
         user_id: orderData.user_id,
         total: orderData.total,
@@ -146,124 +256,129 @@ export const orderService = {
         shipping_city: orderData.shipping_city,
         shipping_zip: orderData.shipping_zip,
         payment_method: orderData.payment_method,
-        status: 'pending'
+        status: "pending",
       })
       .select()
-      .single()
+      .single();
 
-    if (orderError) throw orderError
+    if (orderError) throw orderError;
 
     // Crear los items de la orden
-    const orderItems = orderData.items.map(item => ({
+    const orderItems = orderData.items.map((item) => ({
       order_id: order.id,
       product_id: item.product_id,
       quantity: item.quantity,
-      price: item.price
-    }))
+      price: item.price,
+    }));
 
     const { error: itemsError } = await supabase
-      .from('order_items')
-      .insert(orderItems)
+      .from("order_items")
+      .insert(orderItems);
 
-    if (itemsError) throw itemsError
+    if (itemsError) throw itemsError;
 
-    return order.id
+    return order.id;
   },
 
   // Obtener órdenes de un usuario
   async getByUser(userId: string): Promise<Order[]> {
     const { data, error } = await supabase
-      .from('orders')
-      .select(`
+      .from("orders")
+      .select(
+        `
         *,
         order_items (
           *,
           products (*)
         )
-      `)
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
+      `
+      )
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false });
 
-    if (error) throw error
-    return data || []
+    if (error) throw error;
+    return data || [];
   },
 
   // Actualizar estado de la orden
-  async updateStatus(orderId: string, status: Order['status']): Promise<void> {
+  async updateStatus(orderId: string, status: Order["status"]): Promise<void> {
     const { error } = await supabase
-      .from('orders')
+      .from("orders")
       .update({ status, updated_at: new Date().toISOString() })
-      .eq('id', orderId)
+      .eq("id", orderId);
 
-    if (error) throw error
+    if (error) throw error;
   },
 
   // Obtener orden por ID
   async getById(orderId: string): Promise<Order | null> {
     const { data, error } = await supabase
-      .from('orders')
-      .select(`
+      .from("orders")
+      .select(
+        `
         *,
         order_items (
           *,
           products (*)
         )
-      `)
-      .eq('id', orderId)
-      .single()
+      `
+      )
+      .eq("id", orderId)
+      .single();
 
-    if (error) throw error
-    return data
-  }
-}
+    if (error) throw error;
+    return data;
+  },
+};
 
 // Usuarios
 export const userService = {
   // Obtener perfil del usuario
   async getProfile(userId: string) {
     const { data, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', userId)
-      .single()
+      .from("users")
+      .select("*")
+      .eq("id", userId)
+      .single();
 
-    if (error) throw error
-    return data
+    if (error) throw error;
+    return data;
   },
 
   // Actualizar perfil del usuario
-  async updateProfile(userId: string, profileData: {
-    name?: string
-    phone?: string
-    address?: string
-    city?: string
-    zip_code?: string
-  }) {
+  async updateProfile(
+    userId: string,
+    profileData: {
+      name?: string;
+      phone?: string;
+      address?: string;
+      city?: string;
+      zip_code?: string;
+    }
+  ) {
     const { error } = await supabase
-      .from('users')
+      .from("users")
       .update({
         ...profileData,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       })
-      .eq('id', userId)
+      .eq("id", userId);
 
-    if (error) throw error
+    if (error) throw error;
   },
 
   // Crear usuario
   async create(userData: {
-    id: string
-    email: string
-    name: string
-    phone?: string
-    address?: string
-    city?: string
-    zip_code?: string
+    id: string;
+    email: string;
+    name: string;
+    phone?: string;
+    address?: string;
+    city?: string;
+    zip_code?: string;
   }) {
-    const { error } = await supabase
-      .from('users')
-      .insert(userData)
+    const { error } = await supabase.from("users").insert(userData);
 
-    if (error) throw error
-  }
-}
+    if (error) throw error;
+  },
+};
