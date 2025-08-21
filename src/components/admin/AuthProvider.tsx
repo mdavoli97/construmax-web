@@ -11,10 +11,10 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-// Credenciales de administrador (en producción deberían estar en variables de entorno)
+// Credenciales de administrador (deben estar en variables de entorno)
 const ADMIN_CREDENTIALS = {
-  username: process.env.NEXT_PUBLIC_ADMIN_USERNAME || "admin",
-  password: process.env.NEXT_PUBLIC_ADMIN_PASSWORD || "admin123",
+  username: process.env.NEXT_PUBLIC_ADMIN_USERNAME,
+  password: process.env.NEXT_PUBLIC_ADMIN_PASSWORD,
 };
 
 const AUTH_TOKEN_KEY = "admin_auth_token";

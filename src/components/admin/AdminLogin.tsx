@@ -139,33 +139,6 @@ export default function AdminLogin() {
               </button>
             </div>
           </form>
-
-          <div className="mt-6">
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300" />
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-700">
-                  Credenciales de desarrollo
-                </span>
-              </div>
-            </div>
-            <div className="mt-3 text-center text-xs text-gray-700">
-              <p>
-                Usuario:{" "}
-                <span className="font-mono bg-gray-100 px-1 rounded">
-                  admin
-                </span>
-              </p>
-              <p>
-                Contraseña:{" "}
-                <span className="font-mono bg-gray-100 px-1 rounded">
-                  admin123
-                </span>
-              </p>
-            </div>
-          </div>
         </div>
       </div>
     </div>

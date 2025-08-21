@@ -51,15 +51,6 @@ export default function Header() {
 
           {/* Cart and Mobile menu button */}
           <div className="flex items-center space-x-4">
-            {/* Admin Panel Link - discreto */}
-            <Link
-              href="/admin"
-              className="hidden md:block text-xs text-gray-400 hover:text-gray-600 transition-colors"
-              title="Panel de Administración"
-            >
-              Admin
-            </Link>
-
             <Link
               href="/carrito"
               className="relative p-2 text-gray-700 hover:text-orange-600 transition-colors"
@@ -100,13 +91,6 @@ export default function Header() {
                   {item.name}
                 </Link>
               ))}
-              <Link
-                href="/admin"
-                className="text-gray-500 hover:text-gray-700 block px-3 py-2 text-sm font-medium border-t"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                Panel de Administración
-              </Link>
             </div>
           </div>
         )}
