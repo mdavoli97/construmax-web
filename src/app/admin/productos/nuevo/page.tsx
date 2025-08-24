@@ -1,12 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
 import { productService } from "@/lib/services";
-import { ArrowLeftIcon, SaveIcon } from "lucide-react";
+import { ArrowLeftIcon, SaveIcon, RefreshCw } from "lucide-react";
 import { ProductImage } from "@/types";
+import ImageUpload from "@/components/admin/ImageUpload";
+import { useNotifications } from "@/components/admin/NotificationProvider";
+import {
+  useExchangeRate,
+  formatUSD,
+  formatUYU,
+  convertUSDToUYU,
+} from "@/lib/currency";
 
 export default function NewProductPage() {
   const router = useRouter();
@@ -14,20 +21,61 @@ export default function NewProductPage() {
   const [productCreated, setProductCreated] = useState(false);
   const [createdProductId, setCreatedProductId] = useState<string | null>(null);
   const [images, setImages] = useState<ProductImage[]>([]);
-  const [showUrlInput, setShowUrlInput] = useState(false);
-  const [newImageUrl, setNewImageUrl] = useState("");
-  const [addingUrlImage, setAddingUrlImage] = useState(false);
+  const [priceGroups, setPriceGroups] = useState<Array<{
+    id: string;
+    name: string;
+    price_per_kg_usd: number;
+    category: string;
+  }>>([]);
+  const { success, error } = useNotifications();
+
+  // Hook para cotización de dólar
+  const {
+    exchangeRate,
+    loading: exchangeLoading,
+    error: exchangeError,
+    refresh: refreshExchangeRate,
+  } = useExchangeRate();
+
+  // Cargar grupos de precios al montar el componente
+  useEffect(() => {
+    const loadPriceGroups = async () => {
+      try {
+        const response = await fetch("/api/price-groups");
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success) {
+            setPriceGroups(result.data);
+          } else {
+            console.error("Error loading price groups:", result.error);
+          }
+        }
+      } catch (error) {
+        console.error("Error loading price groups:", error);
+      }
+    };
+
+    loadPriceGroups();
+  }, []);
+
   const [formData, setFormData] = useState({
     name: "",
     description: "",
     price: "",
     category: "",
-    primary_image: "",
     stock: "",
-    unit: "",
+    unit: "kg", // Por defecto kg para perfiles
     brand: "",
     sku: "",
     featured: false,
+    // Nuevos campos
+    product_type: "perfiles",
+    weight_per_unit: "",
+    kg_per_meter: "",
+    price_per_kg: "",
+    stock_type: "availability",
+    is_available: true,
+    price_group_id: "",
   });
 
   const categories = [
@@ -35,6 +83,14 @@ export default function NewProductPage() {
     { value: "metalurgica", label: "Metalúrgica" },
     { value: "herramientas", label: "Herramientas" },
     { value: "herreria", label: "Herrería" },
+  ];
+
+  const productTypes = [
+    { value: "perfiles", label: "Perfiles (precio por kg)" },
+    {
+      value: "chapas_conformadas",
+      label: "Chapas conformadas (precio por kg)",
+    },
   ];
 
   const units = [
@@ -56,13 +112,87 @@ export default function NewProductPage() {
     >
   ) => {
     const { name, value, type } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]:
-        type === "checkbox" ? (e.target as HTMLInputElement).checked : value,
-    }));
-  };
+    const newValue =
+      type === "checkbox" ? (e.target as HTMLInputElement).checked : value;
 
+    setFormData((prev) => {
+      const updated = {
+        ...prev,
+        [name]: newValue,
+      };
+
+      // Si es un perfil o chapa conformada y cambian peso/kg por metro o precio por kg, recalcular precio total
+      if (updated.product_type === "perfiles") {
+        if (name === "weight_per_unit" || name === "price_per_kg") {
+          const weight = parseFloat(updated.weight_per_unit) || 0;
+          const pricePerKg = parseFloat(updated.price_per_kg) || 0;
+          if (weight > 0 && pricePerKg > 0) {
+            updated.price = (weight * pricePerKg).toFixed(2);
+          }
+        }
+      } else if (updated.product_type === "chapas_conformadas") {
+        if (name === "kg_per_meter" || name === "price_per_kg") {
+          const kgPerMeter = parseFloat(updated.kg_per_meter) || 0;
+          const pricePerKg = parseFloat(updated.price_per_kg) || 0;
+          if (kgPerMeter > 0 && pricePerKg > 0) {
+            // Para chapas, el precio base es por metro (kg/m * $/kg)
+            updated.price = (kgPerMeter * pricePerKg).toFixed(2);
+          }
+        }
+      }
+
+      // Si selecciona un grupo de precios, cargar el precio por kg
+      if (
+        (updated.product_type === "perfiles" ||
+          updated.product_type === "chapas_conformadas") &&
+        name === "price_group_id" &&
+        value
+      ) {
+        const selectedGroup = priceGroups.find((group) => group.id === value);
+        if (selectedGroup) {
+          updated.price_per_kg = selectedGroup.price_per_kg_usd.toString();
+          updated.category = selectedGroup.category;
+
+          // Recalcular precio total
+          if (updated.product_type === "perfiles") {
+            const weight = parseFloat(updated.weight_per_unit) || 0;
+            if (weight > 0) {
+              updated.price = (weight * selectedGroup.price_per_kg_usd).toFixed(
+                2
+              );
+            }
+          } else if (updated.product_type === "chapas_conformadas") {
+            const kgPerMeter = parseFloat(updated.kg_per_meter) || 0;
+            if (kgPerMeter > 0) {
+              updated.price = (
+                kgPerMeter * selectedGroup.price_per_kg_usd
+              ).toFixed(2);
+            }
+          }
+        }
+      }
+
+      // Si cambia el tipo de producto, resetear campos específicos
+      if (name === "product_type") {
+        if (value === "perfiles") {
+          updated.unit = "kg";
+          updated.stock_type = "availability";
+          updated.kg_per_meter = "";
+        } else if (value === "chapas_conformadas") {
+          updated.unit = "m";
+          updated.stock_type = "availability";
+          updated.weight_per_unit = "";
+        } else {
+          updated.weight_per_unit = "";
+          updated.kg_per_meter = "";
+          updated.price_per_kg = "";
+          updated.stock_type = "quantity";
+        }
+      }
+
+      return updated;
+    });
+  };
   const generateSKU = () => {
     const categoryCode = formData.category
       ? formData.category.substring(0, 3).toUpperCase()
@@ -83,169 +213,218 @@ export default function NewProductPage() {
     try {
       // Validación básica en frontend
       if (!formData.name.trim()) {
-        alert("El nombre del producto es requerido");
+        error("Campo requerido", "El nombre del producto es requerido");
         setLoading(false);
         return;
       }
 
-      if (
-        !formData.price ||
-        isNaN(parseFloat(formData.price)) ||
-        parseFloat(formData.price) <= 0
-      ) {
-        alert("El precio debe ser un número mayor a 0");
-        setLoading(false);
-        return;
-      }
-
-      if (!formData.category) {
-        alert("La categoría es requerida");
-        setLoading(false);
-        return;
-      }
-
-      if (
-        !formData.stock ||
-        isNaN(parseInt(formData.stock)) ||
-        parseInt(formData.stock) < 0
-      ) {
-        alert("El stock debe ser un número mayor o igual a 0");
-        setLoading(false);
-        return;
-      }
-
-      if (!formData.unit.trim()) {
-        alert("La unidad es requerida");
-        setLoading(false);
-        return;
-      }
-
-      // Validar URL de imagen si se proporcionó
-      if (formData.primary_image.trim()) {
-        if (formData.primary_image.length > 1000) {
-          alert(
-            "La URL de la imagen es demasiado larga (máximo 1000 caracteres)"
+      // Validaciones específicas por tipo de producto
+      if (formData.product_type === "perfiles") {
+        if (
+          !formData.price_per_kg ||
+          isNaN(parseFloat(formData.price_per_kg)) ||
+          parseFloat(formData.price_per_kg) <= 0
+        ) {
+          error(
+            "Precio inválido",
+            "El precio por kg es requerido y debe ser mayor a 0"
           );
           setLoading(false);
           return;
         }
 
-        try {
-          new URL(formData.primary_image);
-        } catch {
-          alert("La URL de la imagen no es válida");
+        if (
+          !formData.weight_per_unit ||
+          isNaN(parseFloat(formData.weight_per_unit)) ||
+          parseFloat(formData.weight_per_unit) <= 0
+        ) {
+          error(
+            "Peso inválido",
+            "El peso por unidad es requerido y debe ser mayor a 0"
+          );
           setLoading(false);
           return;
         }
+
+        // Para perfiles, el stock se maneja como disponibilidad
+        // No validamos número de stock
+      } else if (formData.product_type === "chapas_conformadas") {
+        if (
+          !formData.price_per_kg ||
+          isNaN(parseFloat(formData.price_per_kg)) ||
+          parseFloat(formData.price_per_kg) <= 0
+        ) {
+          error(
+            "Precio inválido",
+            "El precio por kg es requerido y debe ser mayor a 0"
+          );
+          setLoading(false);
+          return;
+        }
+
+        if (
+          !formData.kg_per_meter ||
+          isNaN(parseFloat(formData.kg_per_meter)) ||
+          parseFloat(formData.kg_per_meter) <= 0
+        ) {
+          error(
+            "Kg por metro inválido",
+            "Los kg por metro son requeridos y deben ser mayor a 0"
+          );
+          setLoading(false);
+          return;
+        }
+
+        // Para chapas conformadas, el stock se maneja como disponibilidad
+        // No validamos número de stock
+      } else {
+        // Validación estándar de precio y stock
+        if (
+          !formData.price ||
+          isNaN(parseFloat(formData.price)) ||
+          parseFloat(formData.price) <= 0
+        ) {
+          error("Precio inválido", "El precio debe ser un número mayor a 0");
+          setLoading(false);
+          return;
+        }
+
+        if (
+          !formData.stock ||
+          isNaN(parseInt(formData.stock)) ||
+          parseInt(formData.stock) < 0
+        ) {
+          error(
+            "Stock inválido",
+            "El stock debe ser un número mayor o igual a 0"
+          );
+          setLoading(false);
+          return;
+        }
+      }
+
+      if (!formData.category) {
+        error("Campo requerido", "La categoría es requerida");
+        setLoading(false);
+        return;
+      }
+
+      // Para perfiles, asegurar que la unidad sea kg. Para chapas conformadas, asegurar que sea m
+      let finalUnit = formData.unit.trim();
+      if (formData.product_type === "perfiles") {
+        finalUnit = "kg";
+      } else if (formData.product_type === "chapas_conformadas") {
+        finalUnit = "m";
+      }
+
+      if (!finalUnit) {
+        error("Campo requerido", "La unidad es requerida");
+        setLoading(false);
+        return;
       }
 
       // Generar SKU si no se proporcionó uno
       const sku = formData.sku.trim() || generateSKU();
 
-      // Determinar imagen principal desde las imágenes subidas o URL manual
-      const primaryImageUrl =
-        images.find((img) => img.is_primary)?.image_url ||
-        formData.primary_image.trim() ||
-        undefined;
-
-      const productData = {
+      // Preparar datos según el tipo de producto
+      const baseProductData = {
         name: formData.name.trim(),
-        description: formData.description.trim() || undefined,
-        price: parseFloat(formData.price),
         category: formData.category,
-        primary_image: primaryImageUrl,
-        stock: parseInt(formData.stock),
-        unit: formData.unit.trim(),
+        primary_image: undefined, // Se establecerá después al subir imágenes
+        unit: finalUnit,
         brand: formData.brand.trim() || undefined,
         sku,
         featured: formData.featured,
       };
 
+      let productData;
+
+      if (formData.product_type === "perfiles") {
+        // Para perfiles: guardar info extra en description como JSON
+        const extraData = {
+          product_type: "perfiles",
+          weight_per_unit: parseFloat(formData.weight_per_unit),
+          price_per_kg: parseFloat(formData.price_per_kg),
+          stock_type: "availability",
+          is_available: formData.is_available,
+        };
+
+        const descriptionWithMeta = {
+          description: formData.description.trim() || "",
+          meta: extraData,
+        };
+
+        productData = {
+          ...baseProductData,
+          description: JSON.stringify(descriptionWithMeta),
+          price: parseFloat(formData.price), // Precio calculado automáticamente
+          stock: formData.is_available ? 1 : 0, // 1 = disponible, 0 = no disponible
+          price_group_id: formData.price_group_id || null,
+        };
+      } else if (formData.product_type === "chapas_conformadas") {
+        // Para chapas conformadas: guardar info extra en description como JSON
+        const extraData = {
+          product_type: "chapas_conformadas",
+          kg_per_meter: parseFloat(formData.kg_per_meter),
+          price_per_kg: parseFloat(formData.price_per_kg),
+          stock_type: "availability",
+          is_available: formData.is_available,
+        };
+
+        const descriptionWithMeta = {
+          description: formData.description.trim() || "",
+          meta: extraData,
+        };
+
+        productData = {
+          ...baseProductData,
+          description: JSON.stringify(descriptionWithMeta),
+          price: parseFloat(formData.price), // Precio calculado automáticamente por metro
+          stock: formData.is_available ? 1 : 0, // 1 = disponible, 0 = no disponible
+          price_group_id: formData.price_group_id || null,
+        };
+      } else {
+        // Para productos estándar
+        const extraData = {
+          product_type: "standard",
+          stock_type: "quantity",
+        };
+
+        const descriptionWithMeta = {
+          description: formData.description.trim() || "",
+          meta: extraData,
+        };
+
+        productData = {
+          ...baseProductData,
+          description: JSON.stringify(descriptionWithMeta),
+          price: parseFloat(formData.price),
+          stock: parseInt(formData.stock),
+        };
+      }
+
       const createdProduct = await productService.create(productData);
       setCreatedProductId(createdProduct.id);
       setProductCreated(true);
 
-      // Si se proporcionó una imagen por URL, agregarla automáticamente a la lista
-      if (primaryImageUrl) {
-        try {
-          const primaryImage = await productService.addImage(
-            createdProduct.id,
-            {
-              image_url: primaryImageUrl,
-              alt_text: `Imagen principal de ${formData.name}`,
-              is_primary: true,
-              display_order: 0,
-            }
-          );
-          setImages([primaryImage]);
-        } catch (error) {
-          console.error("Error adding primary image:", error);
-          // No bloqueamos el flujo si falla la imagen
-        }
-      }
-
-      alert(
-        "Producto creado exitosamente. Ahora puedes agregar más imágenes si lo deseas."
+      success(
+        "Producto creado",
+        "Producto creado exitosamente. Ahora puedes agregar imágenes si lo deseas."
       );
-    } catch (error) {
-      console.error("Error creating product:", error);
-      alert(
-        `Error al crear el producto: ${
-          error instanceof Error ? error.message : "Error desconocido"
-        }`
+    } catch (err) {
+      console.error("Error creating product:", err);
+      error(
+        "Error al crear producto",
+        `${err instanceof Error ? err.message : "Error desconocido"}`
       );
     } finally {
       setLoading(false);
     }
   };
 
-  const handleFinish = () => {
-    router.push("/admin/productos");
-  };
-
-  const handleAddUrlImage = async () => {
-    if (!newImageUrl.trim() || !createdProductId) return;
-
-    // Validar URL
-    if (newImageUrl.length > 1000) {
-      alert("La URL es demasiado larga (máximo 1000 caracteres)");
-      return;
-    }
-
-    try {
-      new URL(newImageUrl);
-    } catch {
-      alert("La URL no es válida");
-      return;
-    }
-
-    setAddingUrlImage(true);
-    try {
-      const newImage = await productService.addImage(createdProductId, {
-        image_url: newImageUrl.trim(),
-        alt_text: `Imagen de ${formData.name}`,
-        is_primary: images.length === 0,
-        display_order: images.length,
-      });
-
-      setImages([...images, newImage]);
-      setNewImageUrl("");
-      setShowUrlInput(false);
-    } catch (error) {
-      console.error("Error adding URL image:", error);
-      alert(
-        "Error al agregar la imagen por URL: " +
-          (error instanceof Error ? error.message : "Error desconocido")
-      );
-    } finally {
-      setAddingUrlImage(false);
-    }
-  };
-
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        {/* Header */}
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-8">
           <div className="flex items-center mb-4">
             <Link
@@ -350,50 +529,10 @@ export default function NewProductPage() {
                     value={formData.name}
                     onChange={handleInputChange}
                     className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
-                    placeholder="Ej: Cemento Portland"
+                    placeholder="Ej: Perfil Tubular 40x40"
                   />
                 </div>
 
-                <div>
-                  <label
-                    htmlFor="brand"
-                    className="block text-sm font-medium text-gray-800 mb-2"
-                  >
-                    Marca
-                  </label>
-                  <input
-                    type="text"
-                    id="brand"
-                    name="brand"
-                    disabled={productCreated}
-                    value={formData.brand}
-                    onChange={handleInputChange}
-                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
-                    placeholder="Ej: ANCAP"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label
-                  htmlFor="description"
-                  className="block text-sm font-medium text-gray-800 mb-2"
-                >
-                  Descripción
-                </label>
-                <textarea
-                  id="description"
-                  name="description"
-                  rows={3}
-                  disabled={productCreated}
-                  value={formData.description}
-                  onChange={handleInputChange}
-                  className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
-                  placeholder="Descripción detallada del producto"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label
                     htmlFor="category"
@@ -418,7 +557,28 @@ export default function NewProductPage() {
                     ))}
                   </select>
                 </div>
+              </div>
 
+              <div>
+                <label
+                  htmlFor="description"
+                  className="block text-sm font-medium text-gray-800 mb-2"
+                >
+                  Descripción
+                </label>
+                <textarea
+                  id="description"
+                  name="description"
+                  rows={3}
+                  disabled={productCreated}
+                  value={formData.description}
+                  onChange={handleInputChange}
+                  className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  placeholder="Descripción del producto..."
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label
                     htmlFor="sku"
@@ -455,216 +615,489 @@ export default function NewProductPage() {
                   </span>
                 )}
               </h2>
+
+              {/* Información de cotización */}
+              <div className="mt-3">
+                {exchangeLoading ? (
+                  <div className="flex items-center text-sm text-gray-600">
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    Obteniendo cotización del dólar...
+                  </div>
+                ) : exchangeError ? (
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-red-600">
+                      Error al obtener cotización: {exchangeError}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={refreshExchangeRate}
+                      className="flex items-center text-blue-600 hover:text-blue-700"
+                    >
+                      <RefreshCw className="h-4 w-4 mr-1" />
+                      Reintentar
+                    </button>
+                  </div>
+                ) : exchangeRate ? (
+                  <div className="bg-blue-50 border border-blue-200 rounded p-3">
+                    <div className="flex items-center justify-between">
+                      <div className="text-sm">
+                        <span className="font-medium text-blue-900">USD:</span>
+                        <span className="ml-2 font-semibold text-blue-700">
+                          $
+                          {(
+                            exchangeRate.venta || exchangeRate.usd_to_uyu
+                          ).toFixed(2)}{" "}
+                          UYU
+                        </span>
+                        <span className="ml-2 text-xs text-gray-600">
+                          (
+                          {exchangeRate.source === "dolarapi"
+                            ? "En vivo"
+                            : "Cache"}
+                          )
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={refreshExchangeRate}
+                        className="text-blue-600 hover:text-blue-700"
+                        title="Actualizar cotización"
+                      >
+                        <RefreshCw className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
             </div>
             <div className="p-6 space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div>
-                  <label
-                    htmlFor="price"
-                    className="block text-sm font-medium text-gray-800 mb-2"
-                  >
-                    Precio *
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-700">
-                      $
-                    </span>
-                    <input
-                      type="number"
-                      id="price"
-                      name="price"
-                      required
-                      step="0.01"
-                      disabled={productCreated}
-                      value={formData.price}
-                      onChange={handleInputChange}
-                      className="pl-8 w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
-                      placeholder="0.00"
-                    />
-                  </div>
-                </div>
+              {/* Selector de tipo de producto */}
+              <div>
+                <label
+                  htmlFor="product_type"
+                  className="block text-sm font-medium text-gray-800 mb-2"
+                >
+                  Tipo de Producto *
+                </label>
+                <select
+                  id="product_type"
+                  name="product_type"
+                  required
+                  disabled={productCreated}
+                  value={formData.product_type}
+                  onChange={handleInputChange}
+                  className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                >
+                  {productTypes.map((type) => (
+                    <option key={type.value} value={type.value}>
+                      {type.label}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-sm text-gray-500 mt-1">
+                  Selecciona el tipo para mostrar campos específicos
+                </p>
+              </div>
 
+              {/* Selector de grupo de precios para perfiles y chapas conformadas */}
+              {(formData.product_type === "perfiles" ||
+                formData.product_type === "chapas_conformadas") && (
                 <div>
                   <label
-                    htmlFor="stock"
+                    htmlFor="price_group_id"
                     className="block text-sm font-medium text-gray-800 mb-2"
                   >
-                    Stock *
-                  </label>
-                  <input
-                    type="number"
-                    id="stock"
-                    name="stock"
-                    required
-                    min="0"
-                    disabled={productCreated}
-                    value={formData.stock}
-                    onChange={handleInputChange}
-                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
-                    placeholder="0"
-                  />
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="unit"
-                    className="block text-sm font-medium text-gray-800 mb-2"
-                  >
-                    Unidad *
+                    Grupo de Precios *
                   </label>
                   <select
-                    id="unit"
-                    name="unit"
+                    id="price_group_id"
+                    name="price_group_id"
                     required
                     disabled={productCreated}
-                    value={formData.unit}
+                    value={formData.price_group_id}
                     onChange={handleInputChange}
                     className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 disabled:bg-gray-100 disabled:cursor-not-allowed"
                   >
-                    <option value="">Seleccionar unidad</option>
-                    {units.map((unit) => (
-                      <option key={unit} value={unit}>
-                        {unit}
+                    <option value="">Seleccionar grupo de precios</option>
+                    {priceGroups.map((group) => (
+                      <option key={group.id} value={group.id}>
+                        {group.name} - ${group.price_per_kg_usd}/kg USD
                       </option>
                     ))}
                   </select>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h2 className="text-lg font-semibold text-gray-900">
-                Imágenes del Producto
-              </h2>
-            </div>
-            <div className="p-6 space-y-6">
-              {productCreated && createdProductId ? (
-                // Mostrar ImageUpload después de crear el producto
-                <div className="space-y-6">
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <h3 className="text-lg font-medium text-gray-900">
-                        Gestión de Imágenes
-                      </h3>
-                      <p className="text-sm text-gray-600">
-                        Sube archivos desde tu computadora o agrega URLs de
-                        imágenes
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setShowUrlInput(!showUrlInput)}
-                      className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                    >
-                      {showUrlInput ? "Cancelar URL" : "Agregar por URL"}
-                    </button>
-                  </div>
-
-                  {showUrlInput && (
-                    <div className="bg-gray-50 p-4 rounded-lg border">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        URL de la imagen
-                      </label>
-                      <div className="flex space-x-3">
-                        <div className="flex-1">
-                          <input
-                            type="url"
-                            value={newImageUrl}
-                            onChange={(e) => setNewImageUrl(e.target.value)}
-                            placeholder="https://ejemplo.com/imagen.jpg"
-                            maxLength={1000}
-                            className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                          />
-                          <div className="text-right text-xs text-gray-500 mt-1">
-                            <span
-                              className={
-                                newImageUrl.length > 900
-                                  ? "text-orange-600"
-                                  : ""
-                              }
-                            >
-                              {newImageUrl.length}/1000
-                            </span>
-                          </div>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={handleAddUrlImage}
-                          disabled={
-                            !newImageUrl.trim() ||
-                            addingUrlImage ||
-                            newImageUrl.length > 1000
-                          }
-                          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
-                        >
-                          {addingUrlImage ? "Agregando..." : "Agregar"}
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                // Mostrar campo manual antes de crear el producto
-                <div className="space-y-4">
-                  <div>
-                    <label
-                      htmlFor="primary_image"
-                      className="block text-sm font-medium text-gray-800 mb-2"
-                    >
-                      URL de la Imagen Principal (Opcional)
-                    </label>
-                    <input
-                      type="url"
-                      id="primary_image"
-                      name="primary_image"
-                      value={formData.primary_image}
-                      onChange={handleInputChange}
-                      className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-500"
-                      placeholder="https://ejemplo.com/imagen.jpg"
-                      maxLength={1000}
-                    />
-                    <div className="flex justify-between text-sm text-gray-500 mt-1">
-                      <span>
-                        Si ya tienes una imagen en línea, puedes agregar su URL
-                        aquí. También podrás subir imágenes desde tu computadora
-                        en el siguiente paso.
-                      </span>
-                      <span
-                        className={
-                          formData.primary_image.length > 900
-                            ? "text-orange-600"
-                            : ""
-                        }
-                      >
-                        {formData.primary_image.length}/1000
-                      </span>
-                    </div>
-                  </div>
-
-                  {formData.primary_image && (
-                    <div className="mt-4">
-                      <p className="text-sm font-medium text-gray-800 mb-2">
-                        Vista previa:
-                      </p>
-                      <div className="w-32 h-32 border border-gray-300 rounded-lg overflow-hidden relative">
-                        <Image
-                          src={formData.primary_image}
-                          alt="Vista previa"
-                          fill
-                          className="object-cover"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).style.display =
-                              "none";
-                          }}
-                        />
-                      </div>
-                    </div>
-                  )}
+                  <p className="text-sm text-gray-500 mt-1">
+                    El precio por kg se cargará automáticamente desde el grupo
+                    seleccionado
+                  </p>
                 </div>
               )}
 
+              {/* Campos específicos para Perfiles */}
+              {formData.product_type === "perfiles" && (
+                <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                  <h3 className="text-sm font-medium text-blue-900 mb-3">
+                    Configuración para Perfiles
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label
+                        htmlFor="price_per_kg"
+                        className="block text-sm font-medium text-gray-800 mb-2"
+                      >
+                        Precio por Kg (USD) *
+                      </label>
+                      <div className="space-y-2">
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-700">
+                            $
+                          </span>
+                          <input
+                            type="number"
+                            id="price_per_kg"
+                            name="price_per_kg"
+                            required
+                            step="0.01"
+                            disabled={
+                              productCreated || formData.price_group_id !== ""
+                            }
+                            value={formData.price_per_kg}
+                            onChange={handleInputChange}
+                            className="pl-8 w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                            placeholder="0.00"
+                          />
+                        </div>
+                        {formData.price_per_kg && exchangeRate && (
+                          <div className="text-xs bg-gray-50 border border-gray-200 p-2 rounded">
+                            <span className="text-gray-600">Equivalente: </span>
+                            <span className="font-semibold text-gray-900">
+                              $
+                              {(
+                                parseFloat(formData.price_per_kg) *
+                                (exchangeRate.venta || exchangeRate.usd_to_uyu)
+                              ).toFixed(2)}{" "}
+                              UYU por kg
+                            </span>
+                          </div>
+                        )}
+                        {formData.price_group_id && (
+                          <div className="text-xs text-blue-600 bg-blue-50 p-2 rounded">
+                            💡 Precio cargado automáticamente desde el grupo de
+                            precios seleccionado
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label
+                        htmlFor="weight_per_unit"
+                        className="block text-sm font-medium text-gray-800 mb-2"
+                      >
+                        Peso por Unidad (kg) *
+                      </label>
+                      <input
+                        type="number"
+                        id="weight_per_unit"
+                        name="weight_per_unit"
+                        required
+                        step="0.001"
+                        disabled={productCreated}
+                        value={formData.weight_per_unit}
+                        onChange={handleInputChange}
+                        className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                        placeholder="0.000"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Precio calculado automáticamente */}
+                  <div className="mt-4 p-3 bg-green-50 rounded-md border border-green-200">
+                    <div className="space-y-2">
+                      <p className="text-sm text-green-800">
+                        <strong>
+                          Precio Total Calculado (USD):{" "}
+                          {formatUSD(parseFloat(formData.price) || 0)}
+                        </strong>
+                        {formData.price_per_kg && formData.weight_per_unit && (
+                          <span className="text-xs text-green-600 block">
+                            ({formData.weight_per_unit} kg ×{" "}
+                            {formatUSD(parseFloat(formData.price_per_kg))}/kg)
+                          </span>
+                        )}
+                      </p>
+                      {formData.price && exchangeRate && (
+                        <p className="text-sm text-blue-800 font-medium">
+                          <strong>
+                            Equivalente en Pesos:{" "}
+                            {formatUYU(
+                              convertUSDToUYU(
+                                parseFloat(formData.price),
+                                exchangeRate.usd_to_uyu
+                              )
+                            )}
+                          </strong>
+                          <span className="text-xs text-blue-600 block">
+                            (Cotización: ${exchangeRate.usd_to_uyu.toFixed(2)}{" "}
+                            UYU)
+                          </span>
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Stock como disponibilidad */}
+                  <div className="mt-4">
+                    <label className="flex items-center">
+                      <input
+                        type="checkbox"
+                        name="is_available"
+                        checked={formData.is_available}
+                        onChange={handleInputChange}
+                        disabled={productCreated}
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded disabled:cursor-not-allowed"
+                      />
+                      <span className="ml-2 text-sm text-gray-900">
+                        Producto disponible en stock
+                      </span>
+                    </label>
+                  </div>
+                </div>
+              )}
+
+              {/* Campos específicos para Chapas Conformadas */}
+              {formData.product_type === "chapas_conformadas" && (
+                <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                  <h3 className="text-sm font-medium text-green-900 mb-3">
+                    Configuración para Chapas Conformadas
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label
+                        htmlFor="price_per_kg"
+                        className="block text-sm font-medium text-gray-800 mb-2"
+                      >
+                        Precio por Kg (USD) *
+                      </label>
+                      <div className="space-y-2">
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-700">
+                            $
+                          </span>
+                          <input
+                            type="number"
+                            id="price_per_kg"
+                            name="price_per_kg"
+                            required
+                            step="0.01"
+                            disabled={
+                              productCreated || formData.price_group_id !== ""
+                            }
+                            value={formData.price_per_kg}
+                            onChange={handleInputChange}
+                            className="pl-8 w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                            placeholder="0.00"
+                          />
+                        </div>
+                        {formData.price_per_kg && exchangeRate && (
+                          <div className="text-xs bg-gray-50 border border-gray-200 p-2 rounded">
+                            <span className="text-gray-600">Equivalente: </span>
+                            <span className="font-semibold text-gray-900">
+                              $
+                              {(
+                                parseFloat(formData.price_per_kg) *
+                                (exchangeRate.venta || exchangeRate.usd_to_uyu)
+                              ).toFixed(2)}{" "}
+                              UYU por kg
+                            </span>
+                          </div>
+                        )}
+                        {formData.price_group_id && (
+                          <div className="text-xs text-blue-600 bg-blue-50 p-2 rounded">
+                            💡 Precio cargado automáticamente desde el grupo de
+                            precios seleccionado
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label
+                        htmlFor="kg_per_meter"
+                        className="block text-sm font-medium text-gray-800 mb-2"
+                      >
+                        Kg por Metro *
+                      </label>
+                      <input
+                        type="number"
+                        id="kg_per_meter"
+                        name="kg_per_meter"
+                        required
+                        step="0.001"
+                        disabled={productCreated}
+                        value={formData.kg_per_meter}
+                        onChange={handleInputChange}
+                        className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                        placeholder="Ej: 2.5"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Precio automático */}
+                  <div className="mt-4 bg-white p-3 rounded border border-gray-200">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-700">
+                        Precio por metro:
+                      </span>
+                      <span className="text-lg font-semibold text-green-700">
+                        ${formData.price || "0.00"} USD
+                      </span>
+                    </div>
+                    {formData.kg_per_meter && formData.price_per_kg && (
+                      <p className="text-xs text-gray-600 mt-1">
+                        {formData.kg_per_meter} kg/m × ${formData.price_per_kg}{" "}
+                        USD/kg = ${formData.price} USD/m
+                        {exchangeRate && (
+                          <span className="text-xs text-blue-600 block">
+                            (Cotización: ${exchangeRate.usd_to_uyu.toFixed(2)}{" "}
+                            UYU)
+                          </span>
+                        )}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Stock como disponibilidad */}
+                  <div className="mt-4">
+                    <label className="flex items-center">
+                      <input
+                        type="checkbox"
+                        name="is_available"
+                        checked={formData.is_available}
+                        onChange={handleInputChange}
+                        disabled={productCreated}
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded disabled:cursor-not-allowed"
+                      />
+                      <span className="ml-2 text-sm text-gray-900">
+                        Producto disponible en stock
+                      </span>
+                    </label>
+                  </div>
+                </div>
+              )}
+
+              {/* Campos estándar para productos normales */}
+              {formData.product_type !== "perfiles" &&
+                formData.product_type !== "chapas_conformadas" && (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div>
+                      <label
+                        htmlFor="price"
+                        className="block text-sm font-medium text-gray-800 mb-2"
+                      >
+                        Precio (USD) *
+                      </label>
+                      <div className="space-y-2">
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-700">
+                            $
+                          </span>
+                          <input
+                            type="number"
+                            id="price"
+                            name="price"
+                            required
+                            step="0.01"
+                            disabled={productCreated}
+                            value={formData.price}
+                            onChange={handleInputChange}
+                            className="pl-8 w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                            placeholder="0.00"
+                          />
+                        </div>
+                        {formData.price && exchangeRate && (
+                          <div className="text-xs bg-gray-50 border border-gray-200 p-2 rounded">
+                            <span className="text-gray-600">Equivalente: </span>
+                            <span className="font-semibold text-gray-900">
+                              $
+                              {(
+                                parseFloat(formData.price) *
+                                (exchangeRate.venta || exchangeRate.usd_to_uyu)
+                              ).toFixed(2)}{" "}
+                              UYU
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label
+                        htmlFor="stock"
+                        className="block text-sm font-medium text-gray-800 mb-2"
+                      >
+                        Stock *
+                      </label>
+                      <input
+                        type="number"
+                        id="stock"
+                        name="stock"
+                        required
+                        min="0"
+                        disabled={productCreated}
+                        value={formData.stock}
+                        onChange={handleInputChange}
+                        className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                        placeholder="0"
+                      />
+                    </div>
+
+                    <div>
+                      <label
+                        htmlFor="unit"
+                        className="block text-sm font-medium text-gray-800 mb-2"
+                      >
+                        Unidad *
+                      </label>
+                      <select
+                        id="unit"
+                        name="unit"
+                        required
+                        disabled={productCreated}
+                        value={formData.unit}
+                        onChange={handleInputChange}
+                        className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                      >
+                        <option value="">Seleccionar unidad</option>
+                        {units.map((unit) => (
+                          <option key={unit} value={unit}>
+                            {unit}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                )}
+
+              {/* Para perfiles, la unidad se establece automáticamente */}
+              {formData.product_type === "perfiles" && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-800 mb-2">
+                    Unidad
+                  </label>
+                  <input
+                    type="text"
+                    value="kg"
+                    readOnly
+                    className="w-full rounded-md border-gray-300 shadow-sm bg-gray-100 text-gray-500 cursor-not-allowed"
+                  />
+                  <p className="text-sm text-gray-500 mt-1">
+                    La unidad se establece automáticamente como &quot;kg&quot; para
+                    perfiles
+                  </p>
+                </div>
+              )}
+
+              {/* Producto destacado */}
               <div className="flex items-center">
                 <input
                   type="checkbox"
@@ -672,7 +1105,8 @@ export default function NewProductPage() {
                   name="featured"
                   checked={formData.featured}
                   onChange={handleInputChange}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  disabled={productCreated}
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded disabled:cursor-not-allowed"
                 />
                 <label
                   htmlFor="featured"
@@ -681,6 +1115,38 @@ export default function NewProductPage() {
                   Producto destacado
                 </label>
               </div>
+            </div>
+          </div>
+
+          {/* Sección de imágenes */}
+          <div
+            className={`bg-white rounded-lg shadow ${
+              !productCreated ? "opacity-60" : ""
+            }`}
+          >
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h2 className="text-lg font-semibold text-gray-900">
+                Imágenes del Producto
+              </h2>
+            </div>
+            <div className="p-6 space-y-6">
+              {productCreated && createdProductId ? (
+                // Mostrar ImageUpload después de crear el producto
+                <ImageUpload
+                  productId={createdProductId}
+                  images={images}
+                  onImagesChange={setImages}
+                  maxImages={10}
+                  maxFileSize={5}
+                />
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <p>
+                    Completa la información básica primero para agregar
+                    imágenes.
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 
@@ -704,26 +1170,16 @@ export default function NewProductPage() {
                 ) : (
                   <SaveIcon className="h-4 w-4 mr-2" />
                 )}
-                {loading ? "Creando..." : "Continuar a Imágenes"}
+                {loading ? "Creando..." : "Crear Producto"}
               </button>
             ) : (
-              <div className="flex space-x-3">
-                <button
-                  type="button"
-                  onClick={handleFinish}
-                  className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                >
-                  Omitir Imágenes
-                </button>
-                <button
-                  type="button"
-                  onClick={handleFinish}
-                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-                >
-                  <SaveIcon className="h-4 w-4 mr-2" />
-                  Finalizar
-                </button>
-              </div>
+              <Link
+                href="/admin/productos"
+                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+              >
+                <SaveIcon className="h-4 w-4 mr-2" />
+                Finalizar
+              </Link>
             )}
           </div>
         </form>

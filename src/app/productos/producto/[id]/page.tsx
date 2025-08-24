@@ -14,6 +14,7 @@ import { Product, ProductImage } from "@/types";
 import { useCartStore } from "@/store/cartStore";
 import ProductCard from "@/components/ProductCard";
 import ProductImageGallery from "@/components/ProductImageGallery";
+import { useExchangeRate, formatUYU, convertUSDToUYU } from "@/lib/currency";
 
 export default function ProductDetailPage() {
   const params = useParams();
@@ -24,6 +25,9 @@ export default function ProductDetailPage() {
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
   const { addItem, getItemQuantity } = useCartStore();
+
+  // Hook para cotización de dólar
+  const { exchangeRate } = useExchangeRate();
 
   const currentQuantity = product ? getItemQuantity(product.id) : 0;
 
@@ -81,11 +85,216 @@ export default function ProductDetailPage() {
     }
   };
 
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat("es-UY", {
-      style: "currency",
-      currency: "UYU",
-    }).format(price);
+  // Función para verificar si el producto está disponible
+  const isProductAvailable = (product: Product) => {
+    // Usar campos directos de la base de datos si están disponibles
+    if (
+      (product.product_type === "perfiles" ||
+        product.product_type === "chapas_conformadas") &&
+      product.stock_type === "availability"
+    ) {
+      return product.is_available;
+    }
+
+    // Fallback: usar metadata del JSON
+    const metadata = getProductMetadata(product);
+    if (
+      metadata &&
+      (metadata.product_type === "perfiles" ||
+        metadata.product_type === "chapas_conformadas") &&
+      metadata.stock_type === "availability"
+    ) {
+      return metadata.is_available;
+    }
+
+    return product.stock > 0;
+  };
+
+  // Función para obtener el límite máximo de cantidad
+  const getMaxQuantity = (product: Product) => {
+    // Usar campos directos de la base de datos si están disponibles
+    if (
+      (product.product_type === "perfiles" ||
+        product.product_type === "chapas_conformadas") &&
+      product.stock_type === "availability"
+    ) {
+      return 10; // Límite arbitrario para productos por disponibilidad
+    }
+
+    // Fallback: usar metadata del JSON
+    const metadata = getProductMetadata(product);
+    if (
+      metadata &&
+      (metadata.product_type === "perfiles" ||
+        metadata.product_type === "chapas_conformadas") &&
+      metadata.stock_type === "availability"
+    ) {
+      return 10; // Límite arbitrario para productos por disponibilidad
+    }
+
+    return product.stock;
+  };
+
+  const formatPrice = (priceInUSD: number) => {
+    if (!exchangeRate) {
+      // Fallback: mostrar en USD si no hay cotización
+      return new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: "USD",
+      }).format(priceInUSD);
+    }
+
+    const priceInUYU = convertUSDToUYU(priceInUSD, exchangeRate.usd_to_uyu);
+    return formatUYU(priceInUYU);
+  };
+
+  const formatPriceWithIVA = (priceInUSD: number) => {
+    if (!exchangeRate) {
+      // Fallback: mostrar en USD si no hay cotización
+      return new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: "USD",
+      }).format(priceInUSD * 1.22);
+    }
+
+    const priceInUYU = convertUSDToUYU(priceInUSD, exchangeRate.usd_to_uyu);
+    const priceWithIVA = priceInUYU * 1.22; // 22% IVA
+    return formatUYU(priceWithIVA);
+  };
+
+  // Función para extraer la descripción real del producto
+  const getProductDescription = (product: Product) => {
+    try {
+      // Si la descripción parece ser JSON, intentar parsearlo
+      if (
+        product.description?.startsWith("{") ||
+        product.description?.startsWith("[")
+      ) {
+        const parsed = JSON.parse(product.description);
+        // Si es un objeto con descripción, usar esa
+        if (parsed.description) {
+          return parsed.description;
+        }
+        // Si es solo metadata, retornar descripción genérica
+        return `${product.name} - Producto de alta calidad para construcción`;
+      }
+      // Si no es JSON, usar la descripción tal como está
+      return (
+        product.description ||
+        `${product.name} - Producto de alta calidad para construcción`
+      );
+    } catch (error) {
+      // Si hay error al parsear JSON, usar descripción tal como está
+      return (
+        product.description ||
+        `${product.name} - Producto de alta calidad para construcción`
+      );
+    }
+  };
+
+  // Función para obtener información adicional del producto
+  const getProductMetadata = (product: Product) => {
+    try {
+      if (
+        product.description?.startsWith("{") ||
+        product.description?.startsWith("[")
+      ) {
+        const parsed = JSON.parse(product.description);
+        // Devolver la metadata que está en la propiedad 'meta'
+        return parsed.meta || parsed;
+      }
+      return null;
+    } catch (error) {
+      return null;
+    }
+  };
+
+  // Función para mostrar el stock según el tipo de producto
+  const getStockDisplay = (product: Product) => {
+    // Usar campos directos de la base de datos si están disponibles
+    if (
+      (product.product_type === "perfiles" ||
+        product.product_type === "chapas_conformadas") &&
+      product.stock_type === "availability"
+    ) {
+      return product.is_available ? "Disponible" : "No disponible";
+    }
+
+    // Fallback: usar metadata del JSON
+    const metadata = getProductMetadata(product);
+    if (
+      metadata &&
+      (metadata.product_type === "perfiles" ||
+        metadata.product_type === "chapas_conformadas")
+    ) {
+      if (metadata.stock_type === "availability") {
+        return metadata.is_available ? "Disponible" : "No disponible";
+      }
+    }
+
+    // Para productos estándar o sin metadata
+    if (product.stock === 0) {
+      return "No disponible";
+    } else if (product.stock === 999999 || product.stock > 1000) {
+      return "Disponible";
+    } else {
+      return `${product.stock} ${product.unit} disponibles`;
+    }
+  };
+
+  // Función para obtener el color del stock
+  const getStockColor = (product: Product) => {
+    // Usar campos directos de la base de datos si están disponibles
+    if (
+      (product.product_type === "perfiles" ||
+        product.product_type === "chapas_conformadas") &&
+      product.stock_type === "availability"
+    ) {
+      return product.is_available ? "text-green-600" : "text-red-600";
+    }
+
+    // Fallback: usar metadata del JSON
+    const metadata = getProductMetadata(product);
+    if (
+      metadata &&
+      (metadata.product_type === "perfiles" ||
+        metadata.product_type === "chapas_conformadas")
+    ) {
+      return metadata.is_available ? "text-green-600" : "text-red-600";
+    }
+
+    return product.stock > 0 ? "text-green-600" : "text-red-600";
+  };
+
+  // Función para obtener la unidad de precio correcta
+  const getPriceUnit = (product: Product) => {
+    // Usar campos directos de la base de datos si están disponibles
+    if (product.product_type === "perfiles") {
+      return "por unidad"; // Para perfiles, el precio ya está calculado por unidad completa
+    }
+
+    if (product.product_type === "chapas_conformadas") {
+      return "por metro"; // Para chapas conformadas, mostrar "por metro" en lugar de "por m"
+    }
+
+    // Fallback: usar metadata del JSON
+    const metadata = getProductMetadata(product);
+    if (metadata && metadata.product_type === "perfiles") {
+      return "por unidad";
+    }
+    if (metadata && metadata.product_type === "chapas_conformadas") {
+      return "por metro";
+    }
+
+    // Para otros productos, mostrar la unidad con formato mejorado
+    if (product.unit === "m") {
+      return "por metro";
+    }
+    if (product.unit === "kg") {
+      return "por kilogramo";
+    }
+
+    return `por ${product.unit}`;
   };
 
   const goBack = () => {
@@ -192,18 +401,30 @@ export default function ProductDetailPage() {
                 <h1 className="text-3xl font-bold text-gray-900 mb-2">
                   {product.name}
                 </h1>
-                <p className="text-xl text-gray-600">{product.description}</p>
+                <p className="text-xl text-gray-600">
+                  {getProductDescription(product)}
+                </p>
               </div>
 
               {/* Price */}
               <div className="border-t border-b border-gray-200 py-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-3xl font-bold text-orange-600">
-                    {formatPrice(product.price)}
-                  </span>
-                  <span className="text-lg text-gray-500">
-                    por {product.unit}
-                  </span>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-2xl font-bold text-orange-600">
+                      {formatPriceWithIVA(product.price)}
+                    </span>
+                    <span className="text-lg text-gray-500">
+                      {getPriceUnit(product)}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">
+                      Sin IVA: {formatPrice(product.price)}
+                    </span>
+                    <span className="text-sm text-gray-500">
+                      IVA incluido (22%)
+                    </span>
+                  </div>
                 </div>
               </div>
 
@@ -217,27 +438,9 @@ export default function ProductDetailPage() {
                 )}
 
                 <div className="flex justify-between">
-                  <span className="font-medium text-gray-700">SKU:</span>
-                  <span className="text-gray-900">{product.sku}</span>
-                </div>
-
-                <div className="flex justify-between">
-                  <span className="font-medium text-gray-700">
-                    Stock disponible:
-                  </span>
-                  <span
-                    className={`font-medium ${
-                      product.stock > 0 ? "text-green-600" : "text-red-600"
-                    }`}
-                  >
-                    {product.stock} {product.unit}
-                  </span>
-                </div>
-
-                <div className="flex justify-between">
-                  <span className="font-medium text-gray-700">Categoría:</span>
-                  <span className="text-gray-900 capitalize">
-                    {product.category}
+                  <span className="font-medium text-gray-700">Estado:</span>
+                  <span className={`font-medium ${getStockColor(product)}`}>
+                    {getStockDisplay(product)}
                   </span>
                 </div>
               </div>
@@ -258,10 +461,12 @@ export default function ProductDetailPage() {
                     </span>
                     <button
                       onClick={() =>
-                        setQuantity(Math.min(product.stock, quantity + 1))
+                        setQuantity(
+                          Math.min(getMaxQuantity(product), quantity + 1)
+                        )
                       }
                       className="p-2 hover:bg-gray-100 transition-colors"
-                      disabled={quantity >= product.stock}
+                      disabled={quantity >= getMaxQuantity(product)}
                     >
                       <PlusIcon className="h-5 w-5" />
                     </button>
@@ -273,7 +478,7 @@ export default function ProductDetailPage() {
                   <div className="flex justify-between items-center">
                     <span className="font-medium text-gray-700">Total:</span>
                     <span className="text-2xl font-bold text-orange-600">
-                      {formatPrice(product.price * quantity)}
+                      {formatPriceWithIVA(product.price * quantity)}
                     </span>
                   </div>
                 </div>
@@ -283,12 +488,14 @@ export default function ProductDetailPage() {
               <div className="space-y-3">
                 <button
                   onClick={handleAddToCart}
-                  disabled={product.stock === 0}
+                  disabled={!isProductAvailable(product)}
                   className="w-full bg-orange-600 text-white py-3 px-6 rounded-md hover:bg-orange-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center justify-center space-x-2 text-lg font-medium"
                 >
                   <ShoppingCartIcon className="h-6 w-6" />
                   <span>
-                    {product.stock === 0 ? "Sin stock" : "Agregar al carrito"}
+                    {!isProductAvailable(product)
+                      ? "No disponible"
+                      : "Agregar al carrito"}
                   </span>
                 </button>
 
@@ -311,8 +518,45 @@ export default function ProductDetailPage() {
                   Descripción del Producto
                 </h3>
                 <p className="text-gray-600 leading-relaxed">
-                  {product.description}
+                  {getProductDescription(product)}
                 </p>
+
+                {/* Mostrar información adicional de perfiles si existe */}
+                {(() => {
+                  const metadata = getProductMetadata(product);
+                  if (metadata && metadata.product_type === "perfiles") {
+                    return (
+                      <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                        <h4 className="font-semibold text-blue-900 mb-2">
+                          Información del Perfil
+                        </h4>
+                        <div className="space-y-2 text-sm text-blue-800">
+                          {metadata.weight_per_unit && (
+                            <p>
+                              <strong>Peso por unidad:</strong>{" "}
+                              {metadata.weight_per_unit} kg
+                            </p>
+                          )}
+                          {metadata.price_per_kg && (
+                            <p>
+                              <strong>Precio por kg:</strong> $
+                              {metadata.price_per_kg} USD
+                            </p>
+                          )}
+                          {metadata.stock_type === "availability" && (
+                            <p>
+                              <strong>Disponibilidad:</strong>{" "}
+                              {metadata.is_available
+                                ? "En stock"
+                                : "Consultar disponibilidad"}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
               </div>
 
               <div>

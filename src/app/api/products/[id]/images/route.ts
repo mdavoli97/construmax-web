@@ -35,6 +35,56 @@ export async function POST(
   try {
     const { id } = await params;
     body = await request.json();
+
+    // Manejar diferentes acciones
+    if (body.action === "setPrimary" && body.imageId) {
+      // Establecer imagen como principal
+      const { imageId } = body;
+
+      // Quitar principal de todas las imágenes
+      await supabase
+        .from("product_images")
+        .update({ is_primary: false })
+        .eq("product_id", id);
+
+      // Establecer la nueva imagen como principal
+      const { data, error } = await supabase
+        .from("product_images")
+        .update({ is_primary: true })
+        .eq("id", imageId)
+        .eq("product_id", id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Actualizar el producto
+      await supabase
+        .from("products")
+        .update({ primary_image: data.image_url })
+        .eq("id", id);
+
+      return NextResponse.json(data);
+    }
+
+    if (body.action === "updateAltText" && body.imageId && body.altText) {
+      // Actualizar texto alternativo
+      const { imageId, altText } = body;
+
+      const { data, error } = await supabase
+        .from("product_images")
+        .update({ alt_text: altText })
+        .eq("id", imageId)
+        .eq("product_id", id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      return NextResponse.json(data);
+    }
+
+    // Agregar nueva imagen (comportamiento original)
     const { image_url, alt_text, is_primary = false, display_order = 0 } = body;
 
     // Si es imagen principal, actualizar las demás para que no sean principales

@@ -111,6 +111,7 @@ export const productService = {
     brand?: string;
     sku: string;
     featured?: boolean;
+    price_group_id?: string | null;
   }): Promise<Product> {
     // Obtener token de autenticación si está disponible
     const token =

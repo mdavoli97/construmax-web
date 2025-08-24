@@ -4,13 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { productService } from "@/lib/services";
 import { Product } from "@/types";
-import {
-  PlusIcon,
-  BoxIcon,
-  TagIcon,
-  TrendingUpIcon,
-  ShoppingCartIcon,
-} from "lucide-react";
+import { PlusIcon, BoxIcon, TagIcon, ShoppingCartIcon } from "lucide-react";
 
 export default function AdminDashboard() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -18,7 +12,6 @@ export default function AdminDashboard() {
     totalProducts: 0,
     totalCategories: 0,
     totalStock: 0,
-    totalValue: 0,
   });
   const [loading, setLoading] = useState(true);
 
@@ -37,16 +30,11 @@ export default function AdminDashboard() {
         (sum, product) => sum + product.stock,
         0
       );
-      const totalValue = productsData.reduce(
-        (sum, product) => sum + product.price * product.stock,
-        0
-      );
 
       setStats({
         totalProducts: productsData.length,
         totalCategories: 0, // Se puede calcular dinámicamente si es necesario
         totalStock,
-        totalValue,
       });
     } catch (error) {
       console.error("Error loading dashboard data:", error);
@@ -78,7 +66,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* Estadísticas */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex items-center">
               <div className="p-3 rounded-full bg-blue-100">
@@ -118,22 +106,6 @@ export default function AdminDashboard() {
                 <p className="text-sm font-medium text-gray-800">Stock Total</p>
                 <p className="text-2xl font-semibold text-gray-900">
                   {stats.totalStock}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="p-3 rounded-full bg-purple-100">
-                <TrendingUpIcon className="h-6 w-6 text-purple-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-800">
-                  Valor Inventario
-                </p>
-                <p className="text-2xl font-semibold text-gray-900">
-                  ${stats.totalValue.toLocaleString()}
                 </p>
               </div>
             </div>

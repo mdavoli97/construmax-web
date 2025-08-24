@@ -8,11 +8,13 @@ import {
   ShoppingCartIcon,
   BarChart3Icon,
   LogOutIcon,
+  DollarSignIcon,
 } from "lucide-react";
 
 const navigation = [
   { name: "Dashboard", href: "/admin", icon: HomeIcon },
   { name: "Productos", href: "/admin/productos", icon: BoxIcon },
+  { name: "Precios", href: "/admin/precios", icon: DollarSignIcon },
   { name: "Categorías", href: "/admin/categorias", icon: TagIcon },
   { name: "Órdenes", href: "/admin/ordenes", icon: ShoppingCartIcon },
   { name: "Reportes", href: "/admin/reportes", icon: BarChart3Icon },
@@ -29,15 +31,25 @@ export default function AdminSidebar() {
   };
 
   return (
-    <div className="w-64 bg-white shadow-sm h-full">
+    <div className="w-64 bg-white shadow-sm h-full flex flex-col min-h-0">
       <div className="p-6">
         <h2 className="text-lg font-semibold text-gray-900">Admin Panel</h2>
       </div>
-      <nav className="mt-6">
+
+      <nav className="flex-1 mt-6 overflow-y-auto">
         <div className="px-3">
           {navigation.map((item) => {
-            const isActive =
-              pathname === item.href || pathname.startsWith(item.href + "/");
+            let isActive = false;
+
+            if (item.href === "/admin") {
+              // Dashboard solo está activo si estamos exactamente en /admin
+              isActive = pathname === "/admin";
+            } else {
+              // Para otras rutas, verificar si coincide exactamente o es una subruta
+              isActive =
+                pathname === item.href || pathname.startsWith(item.href + "/");
+            }
+
             return (
               <Link
                 key={item.name}
@@ -59,19 +71,19 @@ export default function AdminSidebar() {
               </Link>
             );
           })}
-
-          {/* Botón de logout */}
-          <div className="border-t border-gray-200 mt-6 pt-6">
-            <button
-              onClick={handleLogout}
-              className="group flex items-center w-full px-3 py-2 text-sm font-medium rounded-md text-gray-800 hover:bg-red-50 hover:text-red-700"
-            >
-              <LogOutIcon className="mr-3 h-5 w-5 text-gray-400 group-hover:text-red-500" />
-              Cerrar Sesión
-            </button>
-          </div>
         </div>
       </nav>
+
+      {/* Botón de logout - siempre en la parte inferior */}
+      <div className="border-t border-gray-200 p-3 flex-shrink-0">
+        <button
+          onClick={handleLogout}
+          className="group flex items-center w-full px-3 py-2 text-sm font-medium rounded-md text-gray-800 hover:bg-red-50 hover:text-red-700"
+        >
+          <LogOutIcon className="mr-3 h-5 w-5 text-gray-400 group-hover:text-red-500" />
+          Cerrar Sesión
+        </button>
+      </div>
     </div>
   );
 }

@@ -21,6 +21,14 @@ export interface Product {
   brand?: string;
   sku: string;
   featured?: boolean;
+  // Nuevos campos para tipos de productos
+  product_type?: "standard" | "perfiles" | "chapas_conformadas" | "otros";
+  weight_per_unit?: number; // Para perfiles: peso por unidad (kg)
+  kg_per_meter?: number; // Para chapas conformadas: kg por metro
+  price_per_kg?: number; // Para perfiles y chapas: precio por kilo
+  price_group_id?: string; // Para perfiles y chapas: referencia al grupo de precios
+  stock_type?: "quantity" | "availability"; // quantity = número, availability = tengo/no tengo
+  is_available?: boolean; // Para stock tipo availability
 }
 
 export interface CartItem {

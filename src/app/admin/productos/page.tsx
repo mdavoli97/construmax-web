@@ -5,6 +5,7 @@ import Link from "next/link";
 import { productService } from "@/lib/services";
 import { Product } from "@/types";
 import { PlusIcon, PencilIcon, TrashIcon, SearchIcon } from "lucide-react";
+import { useNotifications } from "@/components/admin/NotificationProvider";
 
 export default function ProductsAdminPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -13,6 +14,7 @@ export default function ProductsAdminPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [stockFilter, setStockFilter] = useState("");
+  const { success, error } = useNotifications();
 
   const categories = [
     "construccion",
@@ -20,6 +22,54 @@ export default function ProductsAdminPage() {
     "herramientas",
     "herreria",
   ];
+
+  // Función para obtener metadata del producto
+  const getProductMetadata = (product: Product) => {
+    try {
+      if (
+        product.description?.startsWith("{") ||
+        product.description?.startsWith("[")
+      ) {
+        const parsed = JSON.parse(product.description);
+        return parsed.meta || parsed;
+      }
+      return null;
+    } catch (error) {
+      return null;
+    }
+  };
+
+  // Función para obtener el estado del stock
+  const getStockStatus = (product: Product) => {
+    // Usar campos directos de la base de datos si están disponibles
+    if (
+      product.product_type === "perfiles" &&
+      product.stock_type === "availability"
+    ) {
+      return product.is_available
+        ? { label: "Disponible", class: "bg-green-100 text-green-800" }
+        : { label: "No disponible", class: "bg-red-100 text-red-800" };
+    }
+
+    // Fallback: parsear JSON del description para productos legacy
+    const metadata = getProductMetadata(product);
+    if (metadata && metadata.product_type === "perfiles") {
+      if (metadata.stock_type === "availability") {
+        return metadata.is_available
+          ? { label: "Disponible", class: "bg-green-100 text-green-800" }
+          : { label: "No disponible", class: "bg-red-100 text-red-800" };
+      }
+    }
+
+    // Para productos estándar con stock numérico
+    if (product.stock > 10) {
+      return { label: "En Stock", class: "bg-green-100 text-green-800" };
+    } else if (product.stock > 0) {
+      return { label: "Poco Stock", class: "bg-yellow-100 text-yellow-800" };
+    } else {
+      return { label: "Sin Stock", class: "bg-red-100 text-red-800" };
+    }
+  };
 
   useEffect(() => {
     loadProducts();
@@ -64,15 +114,64 @@ export default function ProductsAdminPage() {
     if (stockFilter) {
       switch (stockFilter) {
         case "in-stock":
-          filtered = filtered.filter((product) => product.stock > 10);
+          filtered = filtered.filter((product) => {
+            // Usar campos directos de la base de datos si están disponibles
+            if (
+              product.product_type === "perfiles" &&
+              product.stock_type === "availability"
+            ) {
+              return product.is_available === true;
+            }
+
+            // Fallback: parsear JSON del description para productos legacy
+            const metadata = getProductMetadata(product);
+            if (metadata && metadata.product_type === "perfiles") {
+              return metadata.is_available;
+            }
+
+            // Para productos estándar
+            return product.stock > 10;
+          });
           break;
         case "low-stock":
-          filtered = filtered.filter(
-            (product) => product.stock > 0 && product.stock <= 10
-          );
+          filtered = filtered.filter((product) => {
+            // Los perfiles no tienen "poco stock", solo disponible/no disponible
+            if (
+              product.product_type === "perfiles" &&
+              product.stock_type === "availability"
+            ) {
+              return false;
+            }
+
+            // Fallback: parsear JSON del description para productos legacy
+            const metadata = getProductMetadata(product);
+            if (metadata && metadata.product_type === "perfiles") {
+              return false; // Los perfiles no tienen "poco stock"
+            }
+
+            // Para productos estándar
+            return product.stock > 0 && product.stock <= 10;
+          });
           break;
         case "out-of-stock":
-          filtered = filtered.filter((product) => product.stock === 0);
+          filtered = filtered.filter((product) => {
+            // Usar campos directos de la base de datos si están disponibles
+            if (
+              product.product_type === "perfiles" &&
+              product.stock_type === "availability"
+            ) {
+              return product.is_available === false;
+            }
+
+            // Fallback: parsear JSON del description para productos legacy
+            const metadata = getProductMetadata(product);
+            if (metadata && metadata.product_type === "perfiles") {
+              return !metadata.is_available;
+            }
+
+            // Para productos estándar
+            return product.stock === 0;
+          });
           break;
       }
     }
@@ -84,11 +183,14 @@ export default function ProductsAdminPage() {
     if (confirm("¿Estás seguro de que quieres eliminar este producto?")) {
       try {
         await productService.delete(productId);
-        alert("Producto eliminado exitosamente");
+        success(
+          "Producto eliminado",
+          "El producto se ha eliminado exitosamente"
+        );
         loadProducts();
-      } catch (error) {
-        console.error("Error deleting product:", error);
-        alert("Error al eliminar el producto");
+      } catch (err) {
+        console.error("Error deleting product:", err);
+        error("Error al eliminar", "No se pudo eliminar el producto");
       }
     }
   };
@@ -137,7 +239,7 @@ export default function ProductsAdminPage() {
                   placeholder="Buscar productos..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-500"
+                  className="pl-10 pr-4 py-2 w-full rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 focus:ring-1 text-gray-900 placeholder-gray-500 bg-white"
                 />
               </div>
 
@@ -145,7 +247,7 @@ export default function ProductsAdminPage() {
               <select
                 value={categoryFilter}
                 onChange={(e) => setCategoryFilter(e.target.value)}
-                className="rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900"
+                className="px-3 py-2 rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 focus:ring-1 text-gray-900 bg-white"
               >
                 <option value="">Todas las categorías</option>
                 {categories.map((category) => (
@@ -159,7 +261,7 @@ export default function ProductsAdminPage() {
               <select
                 value={stockFilter}
                 onChange={(e) => setStockFilter(e.target.value)}
-                className="rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900"
+                className="px-3 py-2 rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 focus:ring-1 text-gray-900 bg-white"
               >
                 <option value="">Todos los stocks</option>
                 <option value="in-stock">En Stock</option>
@@ -198,10 +300,7 @@ export default function ProductsAdminPage() {
                     Categoría
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider">
-                    Precio
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider">
-                    Stock
+                    Precio (USD)
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider">
                     Estado
@@ -217,11 +316,19 @@ export default function ProductsAdminPage() {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <div className="flex-shrink-0 h-12 w-12">
-                          <div className="h-12 w-12 rounded-lg bg-gray-200 flex items-center justify-center">
-                            <span className="text-xs font-medium text-gray-800">
-                              {product.name.substring(0, 2).toUpperCase()}
-                            </span>
-                          </div>
+                          {product.primary_image ? (
+                            <img
+                              src={product.primary_image}
+                              alt={product.name}
+                              className="h-12 w-12 rounded-lg object-cover"
+                            />
+                          ) : (
+                            <div className="h-12 w-12 rounded-lg bg-gray-200 flex items-center justify-center">
+                              <span className="text-xs font-medium text-gray-800">
+                                {product.name.substring(0, 2).toUpperCase()}
+                              </span>
+                            </div>
+                          )}
                         </div>
                         <div className="ml-4">
                           <div className="text-sm font-medium text-gray-900">
@@ -244,24 +351,13 @@ export default function ProductsAdminPage() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       ${product.price.toLocaleString()}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {product.stock} {product.unit}
-                    </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span
                         className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          product.stock > 10
-                            ? "bg-green-100 text-green-800"
-                            : product.stock > 0
-                            ? "bg-yellow-100 text-yellow-800"
-                            : "bg-red-100 text-red-800"
+                          getStockStatus(product).class
                         }`}
                       >
-                        {product.stock > 10
-                          ? "En Stock"
-                          : product.stock > 0
-                          ? "Poco Stock"
-                          : "Sin Stock"}
+                        {getStockStatus(product).label}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">

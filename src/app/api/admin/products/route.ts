@@ -109,17 +109,61 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Extraer datos del description si viene como JSON
+    let extraData: {
+      product_type?: string;
+      weight_per_unit?: number;
+      kg_per_meter?: number;
+      price_per_kg?: number;
+      stock_type?: string;
+      is_available?: boolean;
+    } = {};
+    let cleanDescription = body.description;
+
+    try {
+      if (body.description && body.description.startsWith("{")) {
+        const descObj = JSON.parse(body.description);
+        if (descObj.meta) {
+          extraData = descObj.meta;
+          cleanDescription = descObj.description || "";
+        }
+      }
+    } catch (e) {
+      // Si no es JSON válido, usar la descripción tal como viene
+      console.log("Description is not JSON, using as-is");
+    }
+
+    // Normalizar stock basándose en el tipo de producto
+    let finalStock = body.stock;
+    if (
+      (extraData.product_type === "perfiles" ||
+        extraData.product_type === "chapas_conformadas") &&
+      extraData.stock_type === "availability"
+    ) {
+      // Para perfiles y chapas conformadas con stock por disponibilidad, usar 1 = disponible, 0 = no disponible
+      finalStock = extraData.is_available ? 1 : 0;
+    }
+
     const productData = {
       name: body.name,
-      description: body.description,
+      description: cleanDescription,
       price: body.price,
       category: body.category,
       image: body.image,
-      stock: body.stock,
+      stock: finalStock,
       unit: body.unit,
       brand: body.brand,
       sku: body.sku,
       featured: body.featured,
+      price_group_id: body.price_group_id || null,
+      // Campos específicos para perfiles y chapas conformadas (ahora las columnas ya existen)
+      product_type: extraData.product_type || "standard",
+      weight_per_unit: extraData.weight_per_unit || null,
+      kg_per_meter: extraData.kg_per_meter || null,
+      price_per_kg: extraData.price_per_kg || null,
+      stock_type: extraData.stock_type || "quantity",
+      is_available:
+        extraData.is_available !== undefined ? extraData.is_available : true,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };

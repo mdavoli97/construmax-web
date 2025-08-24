@@ -1,31 +1,63 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { productService } from "@/lib/services";
-import { Product } from "@/types";
-import { ArrowLeftIcon, SaveIcon } from "lucide-react";
+import { ArrowLeftIcon, SaveIcon, RefreshCw } from "lucide-react";
+import { Product, ProductImage } from "@/types";
+import ImageUpload from "@/components/admin/ImageUpload";
+import { useNotifications } from "@/components/admin/NotificationProvider";
+import {
+  useExchangeRate,
+  formatUSD,
+  formatUYU,
+  convertUSDToUYU,
+} from "@/lib/currency";
 
 export default function EditProductPage() {
   const params = useParams();
   const router = useRouter();
   const productId = params.id as string;
 
-  const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [product, setProduct] = useState<Product | null>(null);
+  const [images, setImages] = useState<ProductImage[]>([]);
+  const [priceGroups, setPriceGroups] = useState<Array<{
+    id: string;
+    name: string;
+    price_per_kg_usd: number;
+    category: string;
+  }>>([]);
+  const { success, error } = useNotifications();
+
+  // Hook para cotización de dólar
+  const {
+    exchangeRate,
+    loading: exchangeLoading,
+    error: exchangeError,
+    refresh: refreshExchangeRate,
+  } = useExchangeRate();
+
   const [formData, setFormData] = useState({
     name: "",
     description: "",
     price: "",
     category: "",
-    primary_image: "",
     stock: "",
-    unit: "",
+    unit: "kg",
     brand: "",
     sku: "",
     featured: false,
+    // Nuevos campos
+    product_type: "perfiles",
+    weight_per_unit: "",
+    kg_per_meter: "",
+    price_per_kg: "",
+    stock_type: "availability",
+    is_available: true,
+    price_group_id: "",
   });
 
   const categories = [
@@ -33,6 +65,14 @@ export default function EditProductPage() {
     { value: "metalurgica", label: "Metalúrgica" },
     { value: "herramientas", label: "Herramientas" },
     { value: "herreria", label: "Herrería" },
+  ];
+
+  const productTypes = [
+    { value: "perfiles", label: "Perfiles (precio por kg)" },
+    {
+      value: "chapas_conformadas",
+      label: "Chapas conformadas (precio por kg y kg por metro)",
+    },
   ];
 
   const units = [
@@ -48,34 +88,102 @@ export default function EditProductPage() {
     "paquete",
   ];
 
-  const loadProduct = useCallback(async () => {
-    try {
-      const productData = await productService.getById(productId);
-      if (productData) {
-        setProduct(productData);
-        setFormData({
-          name: productData.name,
-          description: productData.description || "",
-          price: productData.price.toString(),
-          category: productData.category,
-          primary_image: productData.primary_image || "",
-          stock: productData.stock.toString(),
-          unit: productData.unit,
-          brand: productData.brand || "",
-          sku: productData.sku,
-          featured: productData.featured || false,
-        });
-      }
-    } catch (error) {
-      console.error("Error loading product:", error);
-    } finally {
-      setLoading(false);
-    }
-  }, [productId]);
-
+  // Cargar producto y grupos de precios
   useEffect(() => {
-    loadProduct();
-  }, [loadProduct]);
+    const loadData = async () => {
+      try {
+        // Cargar producto
+        const productData = await productService.getById(productId);
+        if (productData) {
+          setProduct(productData);
+
+          // Parsear metadata del JSON en description si existe
+          let metadata = null;
+          let cleanDescription = productData.description || "";
+
+          try {
+            if (
+              productData.description?.startsWith("{") ||
+              productData.description?.startsWith("[")
+            ) {
+              const parsed = JSON.parse(productData.description);
+              metadata = parsed.meta || parsed;
+              cleanDescription = parsed.description || "";
+            }
+          } catch (error) {
+            console.log("No hay metadata JSON, usando descripción normal");
+          }
+
+          // Establecer datos del formulario usando campos directos de DB cuando estén disponibles
+          setFormData({
+            name: productData.name,
+            description: cleanDescription,
+            price: productData.price.toString(),
+            category: productData.category,
+            stock: productData.stock.toString(),
+            unit: productData.unit,
+            brand: productData.brand || "",
+            sku: productData.sku,
+            featured: productData.featured || false,
+            // Usar campos directos de la base de datos si están disponibles, sino usar metadata
+            product_type:
+              productData.product_type || metadata?.product_type || "perfiles",
+            weight_per_unit:
+              productData.weight_per_unit?.toString() ||
+              metadata?.weight_per_unit?.toString() ||
+              "",
+            kg_per_meter:
+              productData.kg_per_meter?.toString() ||
+              metadata?.kg_per_meter?.toString() ||
+              "",
+            price_per_kg:
+              productData.price_per_kg?.toString() ||
+              metadata?.price_per_kg?.toString() ||
+              "",
+            stock_type:
+              productData.stock_type || metadata?.stock_type || "availability",
+            is_available:
+              productData.is_available !== undefined
+                ? productData.is_available
+                : metadata?.is_available !== undefined
+                ? metadata.is_available
+                : true,
+            price_group_id:
+              productData.price_group_id || metadata?.price_group_id || "",
+          });
+
+          // Cargar imágenes del producto
+          try {
+            const imagesResponse = await fetch(
+              `/api/products/${productId}/images`
+            );
+            if (imagesResponse.ok) {
+              const imagesData = await imagesResponse.json();
+              setImages(imagesData);
+            }
+          } catch (error) {
+            console.error("Error loading product images:", error);
+          }
+        }
+
+        // Cargar grupos de precios
+        const response = await fetch("/api/price-groups");
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success) {
+            setPriceGroups(result.data || []);
+          }
+        }
+      } catch (err) {
+        console.error("Error loading data:", err);
+        error("Error", "No se pudo cargar el producto");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, [productId, error]);
 
   const handleInputChange = (
     e: React.ChangeEvent<
@@ -83,11 +191,106 @@ export default function EditProductPage() {
     >
   ) => {
     const { name, value, type } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]:
-        type === "checkbox" ? (e.target as HTMLInputElement).checked : value,
-    }));
+    const newValue =
+      type === "checkbox" ? (e.target as HTMLInputElement).checked : value;
+
+    setFormData((prev) => {
+      const updated = {
+        ...prev,
+        [name]: newValue,
+      };
+
+      // Lógica para perfiles
+      if (updated.product_type === "perfiles") {
+        // Recalcular precio cuando cambian peso por unidad o precio por kg
+        if (name === "weight_per_unit" || name === "price_per_kg") {
+          const weight = parseFloat(updated.weight_per_unit) || 0;
+          const pricePerKg = parseFloat(updated.price_per_kg) || 0;
+          if (weight > 0 && pricePerKg > 0) {
+            updated.price = (weight * pricePerKg).toFixed(2);
+          }
+        }
+
+        // Si selecciona un grupo de precios, cargar el precio por kg
+        if (name === "price_group_id" && value && Array.isArray(priceGroups)) {
+          const selectedGroup = priceGroups.find((group) => group.id === value);
+          if (selectedGroup) {
+            updated.price_per_kg = selectedGroup.price_per_kg_usd.toString();
+            updated.category = selectedGroup.category;
+
+            // Recalcular precio total
+            const weight = parseFloat(updated.weight_per_unit) || 0;
+            if (weight > 0) {
+              updated.price = (weight * selectedGroup.price_per_kg_usd).toFixed(
+                2
+              );
+            }
+          }
+        }
+      }
+
+      // Lógica para chapas conformadas
+      if (updated.product_type === "chapas_conformadas") {
+        // Recalcular precio cuando cambian kg por metro o precio por kg
+        if (name === "kg_per_meter" || name === "price_per_kg") {
+          const kgPerMeter = parseFloat(updated.kg_per_meter) || 0;
+          const pricePerKg = parseFloat(updated.price_per_kg) || 0;
+          if (kgPerMeter > 0 && pricePerKg > 0) {
+            updated.price = (kgPerMeter * pricePerKg).toFixed(2);
+          }
+        }
+
+        // Si selecciona un grupo de precios, cargar el precio por kg
+        if (name === "price_group_id" && value && Array.isArray(priceGroups)) {
+          const selectedGroup = priceGroups.find((group) => group.id === value);
+          if (selectedGroup) {
+            updated.price_per_kg = selectedGroup.price_per_kg_usd.toString();
+            updated.category = selectedGroup.category;
+
+            // Recalcular precio total
+            const kgPerMeter = parseFloat(updated.kg_per_meter) || 0;
+            if (kgPerMeter > 0) {
+              updated.price = (
+                kgPerMeter * selectedGroup.price_per_kg_usd
+              ).toFixed(2);
+            }
+          }
+        }
+      }
+
+      // Si cambia el tipo de producto, resetear campos específicos
+      if (name === "product_type") {
+        if (value === "perfiles") {
+          updated.unit = "kg";
+          updated.stock_type = "availability";
+          updated.kg_per_meter = "";
+        } else if (value === "chapas_conformadas") {
+          updated.unit = "m";
+          updated.stock_type = "availability";
+          updated.weight_per_unit = "";
+        } else {
+          updated.weight_per_unit = "";
+          updated.kg_per_meter = "";
+          updated.price_per_kg = "";
+          updated.stock_type = "quantity";
+        }
+      }
+
+      return updated;
+    });
+  };
+
+  const generateSKU = () => {
+    const categoryCode = formData.category
+      ? formData.category.substring(0, 3).toUpperCase()
+      : "CAT";
+    const nameCode = formData.name
+      ? formData.name.substring(0, 3).toUpperCase()
+      : "PRD";
+    const randomNum = Math.floor(Math.random() * 1000)
+      .toString()
+      .padStart(3, "0");
+    return `${categoryCode}-${nameCode}-${randomNum}`;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -95,25 +298,180 @@ export default function EditProductPage() {
     setSaving(true);
 
     try {
-      const updatedData = {
-        name: formData.name,
-        description: formData.description || undefined,
-        price: parseFloat(formData.price),
+      // Validación básica
+      if (!formData.name.trim()) {
+        error("Campo requerido", "El nombre del producto es requerido");
+        setSaving(false);
+        return;
+      }
+
+      if (formData.product_type === "perfiles") {
+        if (
+          !formData.weight_per_unit ||
+          isNaN(parseFloat(formData.weight_per_unit)) ||
+          parseFloat(formData.weight_per_unit) <= 0
+        ) {
+          error(
+            "Peso inválido",
+            "El peso por unidad es requerido y debe ser mayor a 0"
+          );
+          setSaving(false);
+          return;
+        }
+      } else if (formData.product_type === "chapas_conformadas") {
+        if (
+          !formData.kg_per_meter ||
+          isNaN(parseFloat(formData.kg_per_meter)) ||
+          parseFloat(formData.kg_per_meter) <= 0
+        ) {
+          error(
+            "Kg por metro inválido",
+            "Los kg por metro son requeridos y deben ser mayor a 0"
+          );
+          setSaving(false);
+          return;
+        }
+      } else {
+        // Validación estándar de precio y stock
+        if (
+          !formData.price ||
+          isNaN(parseFloat(formData.price)) ||
+          parseFloat(formData.price) <= 0
+        ) {
+          error("Precio inválido", "El precio debe ser un número mayor a 0");
+          setSaving(false);
+          return;
+        }
+
+        if (
+          !formData.stock ||
+          isNaN(parseInt(formData.stock)) ||
+          parseInt(formData.stock) < 0
+        ) {
+          error(
+            "Stock inválido",
+            "El stock debe ser un número mayor o igual a 0"
+          );
+          setSaving(false);
+          return;
+        }
+      }
+
+      if (!formData.category) {
+        error("Campo requerido", "La categoría es requerida");
+        setSaving(false);
+        return;
+      }
+
+      // Asegurar unidad correcta según tipo de producto
+      let finalUnit = formData.unit.trim();
+      if (formData.product_type === "perfiles") {
+        finalUnit = "kg";
+      } else if (formData.product_type === "chapas_conformadas") {
+        finalUnit = "m";
+      }
+
+      if (!finalUnit) {
+        error("Campo requerido", "La unidad es requerida");
+        setSaving(false);
+        return;
+      }
+
+      // Generar SKU si no se proporcionó uno
+      const sku = formData.sku.trim() || generateSKU();
+
+      // Preparar datos según el tipo de producto
+      const baseProductData = {
+        name: formData.name.trim(),
         category: formData.category,
-        primary_image: formData.primary_image || undefined,
-        stock: parseInt(formData.stock),
-        unit: formData.unit,
-        brand: formData.brand || undefined,
-        sku: formData.sku,
+        unit: finalUnit,
+        brand: formData.brand.trim() || undefined,
+        sku,
         featured: formData.featured,
       };
 
-      await productService.update(productId, updatedData);
-      alert("Producto actualizado exitosamente");
+      let productData;
+
+      if (formData.product_type === "perfiles") {
+        // Para perfiles: guardar info extra en description como JSON
+        const extraData = {
+          product_type: "perfiles",
+          weight_per_unit: parseFloat(formData.weight_per_unit),
+          price_per_kg: parseFloat(formData.price_per_kg),
+          stock_type: "availability",
+          is_available: formData.is_available,
+        };
+
+        const descriptionWithMeta = {
+          description: formData.description.trim() || "",
+          meta: extraData,
+        };
+
+        productData = {
+          ...baseProductData,
+          description: JSON.stringify(descriptionWithMeta),
+          price: parseFloat(formData.price),
+          stock: formData.is_available ? 1 : 0,
+        };
+      } else if (formData.product_type === "chapas_conformadas") {
+        // Para chapas conformadas: guardar info extra en description como JSON
+        const extraData = {
+          product_type: "chapas_conformadas",
+          kg_per_meter: parseFloat(formData.kg_per_meter),
+          price_per_kg: parseFloat(formData.price_per_kg),
+          stock_type: "availability",
+          is_available: formData.is_available,
+        };
+
+        const descriptionWithMeta = {
+          description: formData.description.trim() || "",
+          meta: extraData,
+        };
+
+        productData = {
+          ...baseProductData,
+          description: JSON.stringify(descriptionWithMeta),
+          price: parseFloat(formData.price),
+          stock: formData.is_available ? 1 : 0,
+        };
+      } else {
+        // Para productos estándar
+        const extraData = {
+          product_type: "standard",
+          stock_type: "quantity",
+        };
+
+        const descriptionWithMeta = {
+          description: formData.description.trim() || "",
+          meta: extraData,
+        };
+
+        productData = {
+          ...baseProductData,
+          description: JSON.stringify(descriptionWithMeta),
+          price: parseFloat(formData.price),
+          stock: parseInt(formData.stock),
+        };
+      }
+
+      const updatedProduct = await productService.update(
+        productId,
+        productData
+      );
+
+      console.log("Producto actualizado exitosamente:", updatedProduct);
+
+      success(
+        "Producto actualizado",
+        "El producto se ha actualizado exitosamente"
+      );
       router.push("/admin/productos");
-    } catch (error) {
-      console.error("Error updating product:", error);
-      alert("Error al actualizar el producto");
+    } catch (err) {
+      console.error("Error updating product:", err);
+      error(
+        "Error al actualizar producto",
+        `${err instanceof Error ? err.message : "Error desconocido"}`
+      );
     } finally {
       setSaving(false);
     }
@@ -122,7 +480,10 @@ export default function EditProductPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-orange-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Cargando producto...</p>
+        </div>
       </div>
     );
   }
@@ -131,13 +492,12 @@ export default function EditProductPage() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">
-            Producto no encontrado
-          </h2>
+          <p className="text-gray-600">Producto no encontrado</p>
           <Link
             href="/admin/productos"
-            className="text-blue-600 hover:text-blue-800"
+            className="mt-4 inline-flex items-center text-orange-600 hover:text-orange-700"
           >
+            <ArrowLeftIcon className="h-4 w-4 mr-2" />
             Volver a productos
           </Link>
         </div>
@@ -146,27 +506,28 @@ export default function EditProductPage() {
   }
 
   return (
-    <div className="bg-gray-50 min-h-screen">
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        {/* Header */}
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         <div className="mb-8">
-          <div className="flex items-center mb-4">
-            <Link
-              href="/admin/productos"
-              className="inline-flex items-center text-gray-800 hover:text-gray-900"
-            >
-              <ArrowLeftIcon className="h-4 w-4 mr-2" />
-              Volver a productos
-            </Link>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <Link
+                href="/admin/productos"
+                className="inline-flex items-center text-gray-600 hover:text-gray-900"
+              >
+                <ArrowLeftIcon className="h-5 w-5 mr-2" />
+                Volver a productos
+              </Link>
+              <div className="h-6 border-l border-gray-300"></div>
+              <h1 className="text-2xl font-bold text-gray-900">
+                Editar Producto
+              </h1>
+            </div>
           </div>
-          <h1 className="text-3xl font-bold text-gray-900">Editar Producto</h1>
-          <p className="text-gray-800 mt-2">
-            Modifica la información del producto
-          </p>
         </div>
 
-        {/* Formulario */}
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-8">
+          {/* Información Básica */}
           <div className="bg-white rounded-lg shadow">
             <div className="px-6 py-4 border-b border-gray-200">
               <h2 className="text-lg font-semibold text-gray-900">
@@ -187,27 +548,37 @@ export default function EditProductPage() {
                     id="name"
                     name="name"
                     required
+                    disabled={saving}
                     value={formData.name}
                     onChange={handleInputChange}
-                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-500"
+                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    placeholder="Ej: Perfil Tubular 40x40"
                   />
                 </div>
 
                 <div>
                   <label
-                    htmlFor="brand"
+                    htmlFor="category"
                     className="block text-sm font-medium text-gray-800 mb-2"
                   >
-                    Marca
+                    Categoría *
                   </label>
-                  <input
-                    type="text"
-                    id="brand"
-                    name="brand"
-                    value={formData.brand}
+                  <select
+                    id="category"
+                    name="category"
+                    required
+                    disabled={saving}
+                    value={formData.category}
                     onChange={handleInputChange}
-                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-500"
-                  />
+                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  >
+                    <option value="">Seleccionar categoría</option>
+                    {categories.map((category) => (
+                      <option key={category.value} value={category.value}>
+                        {category.label}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
 
@@ -222,201 +593,569 @@ export default function EditProductPage() {
                   id="description"
                   name="description"
                   rows={3}
+                  disabled={saving}
                   value={formData.description}
                   onChange={handleInputChange}
-                  className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-500"
+                  className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  placeholder="Descripción del producto..."
                 />
+              </div>
+
+              {/* Selector de tipo de producto */}
+              <div>
+                <label
+                  htmlFor="product_type"
+                  className="block text-sm font-medium text-gray-800 mb-2"
+                >
+                  Tipo de Producto *
+                </label>
+                <select
+                  id="product_type"
+                  name="product_type"
+                  required
+                  disabled={saving}
+                  value={formData.product_type}
+                  onChange={handleInputChange}
+                  className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                >
+                  {productTypes.map((type) => (
+                    <option key={type.value} value={type.value}>
+                      {type.label}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-sm text-gray-500 mt-1">
+                  Selecciona el tipo para mostrar campos específicos
+                </p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label
-                    htmlFor="category"
-                    className="block text-sm font-medium text-gray-800 mb-2"
-                  >
-                    Categoría *
-                  </label>
-                  <select
-                    id="category"
-                    name="category"
-                    required
-                    value={formData.category}
-                    onChange={handleInputChange}
-                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900"
-                  >
-                    {categories.map((category) => (
-                      <option key={category.value} value={category.value}>
-                        {category.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label
                     htmlFor="sku"
                     className="block text-sm font-medium text-gray-800 mb-2"
                   >
-                    SKU *
+                    SKU
                   </label>
                   <input
                     type="text"
                     id="sku"
                     name="sku"
-                    required
+                    disabled={saving}
                     value={formData.sku}
                     onChange={handleInputChange}
-                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-500"
+                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    placeholder="Código único del producto"
                   />
                 </div>
+
+                <div>
+                  <label
+                    htmlFor="brand"
+                    className="block text-sm font-medium text-gray-800 mb-2"
+                  >
+                    Marca
+                  </label>
+                  <input
+                    type="text"
+                    id="brand"
+                    name="brand"
+                    disabled={saving}
+                    value={formData.brand}
+                    onChange={handleInputChange}
+                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    placeholder="Marca del producto"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center">
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    name="featured"
+                    disabled={saving}
+                    checked={formData.featured}
+                    onChange={handleInputChange}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded disabled:cursor-not-allowed"
+                  />
+                  <span className="ml-2 text-sm text-gray-900">
+                    Producto destacado
+                  </span>
+                </label>
               </div>
             </div>
           </div>
 
+          {/* Precio e Inventario */}
           <div className="bg-white rounded-lg shadow">
             <div className="px-6 py-4 border-b border-gray-200">
               <h2 className="text-lg font-semibold text-gray-900">
                 Precio e Inventario
               </h2>
+
+              {/* Información de cotización */}
+              <div className="mt-3">
+                {exchangeLoading ? (
+                  <div className="flex items-center text-sm text-gray-600">
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    Obteniendo cotización del dólar...
+                  </div>
+                ) : exchangeError ? (
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-red-600">
+                      Error al obtener cotización: {exchangeError}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={refreshExchangeRate}
+                      className="flex items-center text-blue-600 hover:text-blue-700"
+                    >
+                      <RefreshCw className="h-4 w-4 mr-1" />
+                      Reintentar
+                    </button>
+                  </div>
+                ) : exchangeRate ? (
+                  <div className="bg-blue-50 border border-blue-200 rounded p-3">
+                    <div className="flex items-center justify-between">
+                      <div className="text-sm">
+                        <span className="font-medium text-blue-900">USD:</span>
+                        <span className="ml-2 font-semibold text-blue-700">
+                          $
+                          {(
+                            exchangeRate.venta || exchangeRate.usd_to_uyu
+                          ).toFixed(2)}{" "}
+                          UYU
+                        </span>
+                        <span className="ml-2 text-xs text-gray-600">
+                          (
+                          {exchangeRate.source === "dolarapi"
+                            ? "En vivo"
+                            : "Cache"}
+                          )
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={refreshExchangeRate}
+                        className="text-blue-600 hover:text-blue-700"
+                        title="Actualizar cotización"
+                      >
+                        <RefreshCw className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
             </div>
             <div className="p-6 space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Selector de grupo de precios para perfiles y chapas conformadas */}
+              {(formData.product_type === "perfiles" ||
+                formData.product_type === "chapas_conformadas") && (
                 <div>
                   <label
-                    htmlFor="price"
+                    htmlFor="price_group_id"
                     className="block text-sm font-medium text-gray-800 mb-2"
                   >
-                    Precio *
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-700">
-                      $
-                    </span>
-                    <input
-                      type="number"
-                      id="price"
-                      name="price"
-                      required
-                      step="0.01"
-                      value={formData.price}
-                      onChange={handleInputChange}
-                      className="pl-8 w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-500"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="stock"
-                    className="block text-sm font-medium text-gray-800 mb-2"
-                  >
-                    Stock *
-                  </label>
-                  <input
-                    type="number"
-                    id="stock"
-                    name="stock"
-                    required
-                    min="0"
-                    value={formData.stock}
-                    onChange={handleInputChange}
-                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-500"
-                  />
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="unit"
-                    className="block text-sm font-medium text-gray-800 mb-2"
-                  >
-                    Unidad *
+                    Grupo de Precios
                   </label>
                   <select
-                    id="unit"
-                    name="unit"
-                    required
-                    value={formData.unit}
+                    id="price_group_id"
+                    name="price_group_id"
+                    disabled={saving}
+                    value={formData.price_group_id}
                     onChange={handleInputChange}
-                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900"
+                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 disabled:bg-gray-100 disabled:cursor-not-allowed"
                   >
-                    {units.map((unit) => (
-                      <option key={unit} value={unit}>
-                        {unit}
-                      </option>
-                    ))}
+                    <option value="">Seleccionar grupo de precios</option>
+                    {Array.isArray(priceGroups) &&
+                      priceGroups.map((group) => (
+                        <option key={group.id} value={group.id}>
+                          {group.name} - ${group.price_per_kg_usd}/kg USD
+                        </option>
+                      ))}
                   </select>
+                  <p className="text-sm text-gray-500 mt-1">
+                    El precio por kg se cargará automáticamente desde el grupo
+                    seleccionado
+                  </p>
                 </div>
-              </div>
+              )}
+
+              {/* Campos específicos para Perfiles */}
+              {formData.product_type === "perfiles" && (
+                <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                  <h3 className="text-sm font-medium text-blue-900 mb-3">
+                    Configuración para Perfiles
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label
+                        htmlFor="price_per_kg"
+                        className="block text-sm font-medium text-gray-800 mb-2"
+                      >
+                        Precio por Kg (USD) *
+                      </label>
+                      <div className="space-y-2">
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-700">
+                            $
+                          </span>
+                          <input
+                            type="number"
+                            id="price_per_kg"
+                            name="price_per_kg"
+                            required
+                            step="0.01"
+                            disabled={saving || formData.price_group_id !== ""}
+                            value={formData.price_per_kg}
+                            onChange={handleInputChange}
+                            className="pl-8 w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                            placeholder="0.00"
+                          />
+                        </div>
+                        {formData.price_per_kg && exchangeRate && (
+                          <div className="text-xs bg-gray-50 border border-gray-200 p-2 rounded">
+                            <span className="text-gray-600">Equivalente: </span>
+                            <span className="font-semibold text-gray-900">
+                              {formatUYU(
+                                convertUSDToUYU(
+                                  parseFloat(formData.price_per_kg),
+                                  exchangeRate.usd_to_uyu
+                                )
+                              )}{" "}
+                              por kg
+                            </span>
+                          </div>
+                        )}
+                        {formData.price_group_id && (
+                          <div className="text-xs text-blue-600 bg-blue-50 p-2 rounded">
+                            💡 Precio cargado automáticamente desde el grupo de
+                            precios seleccionado
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label
+                        htmlFor="weight_per_unit"
+                        className="block text-sm font-medium text-gray-800 mb-2"
+                      >
+                        Peso por Unidad (kg) *
+                      </label>
+                      <input
+                        type="number"
+                        id="weight_per_unit"
+                        name="weight_per_unit"
+                        required
+                        step="0.001"
+                        disabled={saving}
+                        value={formData.weight_per_unit}
+                        onChange={handleInputChange}
+                        className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                        placeholder="Ej: 0.5"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Precio automático */}
+                  <div className="mt-4 bg-white p-3 rounded border border-gray-200">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-700">
+                        Precio por unidad:
+                      </span>
+                      <span className="text-lg font-semibold text-blue-700">
+                        {formatUSD(parseFloat(formData.price) || 0)}
+                      </span>
+                    </div>
+                    {formData.weight_per_unit && formData.price_per_kg && (
+                      <p className="text-xs text-gray-600 mt-1">
+                        {formData.weight_per_unit} kg ×{" "}
+                        {formatUSD(parseFloat(formData.price_per_kg))}/kg ={" "}
+                        {formatUSD(parseFloat(formData.price))}
+                        {exchangeRate && (
+                          <span className="text-xs text-blue-600 block">
+                            (Cotización: ${exchangeRate.usd_to_uyu.toFixed(2)}{" "}
+                            UYU)
+                          </span>
+                        )}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Stock como disponibilidad */}
+                  <div className="mt-4">
+                    <label className="flex items-center">
+                      <input
+                        type="checkbox"
+                        name="is_available"
+                        disabled={saving}
+                        checked={formData.is_available}
+                        onChange={handleInputChange}
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded disabled:cursor-not-allowed"
+                      />
+                      <span className="ml-2 text-sm text-gray-900">
+                        Producto disponible en stock
+                      </span>
+                    </label>
+                  </div>
+                </div>
+              )}
+
+              {/* Campos específicos para Chapas Conformadas */}
+              {formData.product_type === "chapas_conformadas" && (
+                <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                  <h3 className="text-sm font-medium text-green-900 mb-3">
+                    Configuración para Chapas Conformadas
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label
+                        htmlFor="price_per_kg"
+                        className="block text-sm font-medium text-gray-800 mb-2"
+                      >
+                        Precio por Kg (USD) *
+                      </label>
+                      <div className="space-y-2">
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-700">
+                            $
+                          </span>
+                          <input
+                            type="number"
+                            id="price_per_kg"
+                            name="price_per_kg"
+                            required
+                            step="0.01"
+                            disabled={saving || formData.price_group_id !== ""}
+                            value={formData.price_per_kg}
+                            onChange={handleInputChange}
+                            className="pl-8 w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                            placeholder="0.00"
+                          />
+                        </div>
+                        {formData.price_per_kg && exchangeRate && (
+                          <div className="text-xs bg-gray-50 border border-gray-200 p-2 rounded">
+                            <span className="text-gray-600">Equivalente: </span>
+                            <span className="font-semibold text-gray-900">
+                              {formatUYU(
+                                convertUSDToUYU(
+                                  parseFloat(formData.price_per_kg),
+                                  exchangeRate.usd_to_uyu
+                                )
+                              )}{" "}
+                              por kg
+                            </span>
+                          </div>
+                        )}
+                        {formData.price_group_id && (
+                          <div className="text-xs text-blue-600 bg-blue-50 p-2 rounded">
+                            💡 Precio cargado automáticamente desde el grupo de
+                            precios seleccionado
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label
+                        htmlFor="kg_per_meter"
+                        className="block text-sm font-medium text-gray-800 mb-2"
+                      >
+                        Kg por Metro *
+                      </label>
+                      <input
+                        type="number"
+                        id="kg_per_meter"
+                        name="kg_per_meter"
+                        required
+                        step="0.001"
+                        disabled={saving}
+                        value={formData.kg_per_meter}
+                        onChange={handleInputChange}
+                        className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                        placeholder="Ej: 2.5"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Precio automático */}
+                  <div className="mt-4 bg-white p-3 rounded border border-gray-200">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-700">
+                        Precio por metro:
+                      </span>
+                      <span className="text-lg font-semibold text-green-700">
+                        {formatUSD(parseFloat(formData.price) || 0)}
+                      </span>
+                    </div>
+                    {formData.kg_per_meter && formData.price_per_kg && (
+                      <p className="text-xs text-gray-600 mt-1">
+                        {formData.kg_per_meter} kg/m ×{" "}
+                        {formatUSD(parseFloat(formData.price_per_kg))}/kg ={" "}
+                        {formatUSD(parseFloat(formData.price))}/m
+                        {exchangeRate && (
+                          <span className="text-xs text-blue-600 block">
+                            (Cotización: ${exchangeRate.usd_to_uyu.toFixed(2)}{" "}
+                            UYU)
+                          </span>
+                        )}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Stock como disponibilidad */}
+                  <div className="mt-4">
+                    <label className="flex items-center">
+                      <input
+                        type="checkbox"
+                        name="is_available"
+                        disabled={saving}
+                        checked={formData.is_available}
+                        onChange={handleInputChange}
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded disabled:cursor-not-allowed"
+                      />
+                      <span className="ml-2 text-sm text-gray-900">
+                        Producto disponible en stock
+                      </span>
+                    </label>
+                  </div>
+                </div>
+              )}
+
+              {/* Campos estándar para productos normales */}
+              {formData.product_type !== "perfiles" &&
+                formData.product_type !== "chapas_conformadas" && (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div>
+                      <label
+                        htmlFor="price"
+                        className="block text-sm font-medium text-gray-800 mb-2"
+                      >
+                        Precio (USD) *
+                      </label>
+                      <div className="space-y-2">
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-700">
+                            $
+                          </span>
+                          <input
+                            type="number"
+                            id="price"
+                            name="price"
+                            required
+                            step="0.01"
+                            disabled={saving}
+                            value={formData.price}
+                            onChange={handleInputChange}
+                            className="pl-8 w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                            placeholder="0.00"
+                          />
+                        </div>
+                        {formData.price && exchangeRate && (
+                          <div className="text-xs bg-gray-50 border border-gray-200 p-2 rounded">
+                            <span className="text-gray-600">Equivalente: </span>
+                            <span className="font-semibold text-gray-900">
+                              {formatUYU(
+                                convertUSDToUYU(
+                                  parseFloat(formData.price),
+                                  exchangeRate.usd_to_uyu
+                                )
+                              )}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label
+                        htmlFor="stock"
+                        className="block text-sm font-medium text-gray-800 mb-2"
+                      >
+                        Stock *
+                      </label>
+                      <input
+                        type="number"
+                        id="stock"
+                        name="stock"
+                        required
+                        min="0"
+                        disabled={saving}
+                        value={formData.stock}
+                        onChange={handleInputChange}
+                        className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                        placeholder="0"
+                      />
+                    </div>
+
+                    <div>
+                      <label
+                        htmlFor="unit"
+                        className="block text-sm font-medium text-gray-800 mb-2"
+                      >
+                        Unidad *
+                      </label>
+                      <select
+                        id="unit"
+                        name="unit"
+                        required
+                        disabled={saving}
+                        value={formData.unit}
+                        onChange={handleInputChange}
+                        className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                      >
+                        {units.map((unit) => (
+                          <option key={unit} value={unit}>
+                            {unit}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                )}
             </div>
           </div>
 
+          {/* Imágenes */}
           <div className="bg-white rounded-lg shadow">
             <div className="px-6 py-4 border-b border-gray-200">
-              <h2 className="text-lg font-semibold text-gray-900">
-                Imagen y Configuración
-              </h2>
+              <h2 className="text-lg font-semibold text-gray-900">Imágenes</h2>
             </div>
-            <div className="p-6 space-y-6">
-              <div>
-                <label
-                  htmlFor="primary_image"
-                  className="block text-sm font-medium text-gray-800 mb-2"
-                >
-                  URL de la Imagen Principal (opcional)
-                </label>
-                <input
-                  type="url"
-                  id="primary_image"
-                  name="primary_image"
-                  value={formData.primary_image}
-                  onChange={handleInputChange}
-                  className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-500"
-                  placeholder="Se establecerá automáticamente desde las imágenes subidas"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Puedes usar el gestor de imágenes arriba o ingresar una URL
-                  directamente
-                </p>
-              </div>
-
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  id="featured"
-                  name="featured"
-                  checked={formData.featured}
-                  onChange={handleInputChange}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                />
-                <label
-                  htmlFor="featured"
-                  className="ml-2 block text-sm text-gray-900"
-                >
-                  Producto destacado
-                </label>
-              </div>
+            <div className="p-6">
+              <ImageUpload
+                productId={productId}
+                images={images}
+                onImagesChange={setImages}
+              />
             </div>
           </div>
 
-          {/* Botones */}
-          <div className="flex justify-end space-x-4">
+          {/* Botones de acción */}
+          <div className="flex items-center justify-end space-x-4">
             <Link
               href="/admin/productos"
-              className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             >
               Cancelar
             </Link>
             <button
               type="submit"
               disabled={saving}
-              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+              className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
             >
               {saving ? (
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  Guardando...
+                </>
               ) : (
-                <SaveIcon className="h-4 w-4 mr-2" />
+                <>
+                  <SaveIcon className="h-4 w-4 mr-2" />
+                  Actualizar Producto
+                </>
               )}
-              {saving ? "Guardando..." : "Actualizar Producto"}
             </button>
           </div>
         </form>
