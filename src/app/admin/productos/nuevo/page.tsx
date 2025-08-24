@@ -21,12 +21,14 @@ export default function NewProductPage() {
   const [productCreated, setProductCreated] = useState(false);
   const [createdProductId, setCreatedProductId] = useState<string | null>(null);
   const [images, setImages] = useState<ProductImage[]>([]);
-  const [priceGroups, setPriceGroups] = useState<Array<{
-    id: string;
-    name: string;
-    price_per_kg_usd: number;
-    category: string;
-  }>>([]);
+  const [priceGroups, setPriceGroups] = useState<
+    Array<{
+      id: string;
+      name: string;
+      price_per_kg_usd: number;
+      category: string;
+    }>
+  >([]);
   const { success, error } = useNotifications();
 
   // Hook para cotización de dólar
@@ -1091,8 +1093,8 @@ export default function NewProductPage() {
                     className="w-full rounded-md border-gray-300 shadow-sm bg-gray-100 text-gray-500 cursor-not-allowed"
                   />
                   <p className="text-sm text-gray-500 mt-1">
-                    La unidad se establece automáticamente como &quot;kg&quot; para
-                    perfiles
+                    La unidad se establece automáticamente como &quot;kg&quot;
+                    para perfiles
                   </p>
                 </div>
               )}
