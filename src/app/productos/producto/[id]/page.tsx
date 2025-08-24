@@ -10,10 +10,11 @@ import {
   MinusIcon,
   HomeIcon,
 } from "@heroicons/react/24/outline";
-import { Product, ProductImage } from "@/types";
+import { Product, ProductImage, CalculationDetail } from "@/types";
 import { useCartStore } from "@/store/cartStore";
 import ProductCard from "@/components/ProductCard";
 import ProductImageGallery from "@/components/ProductImageGallery";
+import ChapasCalculator from "@/components/ChapasCalculator";
 import { useExchangeRate, formatUYU, convertUSDToUYU } from "@/lib/currency";
 
 export default function ProductDetailPage() {
@@ -23,7 +24,11 @@ export default function ProductDetailPage() {
   const [productImages, setProductImages] = useState<ProductImage[]>([]);
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [quantity, setQuantity] = useState(1);
+  const [quantity, setQuantity] = useState<string | number>(1);
+  const [showCalculator, setShowCalculator] = useState(false);
+  const [calculationDetails, setCalculationDetails] = useState<
+    CalculationDetail[] | undefined
+  >(undefined);
   const { addItem, getItemQuantity } = useCartStore();
 
   // Hook para cotización de dólar
@@ -38,6 +43,28 @@ export default function ProductDetailPage() {
         if (response.ok) {
           const productData = await response.json();
           setProduct(productData);
+
+          // Establecer cantidad inicial basada en tipo de producto
+          const productType =
+            productData.product_type ||
+            (() => {
+              try {
+                if (
+                  productData.description?.startsWith("{") ||
+                  productData.description?.startsWith("[")
+                ) {
+                  const parsed = JSON.parse(productData.description);
+                  const metadata = parsed.meta || parsed;
+                  return metadata.product_type || "standard";
+                }
+              } catch (error) {
+                // Ignorar errores de parsing
+              }
+              return "standard";
+            })();
+
+          // La cantidad inicial siempre es 1, independientemente del tipo de producto
+          setQuantity(1);
 
           // Fetch product images
           try {
@@ -78,10 +105,86 @@ export default function ProductDetailPage() {
     }
   }, [params.id, router]);
 
+  // Función auxiliar para redondear a 2 decimales y evitar problemas de punto flotante
+  const roundToTwoDecimals = (num: number): number => {
+    return Math.round(num * 100) / 100;
+  };
+
+  // Función auxiliar para obtener quantity como número
+  const getQuantityAsNumber = (): number => {
+    if (typeof quantity === "string") {
+      const parsed = parseFloat(quantity);
+      return isNaN(parsed) ? 0 : roundToTwoDecimals(parsed);
+    }
+    return roundToTwoDecimals(quantity);
+  };
+
   const handleAddToCart = () => {
-    if (product) {
-      addItem(product, quantity);
+    const quantityNum = getQuantityAsNumber();
+    if (product && quantityNum > 0) {
+      const isChapas = getProductType(product) === "chapas_conformadas";
+      const minValue = isChapas ? 0.1 : 1;
+
+      // Validar cantidad mínima antes de agregar
+      if (quantityNum < minValue) {
+        alert(`La cantidad mínima es ${minValue}`);
+        setQuantity(minValue);
+        return;
+      }
+
+      addItem(product, quantityNum, calculationDetails);
+      // Siempre resetear a 1 después de agregar al carrito
       setQuantity(1);
+      // Limpiar detalles de cálculo después de agregar
+      setCalculationDetails(undefined);
+    }
+  };
+
+  // Función para obtener el tipo de producto
+  const getProductType = (product: Product) => {
+    // Usar campo directo de la base de datos si está disponible
+    if (product.product_type) {
+      return product.product_type;
+    }
+
+    // Fallback: parsear JSON del description
+    try {
+      if (
+        product.description?.startsWith("{") ||
+        product.description?.startsWith("[")
+      ) {
+        const parsed = JSON.parse(product.description);
+        const metadata = parsed.meta || parsed;
+        return metadata.product_type || "standard";
+      }
+    } catch (error) {
+      // Ignorar errores de parsing
+    }
+
+    return "standard";
+  };
+
+  const handleQuantityInputChange = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const inputValue = e.target.value;
+
+    // Permitir campo vacío para que el usuario pueda escribir desde cero
+    if (inputValue === "") {
+      setQuantity("");
+      return;
+    }
+
+    // Validar que solo contenga números y punto decimal
+    if (!/^\d*\.?\d*$/.test(inputValue)) {
+      return;
+    }
+
+    const value = parseFloat(inputValue);
+
+    // Permitir cualquier número válido mientras se escribe, incluyendo valores parciales como "4."
+    if (!isNaN(value) || inputValue.endsWith(".")) {
+      setQuantity(inputValue);
     }
   };
 
@@ -447,38 +550,122 @@ export default function ProductDetailPage() {
 
               {/* Quantity Selector */}
               <div className="space-y-4">
+                {/* Información contextual sobre opciones de cantidad */}
+                <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+                  <p className="text-sm text-blue-800">
+                    <span className="font-medium">
+                      💡 Opciones para agregar cantidad:
+                    </span>
+                    <br />• Puedes escribir la cantidad directamente en el campo
+                    {product &&
+                      getProductType(product) === "chapas_conformadas" && (
+                        <>
+                          <br />• O usar nuestra calculadora de chapas para
+                          cálculos automáticos
+                        </>
+                      )}
+                    {product &&
+                      getProductType(product) !== "chapas_conformadas" && (
+                        <>
+                          <br />• Cantidad mínima: 1 unidad
+                        </>
+                      )}
+                  </p>
+                </div>
+
                 <div className="flex items-center space-x-4">
                   <span className="font-medium text-gray-700">Cantidad:</span>
                   <div className="flex items-center border border-gray-300 rounded-md">
                     <button
-                      onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                      onClick={() => {
+                        const quantityNum = getQuantityAsNumber();
+                        const isChapas =
+                          product &&
+                          getProductType(product) === "chapas_conformadas";
+                        const step = isChapas ? 0.1 : 1;
+                        const minValue = isChapas ? 0.1 : 1;
+                        const newValue = Math.max(minValue, quantityNum - step);
+                        // Redondear a 2 decimales para evitar problemas de punto flotante
+                        setQuantity(Math.round(newValue * 100) / 100);
+                      }}
                       className="p-2 hover:bg-gray-100 transition-colors"
                     >
                       <MinusIcon className="h-5 w-5" />
                     </button>
-                    <span className="px-4 py-2 text-center min-w-[80px] font-medium">
-                      {quantity}
-                    </span>
-                    <button
-                      onClick={() =>
-                        setQuantity(
-                          Math.min(getMaxQuantity(product), quantity + 1)
-                        )
+                    <input
+                      type="number"
+                      value={quantity}
+                      onChange={handleQuantityInputChange}
+                      min="0"
+                      step={
+                        product &&
+                        getProductType(product) === "chapas_conformadas"
+                          ? "0.1"
+                          : "1"
                       }
+                      className="px-4 py-2 text-center min-w-[80px] max-w-[100px] border-0 focus:ring-0 focus:outline-none font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    />
+                    <button
+                      onClick={() => {
+                        const quantityNum = getQuantityAsNumber();
+                        const isChapas =
+                          product &&
+                          getProductType(product) === "chapas_conformadas";
+                        const step = isChapas ? 0.1 : 1;
+                        const maxQuantity = getMaxQuantity(product);
+                        const newValue = Math.min(
+                          maxQuantity,
+                          quantityNum + step
+                        );
+                        // Redondear a 2 decimales para evitar problemas de punto flotante
+                        setQuantity(Math.round(newValue * 100) / 100);
+                      }}
                       className="p-2 hover:bg-gray-100 transition-colors"
-                      disabled={quantity >= getMaxQuantity(product)}
+                      disabled={
+                        getQuantityAsNumber() >= getMaxQuantity(product)
+                      }
                     >
                       <PlusIcon className="h-5 w-5" />
                     </button>
                   </div>
+
+                  {/* Calculadora para chapas conformadas */}
+                  {product &&
+                    getProductType(product) === "chapas_conformadas" && (
+                      <button
+                        onClick={() => setShowCalculator(!showCalculator)}
+                        className="bg-blue-500 text-white px-3 py-2 rounded-md hover:bg-blue-600 transition-colors text-sm"
+                      >
+                        🧮 Calculadora
+                      </button>
+                    )}
                 </div>
+
+                {/* Calculadora para chapas conformadas */}
+                {showCalculator &&
+                  product &&
+                  getProductType(product) === "chapas_conformadas" && (
+                    <ChapasCalculator
+                      onCalculateResult={(
+                        result: number,
+                        details?: CalculationDetail[]
+                      ) => {
+                        setQuantity(roundToTwoDecimals(result));
+                        setCalculationDetails(details);
+                        // No cerrar la calculadora automáticamente
+                      }}
+                      onClose={() => setShowCalculator(false)}
+                    />
+                  )}
 
                 {/* Total Price */}
                 <div className="bg-gray-50 p-4 rounded-md">
                   <div className="flex justify-between items-center">
                     <span className="font-medium text-gray-700">Total:</span>
                     <span className="text-2xl font-bold text-orange-600">
-                      {formatPriceWithIVA(product.price * quantity)}
+                      {formatPriceWithIVA(
+                        product.price * getQuantityAsNumber()
+                      )}
                     </span>
                   </div>
                 </div>

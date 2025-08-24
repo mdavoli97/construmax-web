@@ -31,9 +31,17 @@ export interface Product {
   is_available?: boolean; // Para stock tipo availability
 }
 
+export interface CalculationDetail {
+  id: number;
+  largo: number;
+  cantidad: number;
+  total: number;
+}
+
 export interface CartItem {
   product: Product;
   quantity: number;
+  calculationDetails?: CalculationDetail[]; // Detalles de la calculadora si se usó
 }
 
 export interface Cart {

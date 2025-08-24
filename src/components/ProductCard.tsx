@@ -2,11 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import {
-  ShoppingCartIcon,
-  PlusIcon,
-  MinusIcon,
-} from "@heroicons/react/24/outline";
+import { EyeIcon } from "@heroicons/react/24/outline";
 import { Product } from "@/types";
 import { useCartStore } from "@/store/cartStore";
 import ProductImage from "./ProductImage";
@@ -17,10 +13,9 @@ interface ProductCardProps {
 }
 
 export default function ProductCard({ product }: ProductCardProps) {
-  const [quantity, setQuantity] = useState(1);
   const [exchangeRate, setExchangeRate] = useState<number | null>(null);
   const router = useRouter();
-  const { addItem, getItemQuantity } = useCartStore();
+  const { getItemQuantity } = useCartStore();
   const currentQuantity = getItemQuantity(product.id);
 
   // Obtener cotización del dólar al cargar el componente
@@ -32,24 +27,35 @@ export default function ProductCard({ product }: ProductCardProps) {
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation(); // Prevenir navegación cuando se hace click en agregar al carrito
-    addItem(product, quantity);
-    setQuantity(1);
+    router.push(`/productos/producto/${product.id}`);
   };
 
   const handleCardClick = () => {
     router.push(`/productos/producto/${product.id}`);
   };
 
-  const handleQuantityChange = (
-    e: React.MouseEvent,
-    action: "increment" | "decrement"
-  ) => {
-    e.stopPropagation(); // Prevenir navegación cuando se cambia la cantidad
-    if (action === "increment") {
-      setQuantity(quantity + 1);
-    } else {
-      setQuantity(Math.max(1, quantity - 1));
+  // Función para obtener el tipo de producto
+  const getProductType = (product: Product) => {
+    // Usar campo directo de la base de datos si está disponible
+    if (product.product_type) {
+      return product.product_type;
     }
+
+    // Fallback: parsear JSON del description
+    try {
+      if (
+        product.description?.startsWith("{") ||
+        product.description?.startsWith("[")
+      ) {
+        const parsed = JSON.parse(product.description);
+        const metadata = parsed.meta || parsed;
+        return metadata.product_type || "standard";
+      }
+    } catch (error) {
+      // Ignorar errores de parsing
+    }
+
+    return "standard";
   };
 
   const formatPrice = (priceInUSD: number) => {
@@ -274,36 +280,15 @@ export default function ProductCard({ product }: ProductCardProps) {
         {/* Spacer to push bottom content down */}
         <div className="flex-grow"></div>
 
-        {/* Quantity Selector */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center border border-gray-300 rounded">
-            <button
-              onClick={(e) => handleQuantityChange(e, "decrement")}
-              className="p-2 hover:bg-gray-100"
-            >
-              <MinusIcon className="h-4 w-4" />
-            </button>
-            <span className="px-4 py-2 text-center min-w-[60px]">
-              {quantity}
-            </span>
-            <button
-              onClick={(e) => handleQuantityChange(e, "increment")}
-              className="p-2 hover:bg-gray-100"
-            >
-              <PlusIcon className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-
         {/* Add to Cart Button */}
         <button
           onClick={handleAddToCart}
           disabled={!isAvailable(product)}
           className="w-full bg-orange-600 text-white py-2 px-4 rounded-md hover:bg-orange-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center justify-center space-x-2"
         >
-          <ShoppingCartIcon className="h-5 w-5" />
+          <EyeIcon className="h-5 w-5" />
           <span>
-            {!isAvailable(product) ? "No disponible" : "Agregar al carrito"}
+            {!isAvailable(product) ? "No disponible" : "Ver producto"}
           </span>
         </button>
 

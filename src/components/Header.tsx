@@ -57,8 +57,12 @@ export default function Header() {
             >
               <ShoppingCartIcon className="h-6 w-6" />
               {getTotalItems() > 0 && (
-                <span className="absolute -top-1 -right-1 bg-orange-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                  {getTotalItems()}
+                <span
+                  className={`absolute -top-1 -right-1 bg-orange-600 text-white rounded-full h-5 w-5 flex items-center justify-center ${
+                    getTotalItems() > 99 ? "text-[10px]" : "text-xs"
+                  }`}
+                >
+                  {getTotalItems() > 99 ? "+99" : getTotalItems()}
                 </span>
               )}
             </Link>
