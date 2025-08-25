@@ -1,6 +1,9 @@
 import { productService, categoryService } from '@/lib/services';
 import ProductSearch from '@/components/ProductSearch';
 
+// Forzar revalidación en cada request
+export const revalidate = 0;
+
 export default async function ProductosPage() {
   const [products, categories] = await Promise.all([
     productService.getAll(),

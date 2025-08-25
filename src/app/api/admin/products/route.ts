@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { productService } from "@/lib/services";
 import { validateProductData } from "@/lib/auth";
+import { revalidatePath } from "next/cache";
 
 // GET - Obtener todos los productos
 export async function GET() {
@@ -199,6 +200,14 @@ export async function POST(request: NextRequest) {
     }
 
     console.log("Producto creado exitosamente:", data);
+    
+    // Revalidate the product pages after creation
+    revalidatePath('/productos');
+    revalidatePath('/');
+    if (data.category) {
+      revalidatePath(`/productos/${data.category}`);
+    }
+    
     return NextResponse.json(data, { status: 201 });
   } catch (error) {
     console.error("Error creating product:", error);

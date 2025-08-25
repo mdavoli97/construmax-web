@@ -8,6 +8,9 @@ import {
   ClockIcon 
 } from '@heroicons/react/24/outline';
 
+// Forzar revalidación en cada request para productos destacados
+export const revalidate = 0;
+
 export default async function HomePage() {
   const [categories, featuredProducts] = await Promise.all([
     categoryService.getAll(),

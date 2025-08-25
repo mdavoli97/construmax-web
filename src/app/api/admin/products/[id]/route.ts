@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { productService } from "@/lib/services";
+import { revalidatePath } from "next/cache";
 
 // GET - Obtener producto por ID
 export async function GET(
@@ -60,6 +61,13 @@ export async function PUT(
 
     if (error) throw error;
 
+    // Revalidate the product pages after update
+    revalidatePath('/productos');
+    revalidatePath('/');
+    if (data.category) {
+      revalidatePath(`/productos/${data.category}`);
+    }
+
     return NextResponse.json(data);
   } catch (error) {
     console.error("Error updating product:", error);
@@ -94,6 +102,11 @@ export async function DELETE(
     const { error } = await adminClient.from("products").delete().eq("id", id);
 
     if (error) throw error;
+
+    // Revalidar las páginas que muestran productos
+    revalidatePath('/productos');
+    revalidatePath('/');
+    revalidatePath('/productos/[category]', 'page');
 
     return NextResponse.json({ message: "Producto eliminado exitosamente" });
   } catch (error) {

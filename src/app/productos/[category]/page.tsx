@@ -2,6 +2,9 @@ import { notFound } from 'next/navigation';
 import { productService, categoryService } from '@/lib/services';
 import ProductCard from '@/components/ProductCard';
 
+// Forzar revalidación en cada request
+export const revalidate = 0;
+
 interface CategoryPageProps {
   params: Promise<{
     category: string;
