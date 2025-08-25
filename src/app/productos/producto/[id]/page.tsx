@@ -16,6 +16,7 @@ import ProductCard from "@/components/ProductCard";
 import ProductImageGallery from "@/components/ProductImageGallery";
 import ChapasCalculator from "@/components/ChapasCalculator";
 import { useExchangeRate, formatUYU, convertUSDToUYU } from "@/lib/currency";
+import { Input } from "@/components/ui/input";
 
 export default function ProductDetailPage() {
   const params = useParams();
@@ -406,10 +407,12 @@ export default function ProductDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-orange-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Cargando producto...</p>
+          <div className="animate-spin rounded-full h-24 w-24 sm:h-32 sm:w-32 border-b-2 border-orange-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600 text-sm sm:text-base">
+            Cargando producto...
+          </p>
         </div>
       </div>
     );
@@ -417,18 +420,18 @@ export default function ProductDetailPage() {
 
   if (!product) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-6xl mb-4">❌</div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+        <div className="text-center max-w-md mx-auto">
+          <div className="text-4xl sm:text-6xl mb-4">❌</div>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">
             Producto no encontrado
           </h2>
-          <p className="text-gray-600 mb-4">
+          <p className="text-gray-600 mb-4 text-sm sm:text-base">
             El producto que buscas no existe o fue eliminado.
           </p>
           <button
             onClick={() => router.push("/productos")}
-            className="bg-orange-600 text-white px-6 py-3 rounded-md hover:bg-orange-700 transition-colors"
+            className="bg-orange-600 text-white px-6 py-3 rounded-md hover:bg-orange-700 transition-colors text-sm sm:text-base"
           >
             Volver a Productos
           </button>
@@ -439,49 +442,53 @@ export default function ProductDetailPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         {/* Breadcrumbs */}
-        <nav className="flex items-center space-x-2 text-sm text-gray-600 mb-6">
-          <Link
-            href="/"
-            className="flex items-center hover:text-orange-600 transition-colors"
-          >
-            <HomeIcon className="h-4 w-4 mr-1" />
-            Inicio
-          </Link>
-          <span>/</span>
-          <Link
-            href="/productos"
-            className="hover:text-orange-600 transition-colors"
-          >
-            Productos
-          </Link>
-          {product.category && (
-            <>
-              <span>/</span>
-              <Link
-                href={`/productos/${product.category}`}
-                className="hover:text-orange-600 transition-colors capitalize"
-              >
-                {product.category}
-              </Link>
-            </>
-          )}
-          <span>/</span>
-          <span className="text-gray-900 font-medium">{product.name}</span>
+        <nav className="hidden md:flex items-center text-sm sm:text-base text-gray-600 mb-4 sm:mb-6">
+          <div className="flex items-center space-x-2 overflow-x-auto scrollbar-hide min-w-0">
+            <Link
+              href="/"
+              className="flex items-center hover:text-orange-600 transition-colors flex-shrink-0"
+            >
+              <HomeIcon className="h-4 w-4 mr-1" />
+              <span className="hidden sm:inline">Inicio</span>
+            </Link>
+            <span className="flex-shrink-0 text-gray-400">/</span>
+            <Link
+              href="/productos"
+              className="hover:text-orange-600 transition-colors flex-shrink-0"
+            >
+              Productos
+            </Link>
+            {product.category && (
+              <>
+                <span className="flex-shrink-0 text-gray-400">/</span>
+                <Link
+                  href={`/productos/${product.category}`}
+                  className="hover:text-orange-600 transition-colors capitalize flex-shrink-0 max-w-[120px] sm:max-w-none truncate"
+                >
+                  {product.category}
+                </Link>
+              </>
+            )}
+            <span className="flex-shrink-0 text-gray-400">/</span>
+            <span className="text-gray-900 font-medium max-w-[150px] sm:max-w-[300px] truncate">
+              {product.name}
+            </span>
+          </div>
         </nav>
 
         {/* Back Button */}
         <button
           onClick={goBack}
-          className="flex items-center text-gray-600 hover:text-gray-900 mb-6 transition-colors"
+          className="flex items-center text-gray-600 hover:text-gray-900 mb-4 sm:mb-6 transition-colors text-sm sm:text-base"
         >
-          <ArrowLeftIcon className="h-5 w-5 mr-2" />
+          <ArrowLeftIcon className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
           Volver
         </button>
 
         <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 p-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 p-4 sm:p-6">
             {/* Product Images */}
             <div className="w-full max-w-lg mx-auto lg:mx-0">
               <ProductImageGallery
@@ -491,7 +498,7 @@ export default function ProductDetailPage() {
             </div>
 
             {/* Product Info */}
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-6">
               {/* Featured Badge */}
               {product.featured && (
                 <div className="inline-block bg-orange-500 text-white px-3 py-1 rounded-full text-sm font-medium">
@@ -501,10 +508,10 @@ export default function ProductDetailPage() {
 
               {/* Product Title */}
               <div>
-                <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
                   {product.name}
                 </h1>
-                <p className="text-xl text-gray-600">
+                <p className="text-lg sm:text-xl text-gray-600">
                   {getProductDescription(product)}
                 </p>
               </div>
@@ -512,19 +519,19 @@ export default function ProductDetailPage() {
               {/* Price */}
               <div className="border-t border-b border-gray-200 py-4">
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-2xl font-bold text-orange-600">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                    <span className="text-xl sm:text-2xl font-bold text-orange-600">
                       {formatPriceWithIVA(product.price)}
                     </span>
-                    <span className="text-lg text-gray-500">
+                    <span className="text-base sm:text-lg text-gray-500">
                       {getPriceUnit(product)}
                     </span>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-2">
+                    <span className="text-xs sm:text-sm text-gray-600">
                       Sin IVA: {formatPrice(product.price)}
                     </span>
-                    <span className="text-sm text-gray-500">
+                    <span className="text-xs sm:text-sm text-gray-500">
                       IVA incluido (22%)
                     </span>
                   </div>
@@ -534,15 +541,25 @@ export default function ProductDetailPage() {
               {/* Product Details */}
               <div className="space-y-3">
                 {product.brand && (
-                  <div className="flex justify-between">
-                    <span className="font-medium text-gray-700">Marca:</span>
-                    <span className="text-gray-900">{product.brand}</span>
+                  <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
+                    <span className="font-medium text-gray-700 text-sm sm:text-base">
+                      Marca:
+                    </span>
+                    <span className="text-gray-900 text-sm sm:text-base">
+                      {product.brand}
+                    </span>
                   </div>
                 )}
 
-                <div className="flex justify-between">
-                  <span className="font-medium text-gray-700">Estado:</span>
-                  <span className={`font-medium ${getStockColor(product)}`}>
+                <div className="flex sm:flex-row sm:justify-between gap-1">
+                  <span className="font-medium text-gray-700 text-sm sm:text-base">
+                    Estado:
+                  </span>
+                  <span
+                    className={`font-medium text-sm sm:text-base ${getStockColor(
+                      product
+                    )}`}
+                  >
                     {getStockDisplay(product)}
                   </span>
                 </div>
@@ -552,7 +569,7 @@ export default function ProductDetailPage() {
               <div className="space-y-4">
                 {/* Información contextual sobre opciones de cantidad */}
                 <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
-                  <p className="text-sm text-blue-800">
+                  <p className="text-xs sm:text-sm text-blue-800">
                     <span className="font-medium">
                       💡 Opciones para agregar cantidad:
                     </span>
@@ -573,9 +590,11 @@ export default function ProductDetailPage() {
                   </p>
                 </div>
 
-                <div className="flex items-center space-x-4">
-                  <span className="font-medium text-gray-700">Cantidad:</span>
-                  <div className="flex items-center border border-gray-300 rounded-md">
+                <div className="flex flex-col w-full sm:flex-row sm:items-center gap-3 sm:gap-4">
+                  <span className="font-medium text-gray-700 text-sm sm:text-base">
+                    Cantidad:
+                  </span>
+                  <div className="flex items-center justify-between border border-gray-300 rounded-md w-full md:w-fit">
                     <button
                       onClick={() => {
                         const quantityNum = getQuantityAsNumber();
@@ -588,11 +607,11 @@ export default function ProductDetailPage() {
                         // Redondear a 2 decimales para evitar problemas de punto flotante
                         setQuantity(Math.round(newValue * 100) / 100);
                       }}
-                      className="p-2 hover:bg-gray-100 transition-colors"
+                      className="p-2 sm:p-3 hover:bg-gray-100 transition-colors flex-shrink-0"
                     >
-                      <MinusIcon className="h-5 w-5" />
+                      <MinusIcon className="h-4 w-4 sm:h-5 sm:w-5" />
                     </button>
-                    <input
+                    <Input
                       type="number"
                       value={quantity}
                       onChange={handleQuantityInputChange}
@@ -603,7 +622,7 @@ export default function ProductDetailPage() {
                           ? "0.1"
                           : "1"
                       }
-                      className="px-4 py-2 text-center min-w-[80px] max-w-[100px] border-0 focus:ring-0 focus:outline-none font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      className="w-20 sm:w-24 text-center font-medium text-sm sm:text-base [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     />
                     <button
                       onClick={() => {
@@ -620,12 +639,12 @@ export default function ProductDetailPage() {
                         // Redondear a 2 decimales para evitar problemas de punto flotante
                         setQuantity(Math.round(newValue * 100) / 100);
                       }}
-                      className="p-2 hover:bg-gray-100 transition-colors"
+                      className="p-2 sm:p-3 hover:bg-gray-100 transition-colors flex-shrink-0"
                       disabled={
                         getQuantityAsNumber() >= getMaxQuantity(product)
                       }
                     >
-                      <PlusIcon className="h-5 w-5" />
+                      <PlusIcon className="h-4 w-4 sm:h-5 sm:w-5" />
                     </button>
                   </div>
 
@@ -634,7 +653,7 @@ export default function ProductDetailPage() {
                     getProductType(product) === "chapas_conformadas" && (
                       <button
                         onClick={() => setShowCalculator(!showCalculator)}
-                        className="bg-blue-500 text-white px-3 py-2 rounded-md hover:bg-blue-600 transition-colors text-sm"
+                        className="bg-blue-500 text-white px-3 py-2 rounded-md hover:bg-blue-600 transition-colors text-xs sm:text-sm whitespace-nowrap"
                       >
                         🧮 Calculadora
                       </button>
@@ -659,10 +678,12 @@ export default function ProductDetailPage() {
                   )}
 
                 {/* Total Price */}
-                <div className="bg-gray-50 p-4 rounded-md">
+                <div className="bg-gray-50 p-3 sm:p-4 rounded-md">
                   <div className="flex justify-between items-center">
-                    <span className="font-medium text-gray-700">Total:</span>
-                    <span className="text-2xl font-bold text-orange-600">
+                    <span className="font-medium text-gray-700 text-sm sm:text-base">
+                      Total:
+                    </span>
+                    <span className="text-xl sm:text-2xl font-bold text-orange-600">
                       {formatPriceWithIVA(
                         product.price * getQuantityAsNumber()
                       )}
@@ -676,9 +697,9 @@ export default function ProductDetailPage() {
                 <button
                   onClick={handleAddToCart}
                   disabled={!isProductAvailable(product)}
-                  className="w-full bg-orange-600 text-white py-3 px-6 rounded-md hover:bg-orange-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center justify-center space-x-2 text-lg font-medium"
+                  className="w-full bg-orange-600 text-white py-3 sm:py-4 px-4 sm:px-6 rounded-md hover:bg-orange-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center justify-center space-x-2 text-base sm:text-lg font-medium min-h-[48px]"
                 >
-                  <ShoppingCartIcon className="h-6 w-6" />
+                  <ShoppingCartIcon className="h-5 w-5 sm:h-6 sm:w-6" />
                   <span>
                     {!isProductAvailable(product)
                       ? "No disponible"
@@ -687,7 +708,7 @@ export default function ProductDetailPage() {
                 </button>
 
                 {currentQuantity > 0 && (
-                  <p className="text-sm text-green-600 text-center font-medium">
+                  <p className="text-xs sm:text-sm text-green-600 text-center font-medium">
                     ✓ {currentQuantity}{" "}
                     {currentQuantity === 1 ? "unidad" : "unidades"} en el
                     carrito
@@ -698,13 +719,13 @@ export default function ProductDetailPage() {
           </div>
 
           {/* Additional Product Information */}
-          <div className="border-t border-gray-200 p-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="border-t border-gray-200 p-4 sm:p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3">
                   Descripción del Producto
                 </h3>
-                <p className="text-gray-600 leading-relaxed">
+                <p className="text-gray-600 leading-relaxed text-sm sm:text-base">
                   {getProductDescription(product)}
                 </p>
 
@@ -747,10 +768,10 @@ export default function ProductDetailPage() {
               </div>
 
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3">
                   Información Adicional
                 </h3>
-                <ul className="space-y-2 text-gray-600">
+                <ul className="space-y-2 text-gray-600 text-sm sm:text-base">
                   <li>• Producto de alta calidad para construcción</li>
                   <li>• Entrega rápida en Montevideo y interior</li>
                   <li>• Garantía de satisfacción</li>
@@ -763,11 +784,11 @@ export default function ProductDetailPage() {
 
         {/* Related Products */}
         {relatedProducts.length > 0 && (
-          <div className="mt-12">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">
+          <div className="mt-8 sm:mt-12">
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">
               Productos Relacionados
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
               {relatedProducts.map((relatedProduct) => (
                 <ProductCard key={relatedProduct.id} product={relatedProduct} />
               ))}

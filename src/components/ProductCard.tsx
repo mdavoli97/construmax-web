@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { EyeIcon } from "@heroicons/react/24/outline";
 import { Product } from "@/types";
-import { useCartStore } from "@/store/cartStore";
+import { useItemQuantity } from "@/hooks/useItemQuantity";
 import ProductImage from "./ProductImage";
 import { getUSDToUYURate, convertUSDToUYU, formatUYU } from "@/lib/currency";
 
@@ -15,8 +15,7 @@ interface ProductCardProps {
 export default function ProductCard({ product }: ProductCardProps) {
   const [exchangeRate, setExchangeRate] = useState<number | null>(null);
   const router = useRouter();
-  const { getItemQuantity } = useCartStore();
-  const currentQuantity = getItemQuantity(product.id);
+  const currentQuantity = useItemQuantity(product.id);
 
   // Obtener cotización del dólar al cargar el componente
   useEffect(() => {
@@ -229,13 +228,13 @@ export default function ProductCard({ product }: ProductCardProps) {
       className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow cursor-pointer flex flex-col h-full"
     >
       {/* Product Image */}
-      <div className="relative h-48 bg-gray-200">
+      <div className="relative h-40 sm:h-48 bg-gray-200">
         <ProductImage
           src={product.primary_image}
           alt={product.name}
           fill
           className="rounded-t-lg"
-          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+          sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
         />
         {product.featured && (
           <div className="absolute top-2 left-2 bg-orange-500 text-white px-2 py-1 rounded text-xs font-medium z-10">
@@ -245,29 +244,33 @@ export default function ProductCard({ product }: ProductCardProps) {
       </div>
 
       {/* Product Info */}
-      <div className="p-4 flex flex-col flex-grow">
-        <h3 className="text-lg font-semibold text-gray-900 mb-2 h-13 line-clamp-2 flex items-start">
+      <div className="p-3 sm:p-4 flex flex-col flex-grow">
+        <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2 h-10 sm:h-13 line-clamp-2 flex items-start">
           {product.name}
         </h3>
 
-        <p className="text-gray-600 text-sm mb-3 line-clamp-2">
+        <p className="text-gray-600 text-xs sm:text-sm mb-3 line-clamp-2">
           {getCleanDescription(product)}
         </p>
 
-        <div className="flex items-center justify-between mb-3">
-          <span className="text-2xl font-bold text-orange-600">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-3 gap-1">
+          <span className="text-lg sm:text-2xl font-bold text-orange-600">
             {formatPriceWithIVA(product.price)}
           </span>
-          <span className="text-sm text-gray-500">{getPriceUnit(product)}</span>
+          <span className="text-xs sm:text-sm text-gray-500">
+            {getPriceUnit(product)}
+          </span>
         </div>
 
         {product.brand && (
-          <p className="text-sm text-gray-500 mb-3">Marca: {product.brand}</p>
+          <p className="text-xs sm:text-sm text-gray-500 mb-3">
+            Marca: {product.brand}
+          </p>
         )}
 
         <div className="flex items-center justify-center mb-3">
           <span
-            className={`text-sm font-medium px-3 py-1 rounded-full ${
+            className={`text-xs sm:text-sm font-medium px-2 sm:px-3 py-1 rounded-full ${
               getStockDisplay(product) === "Disponible"
                 ? "bg-green-100 text-green-800"
                 : "bg-red-100 text-red-800"
@@ -284,16 +287,16 @@ export default function ProductCard({ product }: ProductCardProps) {
         <button
           onClick={handleAddToCart}
           disabled={!isAvailable(product)}
-          className="w-full bg-orange-600 text-white py-2 px-4 rounded-md hover:bg-orange-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center justify-center space-x-2"
+          className="w-full bg-orange-600 text-white py-2 px-3 sm:px-4 rounded-md hover:bg-orange-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center justify-center space-x-2 text-sm sm:text-base"
         >
-          <EyeIcon className="h-5 w-5" />
+          <EyeIcon className="h-4 w-4 sm:h-5 sm:w-5" />
           <span>
             {!isAvailable(product) ? "No disponible" : "Ver producto"}
           </span>
         </button>
 
         {currentQuantity > 0 && (
-          <p className="text-sm text-green-600 mt-2 text-center">
+          <p className="text-xs sm:text-sm text-green-600 mt-2 text-center">
             {currentQuantity} en el carrito
           </p>
         )}

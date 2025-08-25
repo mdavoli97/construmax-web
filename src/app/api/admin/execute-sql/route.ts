@@ -19,8 +19,6 @@ export async function POST(request: NextRequest) {
 
     const { sql } = await request.json();
 
-    console.log("Ejecutando SQL:", sql);
-
     const { data, error } = await supabase.rpc("exec_sql", { sql_query: sql });
 
     if (error) {

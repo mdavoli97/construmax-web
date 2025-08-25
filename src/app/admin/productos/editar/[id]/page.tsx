@@ -14,6 +14,15 @@ import {
   formatUYU,
   convertUSDToUYU,
 } from "@/lib/currency";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
 export default function EditProductPage() {
   const params = useParams();
@@ -461,8 +470,6 @@ export default function EditProductPage() {
         productData
       );
 
-      console.log("Producto actualizado exitosamente:", updatedProduct);
-
       success(
         "Producto actualizado",
         "El producto se ha actualizado exitosamente"
@@ -481,7 +488,7 @@ export default function EditProductPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="bg-gray-50 flex items-center justify-center py-20">
         <div className="text-center">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-orange-600 mx-auto"></div>
           <p className="mt-4 text-gray-600">Cargando producto...</p>
@@ -492,7 +499,7 @@ export default function EditProductPage() {
 
   if (!product) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="bg-gray-50 flex items-center justify-center py-20">
         <div className="text-center">
           <p className="text-gray-600">Producto no encontrado</p>
           <Link
@@ -508,7 +515,7 @@ export default function EditProductPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="bg-gray-50">
       <div className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         <div className="mb-8">
           <div className="flex items-center justify-between">
@@ -545,7 +552,7 @@ export default function EditProductPage() {
                   >
                     Nombre del Producto *
                   </label>
-                  <input
+                  <Input
                     type="text"
                     id="name"
                     name="name"
@@ -553,7 +560,6 @@ export default function EditProductPage() {
                     disabled={saving}
                     value={formData.name}
                     onChange={handleInputChange}
-                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
                     placeholder="Ej: Perfil Tubular 40x40"
                   />
                 </div>
@@ -565,22 +571,24 @@ export default function EditProductPage() {
                   >
                     Categoría *
                   </label>
-                  <select
-                    id="category"
-                    name="category"
-                    required
+                  <Select
                     disabled={saving}
                     value={formData.category}
-                    onChange={handleInputChange}
-                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    onValueChange={(value) =>
+                      setFormData((prev) => ({ ...prev, category: value }))
+                    }
                   >
-                    <option value="">Seleccionar categoría</option>
-                    {categories.map((category) => (
-                      <option key={category.value} value={category.value}>
-                        {category.label}
-                      </option>
-                    ))}
-                  </select>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccionar categoría" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories.map((category) => (
+                        <SelectItem key={category.value} value={category.value}>
+                          {category.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
@@ -591,14 +599,13 @@ export default function EditProductPage() {
                 >
                   Descripción
                 </label>
-                <textarea
+                <Textarea
                   id="description"
                   name="description"
                   rows={3}
                   disabled={saving}
                   value={formData.description}
                   onChange={handleInputChange}
-                  className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
                   placeholder="Descripción del producto..."
                 />
               </div>
@@ -611,21 +618,24 @@ export default function EditProductPage() {
                 >
                   Tipo de Producto *
                 </label>
-                <select
-                  id="product_type"
-                  name="product_type"
-                  required
+                <Select
                   disabled={saving}
                   value={formData.product_type}
-                  onChange={handleInputChange}
-                  className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  onValueChange={(value) =>
+                    setFormData((prev) => ({ ...prev, product_type: value }))
+                  }
                 >
-                  {productTypes.map((type) => (
-                    <option key={type.value} value={type.value}>
-                      {type.label}
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccionar tipo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {productTypes.map((type) => (
+                      <SelectItem key={type.value} value={type.value}>
+                        {type.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <p className="text-sm text-gray-500 mt-1">
                   Selecciona el tipo para mostrar campos específicos
                 </p>
@@ -639,14 +649,13 @@ export default function EditProductPage() {
                   >
                     SKU
                   </label>
-                  <input
+                  <Input
                     type="text"
                     id="sku"
                     name="sku"
                     disabled={saving}
                     value={formData.sku}
                     onChange={handleInputChange}
-                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
                     placeholder="Código único del producto"
                   />
                 </div>
@@ -658,14 +667,13 @@ export default function EditProductPage() {
                   >
                     Marca
                   </label>
-                  <input
+                  <Input
                     type="text"
                     id="brand"
                     name="brand"
                     disabled={saving}
                     value={formData.brand}
                     onChange={handleInputChange}
-                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
                     placeholder="Marca del producto"
                   />
                 </div>
@@ -761,22 +769,35 @@ export default function EditProductPage() {
                   >
                     Grupo de Precios
                   </label>
-                  <select
-                    id="price_group_id"
-                    name="price_group_id"
+                  <Select
                     disabled={saving}
                     value={formData.price_group_id}
-                    onChange={handleInputChange}
-                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    onValueChange={(value) => {
+                      // Encontrar el grupo seleccionado para obtener su precio
+                      const selectedGroup = priceGroups.find(
+                        (group) => group.id === value
+                      );
+                      setFormData((prev) => ({
+                        ...prev,
+                        price_group_id: value,
+                        price_per_kg: selectedGroup
+                          ? selectedGroup.price_per_kg_usd.toString()
+                          : prev.price_per_kg,
+                      }));
+                    }}
                   >
-                    <option value="">Seleccionar grupo de precios</option>
-                    {Array.isArray(priceGroups) &&
-                      priceGroups.map((group) => (
-                        <option key={group.id} value={group.id}>
-                          {group.name} - ${group.price_per_kg_usd}/kg USD
-                        </option>
-                      ))}
-                  </select>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccionar grupo de precios" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.isArray(priceGroups) &&
+                        priceGroups.map((group) => (
+                          <SelectItem key={group.id} value={group.id}>
+                            {group.name} - ${group.price_per_kg_usd}/kg USD
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
                   <p className="text-sm text-gray-500 mt-1">
                     El precio por kg se cargará automáticamente desde el grupo
                     seleccionado
@@ -800,10 +821,10 @@ export default function EditProductPage() {
                       </label>
                       <div className="space-y-2">
                         <div className="relative">
-                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-700">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-700 z-10">
                             $
                           </span>
-                          <input
+                          <Input
                             type="number"
                             id="price_per_kg"
                             name="price_per_kg"
@@ -812,7 +833,7 @@ export default function EditProductPage() {
                             disabled={saving || formData.price_group_id !== ""}
                             value={formData.price_per_kg}
                             onChange={handleInputChange}
-                            className="pl-8 w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                            className="pl-8"
                             placeholder="0.00"
                           />
                         </div>
@@ -846,7 +867,7 @@ export default function EditProductPage() {
                       >
                         Peso por Unidad (kg) *
                       </label>
-                      <input
+                      <Input
                         type="number"
                         id="weight_per_unit"
                         name="weight_per_unit"
@@ -855,7 +876,6 @@ export default function EditProductPage() {
                         disabled={saving}
                         value={formData.weight_per_unit}
                         onChange={handleInputChange}
-                        className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
                         placeholder="Ej: 0.5"
                       />
                     </div>
@@ -921,10 +941,10 @@ export default function EditProductPage() {
                       </label>
                       <div className="space-y-2">
                         <div className="relative">
-                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-700">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-700 z-10">
                             $
                           </span>
-                          <input
+                          <Input
                             type="number"
                             id="price_per_kg"
                             name="price_per_kg"
@@ -933,7 +953,7 @@ export default function EditProductPage() {
                             disabled={saving || formData.price_group_id !== ""}
                             value={formData.price_per_kg}
                             onChange={handleInputChange}
-                            className="pl-8 w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                            className="pl-8"
                             placeholder="0.00"
                           />
                         </div>
@@ -967,7 +987,7 @@ export default function EditProductPage() {
                       >
                         Kg por Metro *
                       </label>
-                      <input
+                      <Input
                         type="number"
                         id="kg_per_meter"
                         name="kg_per_meter"
@@ -976,7 +996,6 @@ export default function EditProductPage() {
                         disabled={saving}
                         value={formData.kg_per_meter}
                         onChange={handleInputChange}
-                        className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
                         placeholder="Ej: 2.5"
                       />
                     </div>
@@ -1039,10 +1058,10 @@ export default function EditProductPage() {
                       </label>
                       <div className="space-y-2">
                         <div className="relative">
-                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-700">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-700 z-10">
                             $
                           </span>
-                          <input
+                          <Input
                             type="number"
                             id="price"
                             name="price"
@@ -1051,7 +1070,7 @@ export default function EditProductPage() {
                             disabled={saving}
                             value={formData.price}
                             onChange={handleInputChange}
-                            className="pl-8 w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                            className="pl-8"
                             placeholder="0.00"
                           />
                         </div>
@@ -1078,7 +1097,7 @@ export default function EditProductPage() {
                       >
                         Stock *
                       </label>
-                      <input
+                      <Input
                         type="number"
                         id="stock"
                         name="stock"
@@ -1087,7 +1106,6 @@ export default function EditProductPage() {
                         disabled={saving}
                         value={formData.stock}
                         onChange={handleInputChange}
-                        className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
                         placeholder="0"
                       />
                     </div>
@@ -1099,21 +1117,24 @@ export default function EditProductPage() {
                       >
                         Unidad *
                       </label>
-                      <select
-                        id="unit"
-                        name="unit"
-                        required
+                      <Select
                         disabled={saving}
                         value={formData.unit}
-                        onChange={handleInputChange}
-                        className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                        onValueChange={(value) =>
+                          setFormData((prev) => ({ ...prev, unit: value }))
+                        }
                       >
-                        {units.map((unit) => (
-                          <option key={unit} value={unit}>
-                            {unit}
-                          </option>
-                        ))}
-                      </select>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Seleccionar unidad" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {units.map((unit) => (
+                            <SelectItem key={unit} value={unit}>
+                              {unit}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
                 )}

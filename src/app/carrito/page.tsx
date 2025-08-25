@@ -220,18 +220,18 @@ export default function CarritoPage() {
 
   if (cart.items.length === 0) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-6xl mb-4">🛒</div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+        <div className="text-center max-w-md mx-auto">
+          <div className="text-4xl sm:text-6xl mb-4">🛒</div>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4">
             Tu carrito está vacío
           </h1>
-          <p className="text-gray-600 mb-8">
+          <p className="text-gray-600 mb-6 sm:mb-8 text-sm sm:text-base">
             Agrega algunos productos para comenzar tu compra
           </p>
           <Link
             href="/productos"
-            className="bg-orange-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-orange-700 transition-colors"
+            className="inline-block bg-orange-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-orange-700 transition-colors text-sm sm:text-base"
           >
             Ver Productos
           </Link>
@@ -242,59 +242,59 @@ export default function CarritoPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         {/* Header */}
-        <div className="mb-8">
+        <div className="mb-6 sm:mb-8">
           <Link
             href="/productos"
-            className="inline-flex items-center text-orange-600 hover:text-orange-700 mb-4"
+            className="inline-flex items-center text-orange-600 hover:text-orange-700 mb-4 text-sm sm:text-base"
           >
             <ArrowLeftIcon className="h-4 w-4 mr-2" />
             Continuar comprando
           </Link>
-          <h1 className="text-3xl font-bold text-gray-900">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
             Carrito de Compras
           </h1>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 sm:gap-8">
           {/* Cart Items */}
-          <div className="lg:col-span-2">
+          <div className="xl:col-span-2">
             <div className="bg-white rounded-lg shadow-md">
-              <div className="p-6 border-b border-gray-200">
-                <h2 className="text-lg font-semibold text-gray-900">
+              <div className="p-4 sm:p-6 border-b border-gray-200">
+                <h2 className="text-base sm:text-lg font-semibold text-gray-900">
                   Productos ({cart.items.length})
                 </h2>
               </div>
 
               <div className="divide-y divide-gray-200">
                 {cart.items.map((item) => (
-                  <div key={item.product.id} className="p-6">
-                    <div className="flex items-center">
+                  <div key={item.product.id} className="p-4 sm:p-6">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                       {/* Product Image */}
-                      <div className="flex-shrink-0 w-20 h-20 mr-4">
+                      <div className="flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20">
                         {productImages[item.product.id] &&
                         productImages[item.product.id].length > 0 ? (
                           <ProductImage
                             src={productImages[item.product.id][0].image_url}
                             alt={item.product.name}
-                            className="w-20 h-20 object-cover rounded-lg"
+                            className="w-16 h-16 sm:w-20 sm:h-20 object-cover rounded-lg"
                             width={80}
                             height={80}
                           />
                         ) : (
-                          <div className="w-20 h-20 bg-gray-200 rounded-lg flex items-center justify-center">
-                            <span className="text-2xl">🏗️</span>
+                          <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gray-200 rounded-lg flex items-center justify-center">
+                            <span className="text-xl sm:text-2xl">🏗️</span>
                           </div>
                         )}
                       </div>
 
                       {/* Product Info */}
                       <div className="flex-1 min-w-0">
-                        <h3 className="text-lg font-medium text-gray-900">
+                        <h3 className="text-base sm:text-lg font-medium text-gray-900">
                           {item.product.name}
                         </h3>
-                        <p className="text-sm text-gray-500 mb-2">
+                        <p className="text-xs sm:text-sm text-gray-500 mb-2">
                           {getProductDescription(item.product)}
                         </p>
 
@@ -339,8 +339,50 @@ export default function CarritoPage() {
                         )}
                       </div>
 
-                      {/* Quantity Controls */}
-                      <div className="flex items-center space-x-4 ml-4">
+                      {/* Mobile Actions Row */}
+                      <div className="flex items-center justify-between sm:hidden mt-3">
+                        {/* Quantity Controls */}
+                        <div className="flex items-center border border-gray-300 rounded">
+                          <button
+                            onClick={() =>
+                              handleQuantityChange(
+                                item.product.id,
+                                item.quantity - 1
+                              )
+                            }
+                            disabled={isUpdating === item.product.id}
+                            className="p-2 hover:bg-gray-100 disabled:opacity-50"
+                          >
+                            <MinusIcon className="h-4 w-4" />
+                          </button>
+                          <span className="px-3 py-2 text-center min-w-[50px] text-sm">
+                            {item.quantity}
+                          </span>
+                          <button
+                            onClick={() =>
+                              handleQuantityChange(
+                                item.product.id,
+                                item.quantity + 1
+                              )
+                            }
+                            disabled={isUpdating === item.product.id}
+                            className="p-2 hover:bg-gray-100 disabled:opacity-50"
+                          >
+                            <PlusIcon className="h-4 w-4" />
+                          </button>
+                        </div>
+
+                        {/* Remove Button */}
+                        <button
+                          onClick={() => removeItem(item.product.id)}
+                          className="text-red-600 hover:text-red-800 p-2"
+                        >
+                          <TrashIcon className="h-5 w-5" />
+                        </button>
+                      </div>
+
+                      {/* Desktop Actions */}
+                      <div className="hidden sm:flex items-center space-x-4">
                         <div className="flex items-center border border-gray-300 rounded">
                           <button
                             onClick={() =>
@@ -382,9 +424,9 @@ export default function CarritoPage() {
                     </div>
 
                     {/* Item Total */}
-                    <div className="mt-4 flex justify-between items-center">
+                    <div className="mt-3 sm:mt-4 flex justify-between items-center">
                       <div className="text-right">
-                        <div className="text-lg font-semibold text-gray-900">
+                        <div className="text-base sm:text-lg font-semibold text-gray-900">
                           {formatPriceWithIVA(
                             item.product.price * item.quantity
                           )}

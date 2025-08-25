@@ -140,18 +140,18 @@ export default function CheckoutPage() {
 
   if (cart.items.length === 0) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-6xl mb-4">🛒</div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+        <div className="text-center max-w-md mx-auto">
+          <div className="text-4xl sm:text-6xl mb-4">🛒</div>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4">
             Tu carrito está vacío
           </h1>
-          <p className="text-gray-600 mb-8">
+          <p className="text-gray-600 mb-6 sm:mb-8 text-sm sm:text-base">
             Agrega algunos productos para proceder al checkout
           </p>
           <Link
             href="/productos"
-            className="bg-orange-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-orange-700 transition-colors"
+            className="inline-block bg-orange-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-orange-700 transition-colors text-sm sm:text-base"
           >
             Ver Productos
           </Link>
@@ -162,24 +162,26 @@ export default function CheckoutPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         {/* Header */}
-        <div className="mb-8">
+        <div className="mb-6 sm:mb-8">
           <Link
             href="/carrito"
-            className="inline-flex items-center text-orange-600 hover:text-orange-700 mb-4"
+            className="inline-flex items-center text-orange-600 hover:text-orange-700 mb-4 text-sm sm:text-base"
           >
             <ArrowLeftIcon className="h-4 w-4 mr-2" />
             Volver al carrito
           </Link>
-          <h1 className="text-3xl font-bold text-gray-900">Checkout</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+            Checkout
+          </h1>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
           {/* Customer Form */}
           <div>
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-6">
+            <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+              <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4 sm:mb-6">
                 Información de Contacto
               </h2>
 

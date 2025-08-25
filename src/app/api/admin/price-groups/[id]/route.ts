@@ -216,10 +216,6 @@ export async function PUT(
 
           await Promise.all(updatePromises);
           productsUpdated = products.length;
-
-          console.log(
-            `Updated ${productsUpdated} products for price group ${id}`
-          );
         }
       } catch (productUpdateError) {
         console.error("Error updating related products:", productUpdateError);

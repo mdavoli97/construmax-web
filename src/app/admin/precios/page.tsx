@@ -9,6 +9,14 @@ import {
   TrashIcon,
 } from "lucide-react";
 import { useNotifications } from "@/components/admin/NotificationProvider";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 
 interface PriceGroup {
   id: string;
@@ -129,9 +137,6 @@ export default function PreciosAdminPage() {
       if (response.ok) {
         const result = await response.json();
         if (result.success) {
-          // Log para debugging
-          console.log("Price update result:", result);
-
           // Actualizar el estado local
           setPriceGroups((prev) =>
             prev.map((group) =>
@@ -290,29 +295,29 @@ export default function PreciosAdminPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="flex items-center justify-center py-20">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 py-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
+      <div className="space-y-6 sm:space-y-8">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
               Gestión de Precios
             </h1>
-            <p className="text-gray-800 mt-2">
+            <p className="text-gray-600 mt-2 text-sm sm:text-base">
               Administra precios por kilogramo para productos similares
             </p>
           </div>
           <div className="mt-4 sm:mt-0">
             <button
               onClick={() => setShowCreateForm(true)}
-              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              className="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             >
               <PlusIcon className="h-4 w-4 mr-2" />
               Nuevo Grupo de Precios
@@ -322,19 +327,19 @@ export default function PreciosAdminPage() {
 
         {/* Crear nuevo grupo */}
         {showCreateForm && (
-          <div className="bg-white rounded-lg shadow mb-6">
-            <div className="px-6 py-4 border-b border-gray-200">
+          <div className="bg-white rounded-lg shadow">
+            <div className="px-4 sm:px-6 py-4 border-b border-gray-200">
               <h2 className="text-lg font-semibold text-gray-900">
                 Crear Nuevo Grupo de Precios
               </h2>
             </div>
-            <div className="p-6">
+            <div className="p-4 sm:p-6">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Nombre del Grupo
                   </label>
-                  <input
+                  <Input
                     type="text"
                     value={newGroupForm.name}
                     onChange={(e) =>
@@ -343,7 +348,6 @@ export default function PreciosAdminPage() {
                         name: e.target.value,
                       }))
                     }
-                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900"
                     placeholder="Ej: Caños Estructurales"
                   />
                 </div>
@@ -351,7 +355,7 @@ export default function PreciosAdminPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Precio por Kg (USD)
                   </label>
-                  <input
+                  <Input
                     type="number"
                     step="0.01"
                     value={newGroupForm.price_per_kg_usd}
@@ -361,7 +365,6 @@ export default function PreciosAdminPage() {
                         price_per_kg_usd: e.target.value,
                       }))
                     }
-                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900"
                     placeholder="1.25"
                   />
                 </div>
@@ -369,35 +372,39 @@ export default function PreciosAdminPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Categoría
                   </label>
-                  <select
+                  <Select
                     value={newGroupForm.category}
-                    onChange={(e) =>
+                    onValueChange={(value) =>
                       setNewGroupForm((prev) => ({
                         ...prev,
-                        category: e.target.value,
+                        category: value,
                       }))
                     }
-                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900"
                   >
-                    {categories.map((category) => (
-                      <option key={category} value={category}>
-                        {category.charAt(0).toUpperCase() + category.slice(1)}
-                      </option>
-                    ))}
-                  </select>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccionar categoría" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories.map((category) => (
+                        <SelectItem key={category} value={category}>
+                          {category.charAt(0).toUpperCase() + category.slice(1)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
-              <div className="flex justify-end space-x-3 mt-4">
+              <div className="flex flex-col sm:flex-row justify-end space-y-3 sm:space-y-0 sm:space-x-3 mt-4">
                 <button
                   onClick={() => setShowCreateForm(false)}
-                  className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                  className="w-full sm:w-auto px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
                 >
                   Cancelar
                 </button>
                 <button
                   onClick={handleCreateGroup}
                   disabled={saving}
-                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400"
+                  className="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400"
                 >
                   {saving ? "Creando..." : "Crear Grupo"}
                 </button>
@@ -408,139 +415,254 @@ export default function PreciosAdminPage() {
 
         {/* Lista de grupos de precios */}
         <div className="bg-white rounded-lg shadow overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-200">
+          <div className="px-4 sm:px-6 py-4 border-b border-gray-200">
             <h2 className="text-lg font-semibold text-gray-900">
               Grupos de Precios Actuales
             </h2>
           </div>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider">
-                    Grupo
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider">
-                    Precio por Kg (USD)
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider">
-                    Categoría
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider">
-                    Productos
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider">
-                    Última Actualización
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider">
-                    Acciones
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {priceGroups.map((group) => (
-                  <tr key={group.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <DollarSignIcon className="h-5 w-5 text-green-500 mr-3" />
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">
-                            {group.name}
+
+          {/* Vista de tabla para desktop */}
+          <div className="hidden sm:block">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider">
+                      Grupo
+                    </th>
+                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider">
+                      Precio por Kg (USD)
+                    </th>
+                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider">
+                      Categoría
+                    </th>
+                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider">
+                      Productos
+                    </th>
+                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider">
+                      Última Actualización
+                    </th>
+                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider">
+                      Acciones
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {priceGroups.map((group) => (
+                    <tr key={group.id} className="hover:bg-gray-50">
+                      <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <DollarSignIcon className="h-5 w-5 text-green-500 mr-3" />
+                          <div>
+                            <div className="text-sm font-medium text-gray-900">
+                              {group.name}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {editingGroup === group.id ? (
-                        <div className="flex items-center space-x-2">
-                          <input
-                            type="number"
-                            step="0.01"
-                            value={newPrice}
-                            onChange={(e) => setNewPrice(e.target.value)}
-                            className="w-24 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900"
-                            placeholder={group.price_per_kg_usd.toString()}
-                          />
-                          <button
-                            onClick={() =>
-                              handleUpdatePrice(group.id, parseFloat(newPrice))
-                            }
-                            disabled={saving || !newPrice}
-                            className="inline-flex items-center px-2 py-1 border border-transparent rounded text-xs font-medium text-white bg-green-600 hover:bg-green-700 disabled:bg-gray-400"
-                          >
-                            <SaveIcon className="h-3 w-3 mr-1" />
-                            {saving ? "..." : "Guardar"}
-                          </button>
+                      </td>
+                      <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
+                        {editingGroup === group.id ? (
+                          <div className="flex items-center space-x-2">
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={newPrice}
+                              onChange={(e) => setNewPrice(e.target.value)}
+                              className="w-24 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900"
+                              placeholder={group.price_per_kg_usd.toString()}
+                            />
+                            <button
+                              onClick={() =>
+                                handleUpdatePrice(
+                                  group.id,
+                                  parseFloat(newPrice)
+                                )
+                              }
+                              disabled={saving || !newPrice}
+                              className="inline-flex items-center px-2 py-1 border border-transparent rounded text-xs font-medium text-white bg-green-600 hover:bg-green-700 disabled:bg-gray-400"
+                            >
+                              <SaveIcon className="h-3 w-3 mr-1" />
+                              {saving ? "..." : "Guardar"}
+                            </button>
+                            <button
+                              onClick={() => {
+                                setEditingGroup(null);
+                                setNewPrice("");
+                              }}
+                              className="text-gray-600 hover:text-gray-900"
+                            >
+                              Cancelar
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-between">
+                            <span className="text-lg font-bold text-green-600">
+                              ${group.price_per_kg_usd.toFixed(2)}
+                            </span>
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                          {group.category}
+                        </span>
+                      </td>
+                      <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {group.product_count} productos
+                      </td>
+                      <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {new Date(group.updated_at).toLocaleDateString("es-UY")}
+                      </td>
+                      <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <div className="flex items-center space-x-3">
                           <button
                             onClick={() => {
-                              setEditingGroup(null);
-                              setNewPrice("");
+                              setEditingGroup(group.id);
+                              setNewPrice(group.price_per_kg_usd.toString());
                             }}
-                            className="text-gray-600 hover:text-gray-900"
+                            className="text-blue-600 hover:text-blue-900"
+                            title="Editar precio"
                           >
-                            Cancelar
+                            <EditIcon className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() =>
+                              handleDeleteGroup(
+                                group.id,
+                                group.name,
+                                group.product_count
+                              )
+                            }
+                            className="text-red-600 hover:text-red-900"
+                            title="Eliminar grupo"
+                            disabled={saving}
+                          >
+                            <TrashIcon className="h-4 w-4" />
+                          </button>
+                          <button className="text-gray-600 hover:text-gray-900">
+                            Ver Productos
                           </button>
                         </div>
-                      ) : (
-                        <div className="flex items-center justify-between">
-                          <span className="text-lg font-bold text-green-600">
-                            ${group.price_per_kg_usd.toFixed(2)}
-                          </span>
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                        {group.category}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {group.product_count} productos
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(group.updated_at).toLocaleDateString("es-UY")}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex items-center space-x-3">
-                        <button
-                          onClick={() => {
-                            setEditingGroup(group.id);
-                            setNewPrice(group.price_per_kg_usd.toString());
-                          }}
-                          className="text-blue-600 hover:text-blue-900"
-                          title="Editar precio"
-                        >
-                          <EditIcon className="h-4 w-4" />
-                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Vista de cards para mobile */}
+          <div className="sm:hidden">
+            <div className="divide-y divide-gray-200">
+              {priceGroups.map((group) => (
+                <div key={group.id} className="p-4">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-center">
+                      <DollarSignIcon className="h-5 w-5 text-green-500 mr-2" />
+                      <div>
+                        <h3 className="text-sm font-medium text-gray-900">
+                          {group.name}
+                        </h3>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {group.product_count} productos
+                        </p>
+                      </div>
+                    </div>
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      {group.category}
+                    </span>
+                  </div>
+
+                  <div className="mb-3">
+                    {editingGroup === group.id ? (
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={newPrice}
+                          onChange={(e) => setNewPrice(e.target.value)}
+                          className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900"
+                          placeholder={group.price_per_kg_usd.toString()}
+                        />
                         <button
                           onClick={() =>
-                            handleDeleteGroup(
-                              group.id,
-                              group.name,
-                              group.product_count
-                            )
+                            handleUpdatePrice(group.id, parseFloat(newPrice))
                           }
-                          className="text-red-600 hover:text-red-900"
-                          title="Eliminar grupo"
-                          disabled={saving}
+                          disabled={saving || !newPrice}
+                          className="inline-flex items-center px-2 py-1 border border-transparent rounded text-xs font-medium text-white bg-green-600 hover:bg-green-700 disabled:bg-gray-400"
                         >
-                          <TrashIcon className="h-4 w-4" />
-                        </button>
-                        <button className="text-gray-600 hover:text-gray-900">
-                          Ver Productos
+                          <SaveIcon className="h-3 w-3 mr-1" />
+                          {saving ? "..." : "Guardar"}
                         </button>
                       </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    ) : (
+                      <div className="flex items-center justify-between">
+                        <span className="text-lg font-bold text-green-600">
+                          ${group.price_per_kg_usd.toFixed(2)} USD/kg
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          {new Date(group.updated_at).toLocaleDateString(
+                            "es-UY"
+                          )}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <button
+                        onClick={() => {
+                          setEditingGroup(group.id);
+                          setNewPrice(group.price_per_kg_usd.toString());
+                        }}
+                        className="text-blue-600 hover:text-blue-900"
+                        title="Editar precio"
+                      >
+                        <EditIcon className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() =>
+                          handleDeleteGroup(
+                            group.id,
+                            group.name,
+                            group.product_count
+                          )
+                        }
+                        className="text-red-600 hover:text-red-900"
+                        title="Eliminar grupo"
+                        disabled={saving}
+                      >
+                        <TrashIcon className="h-4 w-4" />
+                      </button>
+                    </div>
+                    <button className="text-sm text-gray-600 hover:text-gray-900">
+                      Ver Productos
+                    </button>
+                  </div>
+
+                  {editingGroup === group.id && (
+                    <div className="mt-3 pt-3 border-t border-gray-200">
+                      <button
+                        onClick={() => {
+                          setEditingGroup(null);
+                          setNewPrice("");
+                        }}
+                        className="w-full px-3 py-2 text-sm text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200"
+                      >
+                        Cancelar Edición
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
         {/* Información adicional */}
-        <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-white rounded-lg shadow p-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+          <div className="bg-white rounded-lg shadow p-4 sm:p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">
               Productos por Perfiles
             </h3>
@@ -558,7 +680,7 @@ export default function PreciosAdminPage() {
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white rounded-lg shadow p-4 sm:p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">
               Cómo Funciona
             </h3>

@@ -25,14 +25,20 @@ export default function ClientLayout({
   const isAdminRoute = pathname?.startsWith("/admin");
 
   return (
-    <html lang="es">
+    <html lang="es" className="light">
+      <head>
+        <meta
+          name="viewport"
+          content="width=device-width, initial-scale=1.0, user-scalable=yes"
+        />
+      </head>
       <body
         className={`${geistSans.variable} ${
           geistMono.variable
         } antialiased min-h-screen ${isAdminRoute ? "" : "flex flex-col"}`}
       >
         {!isAdminRoute && <Header />}
-        <main className={isAdminRoute ? "" : "flex-1"}>{children}</main>
+        <main className={isAdminRoute ? "" : "flex-1 w-full"}>{children}</main>
         {!isAdminRoute && <Footer />}
       </body>
     </html>

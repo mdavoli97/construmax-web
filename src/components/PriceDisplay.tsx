@@ -37,15 +37,15 @@ export default function PriceDisplay({
   const getSizeClasses = () => {
     switch (size) {
       case "sm":
-        return "text-sm";
+        return "text-xs sm:text-sm";
       case "md":
-        return "text-lg";
+        return "text-base sm:text-lg";
       case "lg":
-        return "text-2xl";
+        return "text-lg sm:text-xl md:text-2xl";
       case "xl":
-        return "text-3xl";
+        return "text-xl sm:text-2xl md:text-3xl";
       default:
-        return "text-lg";
+        return "text-base sm:text-lg";
     }
   };
 

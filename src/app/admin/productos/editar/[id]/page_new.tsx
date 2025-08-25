@@ -461,8 +461,6 @@ export default function EditProductPage() {
         productData
       );
 
-      console.log("Producto actualizado exitosamente:", updatedProduct);
-
       success(
         "Producto actualizado",
         "El producto se ha actualizado exitosamente"

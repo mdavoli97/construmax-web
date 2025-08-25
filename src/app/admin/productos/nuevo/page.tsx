@@ -14,6 +14,15 @@ import {
   formatUYU,
   convertUSDToUYU,
 } from "@/lib/currency";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
 export default function NewProductPage() {
   const router = useRouter();
@@ -425,9 +434,9 @@ export default function NewProductPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="bg-gray-50">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="mb-8">
+        <div className="mb-6">
           <div className="flex items-center mb-4">
             <Link
               href="/admin/productos"
@@ -522,7 +531,7 @@ export default function NewProductPage() {
                   >
                     Nombre del Producto *
                   </label>
-                  <input
+                  <Input
                     type="text"
                     id="name"
                     name="name"
@@ -530,7 +539,6 @@ export default function NewProductPage() {
                     disabled={productCreated}
                     value={formData.name}
                     onChange={handleInputChange}
-                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
                     placeholder="Ej: Perfil Tubular 40x40"
                   />
                 </div>
@@ -542,22 +550,24 @@ export default function NewProductPage() {
                   >
                     Categoría *
                   </label>
-                  <select
-                    id="category"
-                    name="category"
-                    required
+                  <Select
                     disabled={productCreated}
                     value={formData.category}
-                    onChange={handleInputChange}
-                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    onValueChange={(value) =>
+                      setFormData((prev) => ({ ...prev, category: value }))
+                    }
                   >
-                    <option value="">Seleccionar categoría</option>
-                    {categories.map((category) => (
-                      <option key={category.value} value={category.value}>
-                        {category.label}
-                      </option>
-                    ))}
-                  </select>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccionar categoría" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories.map((category) => (
+                        <SelectItem key={category.value} value={category.value}>
+                          {category.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
@@ -568,14 +578,13 @@ export default function NewProductPage() {
                 >
                   Descripción
                 </label>
-                <textarea
+                <Textarea
                   id="description"
                   name="description"
                   rows={3}
                   disabled={productCreated}
                   value={formData.description}
                   onChange={handleInputChange}
-                  className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
                   placeholder="Descripción del producto..."
                 />
               </div>
@@ -588,14 +597,13 @@ export default function NewProductPage() {
                   >
                     SKU
                   </label>
-                  <input
+                  <Input
                     type="text"
                     id="sku"
                     name="sku"
                     disabled={productCreated}
                     value={formData.sku}
                     onChange={handleInputChange}
-                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
                     placeholder="Se generará automáticamente si se deja vacío"
                   />
                 </div>
@@ -681,21 +689,24 @@ export default function NewProductPage() {
                 >
                   Tipo de Producto *
                 </label>
-                <select
-                  id="product_type"
-                  name="product_type"
-                  required
+                <Select
                   disabled={productCreated}
                   value={formData.product_type}
-                  onChange={handleInputChange}
-                  className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  onValueChange={(value) =>
+                    setFormData((prev) => ({ ...prev, product_type: value }))
+                  }
                 >
-                  {productTypes.map((type) => (
-                    <option key={type.value} value={type.value}>
-                      {type.label}
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccionar tipo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {productTypes.map((type) => (
+                      <SelectItem key={type.value} value={type.value}>
+                        {type.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <p className="text-sm text-gray-500 mt-1">
                   Selecciona el tipo para mostrar campos específicos
                 </p>
@@ -711,22 +722,34 @@ export default function NewProductPage() {
                   >
                     Grupo de Precios *
                   </label>
-                  <select
-                    id="price_group_id"
-                    name="price_group_id"
-                    required
+                  <Select
                     disabled={productCreated}
                     value={formData.price_group_id}
-                    onChange={handleInputChange}
-                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    onValueChange={(value) => {
+                      // Encontrar el grupo seleccionado para obtener su precio
+                      const selectedGroup = priceGroups.find(
+                        (group) => group.id === value
+                      );
+                      setFormData((prev) => ({
+                        ...prev,
+                        price_group_id: value,
+                        price_per_kg: selectedGroup
+                          ? selectedGroup.price_per_kg_usd.toString()
+                          : prev.price_per_kg,
+                      }));
+                    }}
                   >
-                    <option value="">Seleccionar grupo de precios</option>
-                    {priceGroups.map((group) => (
-                      <option key={group.id} value={group.id}>
-                        {group.name} - ${group.price_per_kg_usd}/kg USD
-                      </option>
-                    ))}
-                  </select>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccionar grupo de precios" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {priceGroups.map((group) => (
+                        <SelectItem key={group.id} value={group.id}>
+                          {group.name} - ${group.price_per_kg_usd}/kg USD
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <p className="text-sm text-gray-500 mt-1">
                     El precio por kg se cargará automáticamente desde el grupo
                     seleccionado
@@ -750,10 +773,10 @@ export default function NewProductPage() {
                       </label>
                       <div className="space-y-2">
                         <div className="relative">
-                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-700">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-700 z-10">
                             $
                           </span>
-                          <input
+                          <Input
                             type="number"
                             id="price_per_kg"
                             name="price_per_kg"
@@ -764,7 +787,7 @@ export default function NewProductPage() {
                             }
                             value={formData.price_per_kg}
                             onChange={handleInputChange}
-                            className="pl-8 w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                            className="pl-8"
                             placeholder="0.00"
                           />
                         </div>
@@ -797,7 +820,7 @@ export default function NewProductPage() {
                       >
                         Peso por Unidad (kg) *
                       </label>
-                      <input
+                      <Input
                         type="number"
                         id="weight_per_unit"
                         name="weight_per_unit"
@@ -806,7 +829,6 @@ export default function NewProductPage() {
                         disabled={productCreated}
                         value={formData.weight_per_unit}
                         onChange={handleInputChange}
-                        className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
                         placeholder="0.000"
                       />
                     </div>
@@ -882,10 +904,10 @@ export default function NewProductPage() {
                       </label>
                       <div className="space-y-2">
                         <div className="relative">
-                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-700">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-700 z-10">
                             $
                           </span>
-                          <input
+                          <Input
                             type="number"
                             id="price_per_kg"
                             name="price_per_kg"
@@ -896,7 +918,7 @@ export default function NewProductPage() {
                             }
                             value={formData.price_per_kg}
                             onChange={handleInputChange}
-                            className="pl-8 w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                            className="pl-8"
                             placeholder="0.00"
                           />
                         </div>
@@ -929,7 +951,7 @@ export default function NewProductPage() {
                       >
                         Kg por Metro *
                       </label>
-                      <input
+                      <Input
                         type="number"
                         id="kg_per_meter"
                         name="kg_per_meter"
@@ -938,7 +960,6 @@ export default function NewProductPage() {
                         disabled={productCreated}
                         value={formData.kg_per_meter}
                         onChange={handleInputChange}
-                        className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
                         placeholder="Ej: 2.5"
                       />
                     </div>
@@ -1039,7 +1060,7 @@ export default function NewProductPage() {
                       >
                         Stock *
                       </label>
-                      <input
+                      <Input
                         type="number"
                         id="stock"
                         name="stock"
@@ -1048,7 +1069,6 @@ export default function NewProductPage() {
                         disabled={productCreated}
                         value={formData.stock}
                         onChange={handleInputChange}
-                        className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
                         placeholder="0"
                       />
                     </div>
@@ -1079,25 +1099,6 @@ export default function NewProductPage() {
                     </div>
                   </div>
                 )}
-
-              {/* Para perfiles, la unidad se establece automáticamente */}
-              {formData.product_type === "perfiles" && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-800 mb-2">
-                    Unidad
-                  </label>
-                  <input
-                    type="text"
-                    value="kg"
-                    readOnly
-                    className="w-full rounded-md border-gray-300 shadow-sm bg-gray-100 text-gray-500 cursor-not-allowed"
-                  />
-                  <p className="text-sm text-gray-500 mt-1">
-                    La unidad se establece automáticamente como &quot;kg&quot;
-                    para perfiles
-                  </p>
-                </div>
-              )}
 
               {/* Producto destacado */}
               <div className="flex items-center">

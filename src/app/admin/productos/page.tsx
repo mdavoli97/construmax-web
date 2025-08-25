@@ -6,14 +6,24 @@ import { productService } from "@/lib/services";
 import { Product } from "@/types";
 import { PlusIcon, PencilIcon, TrashIcon, SearchIcon } from "lucide-react";
 import { useNotifications } from "@/components/admin/NotificationProvider";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 
 export default function ProductsAdminPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState("");
-  const [stockFilter, setStockFilter] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState<string | undefined>(
+    undefined
+  );
+  const [stockFilter, setStockFilter] = useState<string | undefined>(undefined);
   const { success, error } = useNotifications();
 
   const categories = [
@@ -43,7 +53,8 @@ export default function ProductsAdminPage() {
   const getStockStatus = (product: Product) => {
     // Usar campos directos de la base de datos si están disponibles
     if (
-      product.product_type === "perfiles" &&
+      (product.product_type === "perfiles" ||
+        product.product_type === "chapas_conformadas") &&
       product.stock_type === "availability"
     ) {
       return product.is_available
@@ -53,7 +64,11 @@ export default function ProductsAdminPage() {
 
     // Fallback: parsear JSON del description para productos legacy
     const metadata = getProductMetadata(product);
-    if (metadata && metadata.product_type === "perfiles") {
+    if (
+      metadata &&
+      (metadata.product_type === "perfiles" ||
+        metadata.product_type === "chapas_conformadas")
+    ) {
       if (metadata.stock_type === "availability") {
         return metadata.is_available
           ? { label: "Disponible", class: "bg-green-100 text-green-800" }
@@ -117,7 +132,8 @@ export default function ProductsAdminPage() {
           filtered = filtered.filter((product) => {
             // Usar campos directos de la base de datos si están disponibles
             if (
-              product.product_type === "perfiles" &&
+              (product.product_type === "perfiles" ||
+                product.product_type === "chapas_conformadas") &&
               product.stock_type === "availability"
             ) {
               return product.is_available === true;
@@ -125,7 +141,11 @@ export default function ProductsAdminPage() {
 
             // Fallback: parsear JSON del description para productos legacy
             const metadata = getProductMetadata(product);
-            if (metadata && metadata.product_type === "perfiles") {
+            if (
+              metadata &&
+              (metadata.product_type === "perfiles" ||
+                metadata.product_type === "chapas_conformadas")
+            ) {
               return metadata.is_available;
             }
 
@@ -135,9 +155,10 @@ export default function ProductsAdminPage() {
           break;
         case "low-stock":
           filtered = filtered.filter((product) => {
-            // Los perfiles no tienen "poco stock", solo disponible/no disponible
+            // Los perfiles y chapas conformadas no tienen "poco stock", solo disponible/no disponible
             if (
-              product.product_type === "perfiles" &&
+              (product.product_type === "perfiles" ||
+                product.product_type === "chapas_conformadas") &&
               product.stock_type === "availability"
             ) {
               return false;
@@ -145,8 +166,12 @@ export default function ProductsAdminPage() {
 
             // Fallback: parsear JSON del description para productos legacy
             const metadata = getProductMetadata(product);
-            if (metadata && metadata.product_type === "perfiles") {
-              return false; // Los perfiles no tienen "poco stock"
+            if (
+              metadata &&
+              (metadata.product_type === "perfiles" ||
+                metadata.product_type === "chapas_conformadas")
+            ) {
+              return false; // Los perfiles y chapas no tienen "poco stock"
             }
 
             // Para productos estándar
@@ -157,7 +182,8 @@ export default function ProductsAdminPage() {
           filtered = filtered.filter((product) => {
             // Usar campos directos de la base de datos si están disponibles
             if (
-              product.product_type === "perfiles" &&
+              (product.product_type === "perfiles" ||
+                product.product_type === "chapas_conformadas") &&
               product.stock_type === "availability"
             ) {
               return product.is_available === false;
@@ -165,7 +191,11 @@ export default function ProductsAdminPage() {
 
             // Fallback: parsear JSON del description para productos legacy
             const metadata = getProductMetadata(product);
-            if (metadata && metadata.product_type === "perfiles") {
+            if (
+              metadata &&
+              (metadata.product_type === "perfiles" ||
+                metadata.product_type === "chapas_conformadas")
+            ) {
               return !metadata.is_available;
             }
 
@@ -197,29 +227,29 @@ export default function ProductsAdminPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="bg-gray-50 flex items-center justify-center py-20">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 py-8">
+    <div className="bg-gray-50">
+      <div className="max-w-7xl mx-auto sm:px-6 lg:px-8 sm:py-8">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8">
+        <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0 mb-6 sm:mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
               Gestión de Productos
             </h1>
-            <p className="text-gray-800 mt-2">
+            <p className="text-gray-600 mt-1 text-sm sm:text-base">
               Administra el inventario de productos
             </p>
           </div>
-          <div className="mt-4 sm:mt-0">
+          <div className="w-full sm:w-auto">
             <Link
               href="/admin/productos/nuevo"
-              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              className="inline-flex items-center justify-center w-full sm:w-auto px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
             >
               <PlusIcon className="h-4 w-4 mr-2" />
               Agregar Producto
@@ -229,83 +259,86 @@ export default function ProductsAdminPage() {
 
         {/* Filtros y búsqueda */}
         <div className="bg-white rounded-lg shadow mb-6">
-          <div className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="p-4 sm:p-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
               {/* Búsqueda */}
-              <div className="relative">
-                <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-600" />
-                <input
+              <div className="relative sm:col-span-2 lg:col-span-1">
+                <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
                   type="text"
                   placeholder="Buscar productos..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 pr-4 py-2 w-full rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 focus:ring-1 text-gray-900 placeholder-gray-500 bg-white"
+                  className="pl-10"
                 />
               </div>
 
               {/* Filtro por categoría */}
-              <select
-                value={categoryFilter}
-                onChange={(e) => setCategoryFilter(e.target.value)}
-                className="px-3 py-2 rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 focus:ring-1 text-gray-900 bg-white"
-              >
-                <option value="">Todas las categorías</option>
-                {categories.map((category) => (
-                  <option key={category} value={category}>
-                    {category.charAt(0).toUpperCase() + category.slice(1)}
-                  </option>
-                ))}
-              </select>
+              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Todas las categorías" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((category) => (
+                    <SelectItem key={category} value={category}>
+                      {category.charAt(0).toUpperCase() + category.slice(1)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
 
               {/* Filtro por stock */}
-              <select
-                value={stockFilter}
-                onChange={(e) => setStockFilter(e.target.value)}
-                className="px-3 py-2 rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 focus:ring-1 text-gray-900 bg-white"
-              >
-                <option value="">Todos los stocks</option>
-                <option value="in-stock">En Stock</option>
-                <option value="low-stock">Poco Stock</option>
-                <option value="out-of-stock">Sin Stock</option>
-              </select>
+              <Select value={stockFilter} onValueChange={setStockFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Todos los estados" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="in-stock">En stock</SelectItem>
+                  <SelectItem value="low-stock">Poco stock</SelectItem>
+                  <SelectItem value="out-of-stock">Sin stock</SelectItem>
+                </SelectContent>
+              </Select>
 
-              {/* Botón limpiar filtros */}
-              <button
-                onClick={() => {
-                  setSearchTerm("");
-                  setCategoryFilter("");
-                  setStockFilter("");
-                }}
-                className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              >
-                Limpiar Filtros
-              </button>
+              {/* Botón de limpiar filtros - solo visible cuando hay filtros activos */}
+              {(searchTerm || categoryFilter || stockFilter) && (
+                <button
+                  onClick={() => {
+                    setSearchTerm("");
+                    setCategoryFilter(undefined);
+                    setStockFilter(undefined);
+                  }}
+                  className="px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors sm:col-span-2 lg:col-span-1"
+                >
+                  Limpiar filtros
+                </button>
+              )}
             </div>
           </div>
         </div>
 
-        {/* Tabla de productos */}
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <div className="overflow-x-auto">
+        {/* Vista de productos responsive */}
+        <div className="bg-white rounded-lg shadow">
+          {/* Vista de tabla para desktop */}
+          <div className="hidden lg:block overflow-hidden">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Producto
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     SKU
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Categoría
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Precio (USD)
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Estado
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Acciones
                   </th>
                 </tr>
@@ -324,7 +357,7 @@ export default function ProductsAdminPage() {
                             />
                           ) : (
                             <div className="h-12 w-12 rounded-lg bg-gray-200 flex items-center justify-center">
-                              <span className="text-xs font-medium text-gray-800">
+                              <span className="text-xs font-medium text-gray-500">
                                 {product.name.substring(0, 2).toUpperCase()}
                               </span>
                             </div>
@@ -334,7 +367,7 @@ export default function ProductsAdminPage() {
                           <div className="text-sm font-medium text-gray-900">
                             {product.name}
                           </div>
-                          <div className="text-sm text-gray-700">
+                          <div className="text-sm text-gray-500">
                             {product.brand}
                           </div>
                         </div>
@@ -364,13 +397,15 @@ export default function ProductsAdminPage() {
                       <div className="flex space-x-2">
                         <Link
                           href={`/admin/productos/editar/${product.id}`}
-                          className="text-blue-600 hover:text-blue-900"
+                          className="text-blue-600 hover:text-blue-900 p-1 rounded-md hover:bg-blue-50 transition-colors"
+                          title="Editar producto"
                         >
                           <PencilIcon className="h-4 w-4" />
                         </Link>
                         <button
                           onClick={() => handleDeleteProduct(product.id)}
-                          className="text-red-600 hover:text-red-900"
+                          className="text-red-600 hover:text-red-900 p-1 rounded-md hover:bg-red-50 transition-colors"
+                          title="Eliminar producto"
                         >
                           <TrashIcon className="h-4 w-4" />
                         </button>
@@ -381,11 +416,89 @@ export default function ProductsAdminPage() {
               </tbody>
             </table>
           </div>
+
+          {/* Vista de tarjetas para móviles y tablets */}
+          <div className="lg:hidden divide-y divide-gray-200">
+            {filteredProducts.map((product) => (
+              <div key={product.id} className="p-4 sm:p-6">
+                <div className="flex items-start space-x-4">
+                  {/* Imagen del producto */}
+                  <div className="flex-shrink-0">
+                    {product.primary_image ? (
+                      <img
+                        src={product.primary_image}
+                        alt={product.name}
+                        className="h-16 w-16 sm:h-20 sm:w-20 rounded-lg object-cover"
+                      />
+                    ) : (
+                      <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-lg bg-gray-200 flex items-center justify-center">
+                        <span className="text-sm font-medium text-gray-500">
+                          {product.name.substring(0, 2).toUpperCase()}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Información del producto */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm sm:text-base font-medium text-gray-900 truncate">
+                          {product.name}
+                        </p>
+                        <p className="text-xs sm:text-sm text-gray-500 mt-1">
+                          {product.brand}
+                        </p>
+                        <p className="text-xs sm:text-sm text-gray-500">
+                          SKU: {product.sku}
+                        </p>
+                      </div>
+
+                      {/* Acciones */}
+                      <div className="flex space-x-2 ml-4">
+                        <Link
+                          href={`/admin/productos/editar/${product.id}`}
+                          className="text-blue-600 hover:text-blue-900 p-2 rounded-md hover:bg-blue-50 transition-colors"
+                          title="Editar producto"
+                        >
+                          <PencilIcon className="h-5 w-5" />
+                        </Link>
+                        <button
+                          onClick={() => handleDeleteProduct(product.id)}
+                          className="text-red-600 hover:text-red-900 p-2 rounded-md hover:bg-red-50 transition-colors"
+                          title="Eliminar producto"
+                        >
+                          <TrashIcon className="h-5 w-5" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Metadatos del producto */}
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        {product.category}
+                      </span>
+                      <span
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          getStockStatus(product).class
+                        }`}
+                      >
+                        {getStockStatus(product).label}
+                      </span>
+                      <span className="text-sm sm:text-base font-semibold text-gray-900">
+                        ${product.price.toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
         {filteredProducts.length === 0 && (
           <div className="text-center py-12">
-            <p className="text-gray-800">
+            <p className="text-gray-500">
               No se encontraron productos que coincidan con los filtros.
             </p>
           </div>
