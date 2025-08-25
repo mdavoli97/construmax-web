@@ -62,8 +62,8 @@ export async function PUT(
     if (error) throw error;
 
     // Revalidate the product pages after update
-    revalidatePath('/productos');
-    revalidatePath('/');
+    revalidatePath("/productos");
+    revalidatePath("/");
     if (data.category) {
       revalidatePath(`/productos/${data.category}`);
     }
@@ -104,9 +104,9 @@ export async function DELETE(
     if (error) throw error;
 
     // Revalidar las páginas que muestran productos
-    revalidatePath('/productos');
-    revalidatePath('/');
-    revalidatePath('/productos/[category]', 'page');
+    revalidatePath("/productos");
+    revalidatePath("/");
+    revalidatePath("/productos/[category]", "page");
 
     return NextResponse.json({ message: "Producto eliminado exitosamente" });
   } catch (error) {

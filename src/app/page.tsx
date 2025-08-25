@@ -1,12 +1,12 @@
-import Link from 'next/link';
-import { categoryService, productService } from '@/lib/services';
-import ProductCard from '@/components/ProductCard';
-import { 
-  TruckIcon, 
-  ShieldCheckIcon, 
-  CurrencyDollarIcon, 
-  ClockIcon 
-} from '@heroicons/react/24/outline';
+import Link from "next/link";
+import { categoryService, productService } from "@/lib/services";
+import ProductCard from "@/components/ProductCard";
+import {
+  TruckIcon,
+  ShieldCheckIcon,
+  CurrencyDollarIcon,
+  ClockIcon,
+} from "@heroicons/react/24/outline";
 
 // Forzar revalidación en cada request para productos destacados
 export const revalidate = 0;
@@ -14,7 +14,7 @@ export const revalidate = 0;
 export default async function HomePage() {
   const [categories, featuredProducts] = await Promise.all([
     categoryService.getAll(),
-    productService.getFeatured()
+    productService.getFeatured(),
   ]);
 
   return (
@@ -28,7 +28,8 @@ export default async function HomePage() {
               <span className="block text-orange-200">y Metalúrgica</span>
             </h1>
             <p className="text-xl md:text-2xl mb-8 text-orange-100">
-              Tu proveedor confiable en Uruguay. Calidad, precio y servicio desde 1995.
+              Tu proveedor confiable en Uruguay. Calidad, precio y servicio
+              desde 1995.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link
@@ -64,14 +65,18 @@ export default async function HomePage() {
                 <ShieldCheckIcon className="h-8 w-8 text-orange-600" />
               </div>
               <h3 className="text-lg font-semibold mb-2">Garantía</h3>
-              <p className="text-gray-600">Todos nuestros productos con garantía</p>
+              <p className="text-gray-600">
+                Todos nuestros productos con garantía
+              </p>
             </div>
             <div className="text-center">
               <div className="bg-orange-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                 <CurrencyDollarIcon className="h-8 w-8 text-orange-600" />
               </div>
               <h3 className="text-lg font-semibold mb-2">Mejor Precio</h3>
-              <p className="text-gray-600">Precios competitivos en el mercado</p>
+              <p className="text-gray-600">
+                Precios competitivos en el mercado
+              </p>
             </div>
             <div className="text-center">
               <div className="bg-orange-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -87,7 +92,9 @@ export default async function HomePage() {
       {/* Categories Section */}
       <section className="py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-bold text-center mb-12">Nuestras Categorías</h2>
+          <h2 className="text-3xl font-bold text-center mb-12">
+            Nuestras Categorías
+          </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {categories.map((category) => (
               <Link
@@ -111,7 +118,9 @@ export default async function HomePage() {
       {/* Featured Products Section */}
       <section className="py-16 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-bold text-center mb-12">Productos Destacados</h2>
+          <h2 className="text-3xl font-bold text-center mb-12">
+            Productos Destacados
+          </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {featuredProducts.map((product) => (
               <ProductCard key={product.id} product={product} />
@@ -135,13 +144,14 @@ export default async function HomePage() {
             <div>
               <h2 className="text-3xl font-bold mb-6">Sobre Nosotros</h2>
               <p className="text-gray-600 mb-4">
-                Con más de 25 años de experiencia en el mercado uruguayo, somos tu 
-                proveedor confiable de materiales de construcción y metalúrgica.
+                Con más de 25 años de experiencia en el mercado uruguayo, somos
+                tu proveedor confiable de materiales de construcción y
+                metalúrgica.
               </p>
               <p className="text-gray-600 mb-6">
-                Ofrecemos una amplia gama de productos de calidad, desde cemento y 
-                hierros hasta herramientas y materiales eléctricos, siempre con los 
-                mejores precios y un servicio excepcional.
+                Ofrecemos una amplia gama de productos de calidad, desde cemento
+                y hierros hasta herramientas y materiales eléctricos, siempre
+                con los mejores precios y un servicio excepcional.
               </p>
               <Link
                 href="/productos"

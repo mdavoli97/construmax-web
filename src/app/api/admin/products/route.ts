@@ -200,14 +200,14 @@ export async function POST(request: NextRequest) {
     }
 
     console.log("Producto creado exitosamente:", data);
-    
+
     // Revalidate the product pages after creation
-    revalidatePath('/productos');
-    revalidatePath('/');
+    revalidatePath("/productos");
+    revalidatePath("/");
     if (data.category) {
       revalidatePath(`/productos/${data.category}`);
     }
-    
+
     return NextResponse.json(data, { status: 201 });
   } catch (error) {
     console.error("Error creating product:", error);
