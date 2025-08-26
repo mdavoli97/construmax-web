@@ -116,12 +116,14 @@
   * {
     @apply border-border;
   }
-  
+
   /* Solo aplicar outline-ring/50 a elementos que no sean botones del header o sheet */
-  *:not([data-slot="sheet-trigger"]):not([data-slot="sheet-close"]):not([data-slot="navigation-menu-trigger"]) {
+  *:not([data-slot="sheet-trigger"]):not([data-slot="sheet-close"]):not(
+      [data-slot="navigation-menu-trigger"]
+    ) {
     @apply outline-ring/50;
   }
-  
+
   body {
     @apply bg-background text-foreground;
     font-size: 16px;
