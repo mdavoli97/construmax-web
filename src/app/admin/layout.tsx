@@ -5,11 +5,7 @@ import ProtectedRoute from "@/components/admin/ProtectedRoute";
 import AdminSidebar from "@/components/admin/AdminSidebar";
 import { NotificationProvider } from "@/components/admin/NotificationProvider";
 import { Toaster } from "@/components/ui/sonner";
-import {
-  SidebarProvider,
-  SidebarInset,
-  SidebarTrigger,
-} from "@/components/ui/sidebar";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
 
 export default function AdminLayout({

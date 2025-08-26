@@ -114,8 +114,14 @@
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border;
   }
+  
+  /* Solo aplicar outline-ring/50 a elementos que no sean botones del header o sheet */
+  *:not([data-slot="sheet-trigger"]):not([data-slot="sheet-close"]):not([data-slot="navigation-menu-trigger"]) {
+    @apply outline-ring/50;
+  }
+  
   body {
     @apply bg-background text-foreground;
     font-size: 16px;
@@ -178,5 +184,27 @@
   textarea {
     @apply text-base;
     font-size: 16px; /* Previene zoom en iOS */
+  }
+
+  /* Eliminar bordes de focus en botones del header */
+  [data-slot="sheet-trigger"]:focus,
+  [data-slot="sheet-trigger"]:focus-visible {
+    outline: none !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  [data-slot="sheet-close"]:focus,
+  [data-slot="sheet-close"]:focus-visible {
+    outline: none !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  [data-slot="navigation-menu-trigger"]:focus,
+  [data-slot="navigation-menu-trigger"]:focus-visible {
+    outline: none !important;
+    box-shadow: none !important;
+    border: none !important;
   }
 }

@@ -109,7 +109,7 @@ const MobileNav = () => {
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <button className="lg:hidden p-2 text-gray-700 hover:text-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 rounded-md hover:bg-orange-50 transition-colors">
+        <button className="lg:hidden p-2 text-gray-700 hover:text-orange-600 focus:outline-none rounded-md hover:bg-orange-50 transition-colors">
           <MenuIcon className="h-6 w-6" />
           <span className="sr-only">Abrir menú de navegación</span>
         </button>
