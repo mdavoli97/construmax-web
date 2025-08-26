@@ -50,7 +50,9 @@ export default function AdminLogin() {
       <div className="mx-auto w-full max-w-sm sm:max-w-md">
         <div className="flex justify-center">
           <div className="flex items-center">
-            <div className="text-2xl sm:text-3xl font-bold text-orange-600">🏗️</div>
+            <div className="text-2xl sm:text-3xl font-bold text-orange-600">
+              🏗️
+            </div>
             <span className="ml-2 text-xl sm:text-2xl font-bold text-gray-900">
               ConstruMax
             </span>
