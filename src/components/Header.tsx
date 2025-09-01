@@ -22,6 +22,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
+import Image from "next/image";
 
 // Estructura de navegación con submenús
 const navigationStructure = [
@@ -208,18 +209,19 @@ export default function Header() {
   const totalItems = useCartCount();
 
   return (
-    <header className="bg-white shadow-lg sticky top-0 z-50 border-b">
+    <header className="bg-white shadow-lg sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <div className="flex-shrink-0">
             <Link href="/" className="flex items-center">
-              <div className="text-xl sm:text-2xl font-bold text-orange-600">
-                🏗️
-              </div>
-              <span className="ml-2 text-lg sm:text-xl font-bold text-gray-900">
-                ConstruMax
-              </span>
+              <Image
+                src="/logo.svg"
+                alt="ConstruMax Logo"
+                className="bg-slate-600 p-2 rounded-lg"
+                width={150}
+                height={50}
+              />
             </Link>
           </div>
 
