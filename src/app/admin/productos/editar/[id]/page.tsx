@@ -122,7 +122,7 @@ export default function EditProductPage() {
               metadata = parsed.meta || parsed;
               cleanDescription = parsed.description || "";
             }
-          } catch (error) {
+          } catch {
             console.log("No hay metadata JSON, usando descripción normal");
           }
 
@@ -443,7 +443,7 @@ export default function EditProductPage() {
         };
       }
 
-      const updatedProduct = await productService.update(
+      await productService.update(
         productId,
         productData
       );

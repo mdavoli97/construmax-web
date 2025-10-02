@@ -117,7 +117,7 @@ export default function PreciosAdminPage() {
         return parsed.meta || parsed;
       }
       return null;
-    } catch (error) {
+    } catch {
       return null;
     }
   };
@@ -136,7 +136,7 @@ export default function PreciosAdminPage() {
   ) => {
     setSaving(true);
     try {
-      const updateData: any = {
+      const updateData: { price_per_kg: number; currency?: "USD" | "UYU" } = {
         price_per_kg: newPriceValue,
       };
 
