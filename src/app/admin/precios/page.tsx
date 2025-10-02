@@ -21,7 +21,8 @@ import { Input } from "@/components/ui/input";
 interface PriceGroup {
   id: string;
   name: string;
-  price_per_kg_usd: number;
+  price_per_kg: number;
+  currency: "USD" | "UYU";
   category: string;
   product_count: number;
   created_at: string;
@@ -43,10 +44,12 @@ export default function PreciosAdminPage() {
   const [saving, setSaving] = useState(false);
   const [editingGroup, setEditingGroup] = useState<string | null>(null);
   const [newPrice, setNewPrice] = useState("");
+  const [newCurrency, setNewCurrency] = useState<"USD" | "UYU">("USD");
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newGroupForm, setNewGroupForm] = useState({
     name: "",
-    price_per_kg_usd: "",
+    price_per_kg: "",
+    currency: "USD" as "USD" | "UYU",
     category: "metalurgica",
   });
 
@@ -57,6 +60,11 @@ export default function PreciosAdminPage() {
     "construccion",
     "herramientas",
     "herreria",
+  ];
+
+  const currencies = [
+    { value: "USD", label: "USD ($)", symbol: "$" },
+    { value: "UYU", label: "UYU ($U)", symbol: "$U" },
   ];
 
   useEffect(() => {
@@ -121,17 +129,28 @@ export default function PreciosAdminPage() {
     });
   };
 
-  const handleUpdatePrice = async (groupId: string, newPriceValue: number) => {
+  const handleUpdatePrice = async (
+    groupId: string,
+    newPriceValue: number,
+    newCurrencyValue?: "USD" | "UYU"
+  ) => {
     setSaving(true);
     try {
+      const updateData: any = {
+        price_per_kg: newPriceValue,
+      };
+
+      // Solo incluir currency si se proporcionó
+      if (newCurrencyValue) {
+        updateData.currency = newCurrencyValue;
+      }
+
       const response = await fetch(`/api/admin/price-groups/${groupId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          price_per_kg_usd: newPriceValue,
-        }),
+        body: JSON.stringify(updateData),
       });
 
       if (response.ok) {
@@ -143,7 +162,8 @@ export default function PreciosAdminPage() {
               group.id === groupId
                 ? {
                     ...group,
-                    price_per_kg_usd: newPriceValue,
+                    price_per_kg: newPriceValue,
+                    currency: newCurrencyValue || group.currency,
                     updated_at: new Date().toISOString().split("T")[0],
                   }
                 : group
@@ -168,6 +188,7 @@ export default function PreciosAdminPage() {
 
           setEditingGroup(null);
           setNewPrice("");
+          setNewCurrency("USD");
 
           // Recargar datos para mostrar cambios
           loadPriceGroups();
@@ -186,7 +207,7 @@ export default function PreciosAdminPage() {
   };
 
   const handleCreateGroup = async () => {
-    if (!newGroupForm.name.trim() || !newGroupForm.price_per_kg_usd) {
+    if (!newGroupForm.name.trim() || !newGroupForm.price_per_kg) {
       error("Campos requeridos", "Por favor completa todos los campos");
       return;
     }
@@ -200,7 +221,8 @@ export default function PreciosAdminPage() {
         },
         body: JSON.stringify({
           name: newGroupForm.name.trim(),
-          price_per_kg_usd: parseFloat(newGroupForm.price_per_kg_usd),
+          price_per_kg: parseFloat(newGroupForm.price_per_kg),
+          currency: newGroupForm.currency,
           category: newGroupForm.category,
         }),
       });
@@ -214,7 +236,8 @@ export default function PreciosAdminPage() {
           // Limpiar formulario
           setNewGroupForm({
             name: "",
-            price_per_kg_usd: "",
+            price_per_kg: "",
+            currency: "USD",
             category: "metalurgica",
           });
           setShowCreateForm(false);
@@ -334,7 +357,7 @@ export default function PreciosAdminPage() {
               </h2>
             </div>
             <div className="p-4 sm:p-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Nombre del Grupo
@@ -353,20 +376,45 @@ export default function PreciosAdminPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Precio por Kg (USD)
+                    Precio por Kg
                   </label>
                   <Input
                     type="number"
                     step="0.01"
-                    value={newGroupForm.price_per_kg_usd}
+                    value={newGroupForm.price_per_kg}
                     onChange={(e) =>
                       setNewGroupForm((prev) => ({
                         ...prev,
-                        price_per_kg_usd: e.target.value,
+                        price_per_kg: e.target.value,
                       }))
                     }
                     placeholder="1.25"
                   />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Moneda
+                  </label>
+                  <Select
+                    value={newGroupForm.currency}
+                    onValueChange={(value: "USD" | "UYU") =>
+                      setNewGroupForm((prev) => ({
+                        ...prev,
+                        currency: value,
+                      }))
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccionar moneda" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {currencies.map((currency) => (
+                        <SelectItem key={currency.value} value={currency.value}>
+                          {currency.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -431,7 +479,10 @@ export default function PreciosAdminPage() {
                       Grupo
                     </th>
                     <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider">
-                      Precio por Kg (USD)
+                      Precio por Kg
+                    </th>
+                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider">
+                      Moneda
                     </th>
                     <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider">
                       Categoría
@@ -468,14 +519,35 @@ export default function PreciosAdminPage() {
                               step="0.01"
                               value={newPrice}
                               onChange={(e) => setNewPrice(e.target.value)}
-                              className="w-24 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900"
-                              placeholder={group.price_per_kg_usd.toString()}
+                              className="w-20 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900"
+                              placeholder={group.price_per_kg.toString()}
                             />
+                            <Select
+                              value={newCurrency}
+                              onValueChange={(value: "USD" | "UYU") =>
+                                setNewCurrency(value)
+                              }
+                            >
+                              <SelectTrigger className="w-20">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {currencies.map((currency) => (
+                                  <SelectItem
+                                    key={currency.value}
+                                    value={currency.value}
+                                  >
+                                    {currency.value}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                             <button
                               onClick={() =>
                                 handleUpdatePrice(
                                   group.id,
-                                  parseFloat(newPrice)
+                                  parseFloat(newPrice),
+                                  newCurrency
                                 )
                               }
                               disabled={saving || !newPrice}
@@ -488,6 +560,7 @@ export default function PreciosAdminPage() {
                               onClick={() => {
                                 setEditingGroup(null);
                                 setNewPrice("");
+                                setNewCurrency("USD");
                               }}
                               className="text-gray-600 hover:text-gray-900"
                             >
@@ -497,10 +570,18 @@ export default function PreciosAdminPage() {
                         ) : (
                           <div className="flex items-center justify-between">
                             <span className="text-lg font-bold text-green-600">
-                              ${group.price_per_kg_usd.toFixed(2)}
+                              {currencies.find(
+                                (c) => c.value === group.currency
+                              )?.symbol || "$"}
+                              {group.price_per_kg.toFixed(2)}
                             </span>
                           </div>
                         )}
+                      </td>
+                      <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                          {group.currency}
+                        </span>
                       </td>
                       <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
@@ -518,10 +599,11 @@ export default function PreciosAdminPage() {
                           <button
                             onClick={() => {
                               setEditingGroup(group.id);
-                              setNewPrice(group.price_per_kg_usd.toString());
+                              setNewPrice(group.price_per_kg.toString());
+                              setNewCurrency(group.currency);
                             }}
                             className="text-blue-600 hover:text-blue-900"
-                            title="Editar precio"
+                            title="Editar precio y moneda"
                           >
                             <EditIcon className="h-4 w-4" />
                           </button>
@@ -564,7 +646,7 @@ export default function PreciosAdminPage() {
                           {group.name}
                         </h3>
                         <p className="text-xs text-gray-500 mt-1">
-                          {group.product_count} productos
+                          {group.product_count} productos • {group.currency}
                         </p>
                       </div>
                     </div>
@@ -575,30 +657,58 @@ export default function PreciosAdminPage() {
 
                   <div className="mb-3">
                     {editingGroup === group.id ? (
-                      <div className="flex items-center space-x-2">
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={newPrice}
-                          onChange={(e) => setNewPrice(e.target.value)}
-                          className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900"
-                          placeholder={group.price_per_kg_usd.toString()}
-                        />
+                      <div className="space-y-2">
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={newPrice}
+                            onChange={(e) => setNewPrice(e.target.value)}
+                            className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900"
+                            placeholder={group.price_per_kg.toString()}
+                          />
+                          <Select
+                            value={newCurrency}
+                            onValueChange={(value: "USD" | "UYU") =>
+                              setNewCurrency(value)
+                            }
+                          >
+                            <SelectTrigger className="w-20">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {currencies.map((currency) => (
+                                <SelectItem
+                                  key={currency.value}
+                                  value={currency.value}
+                                >
+                                  {currency.value}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
                         <button
                           onClick={() =>
-                            handleUpdatePrice(group.id, parseFloat(newPrice))
+                            handleUpdatePrice(
+                              group.id,
+                              parseFloat(newPrice),
+                              newCurrency
+                            )
                           }
                           disabled={saving || !newPrice}
-                          className="inline-flex items-center px-2 py-1 border border-transparent rounded text-xs font-medium text-white bg-green-600 hover:bg-green-700 disabled:bg-gray-400"
+                          className="w-full inline-flex items-center justify-center px-3 py-2 border border-transparent rounded text-sm font-medium text-white bg-green-600 hover:bg-green-700 disabled:bg-gray-400"
                         >
-                          <SaveIcon className="h-3 w-3 mr-1" />
-                          {saving ? "..." : "Guardar"}
+                          <SaveIcon className="h-4 w-4 mr-2" />
+                          {saving ? "Guardando..." : "Guardar Cambios"}
                         </button>
                       </div>
                     ) : (
                       <div className="flex items-center justify-between">
                         <span className="text-lg font-bold text-green-600">
-                          ${group.price_per_kg_usd.toFixed(2)} USD/kg
+                          {currencies.find((c) => c.value === group.currency)
+                            ?.symbol || "$"}
+                          {group.price_per_kg.toFixed(2)} {group.currency}/kg
                         </span>
                         <span className="text-xs text-gray-500">
                           {new Date(group.updated_at).toLocaleDateString(
@@ -614,10 +724,11 @@ export default function PreciosAdminPage() {
                       <button
                         onClick={() => {
                           setEditingGroup(group.id);
-                          setNewPrice(group.price_per_kg_usd.toString());
+                          setNewPrice(group.price_per_kg.toString());
+                          setNewCurrency(group.currency);
                         }}
                         className="text-blue-600 hover:text-blue-900"
-                        title="Editar precio"
+                        title="Editar precio y moneda"
                       >
                         <EditIcon className="h-4 w-4" />
                       </button>
@@ -647,6 +758,7 @@ export default function PreciosAdminPage() {
                         onClick={() => {
                           setEditingGroup(null);
                           setNewPrice("");
+                          setNewCurrency("USD");
                         }}
                         className="w-full px-3 py-2 text-sm text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200"
                       >

@@ -101,6 +101,44 @@ export async function getUSDToUYURate(): Promise<ExchangeRateData> {
 }
 
 /**
+ * Formatea un precio teniendo en cuenta la moneda original
+ * @param price - El precio a formatear
+ * @param currency - La moneda original del precio ('USD' | 'UYU')
+ * @param exchangeRate - La tasa de cambio USD a UYU (opcional si currency es UYU)
+ * @param showOriginal - Si mostrar la moneda original entre paréntesis cuando se convierte
+ */
+export function formatPriceWithCurrency(
+  price: number,
+  currency: "USD" | "UYU" = "USD",
+  exchangeRate?: number,
+  showOriginal: boolean = true
+): string {
+  // Si el precio ya está en UYU, mostrarlo directamente
+  if (currency === "UYU") {
+    return formatUYU(price);
+  }
+
+  // Si está en USD y no tenemos tasa de cambio, mostrar en USD
+  if (currency === "USD" && !exchangeRate) {
+    return formatUSD(price);
+  }
+
+  // Si está en USD y tenemos tasa de cambio, convertir a UYU
+  if (currency === "USD" && exchangeRate) {
+    const priceInUYU = convertUSDToUYU(price, exchangeRate);
+
+    if (showOriginal) {
+      return `${formatUYU(priceInUYU)} (${formatUSD(price)})`;
+    } else {
+      return formatUYU(priceInUYU);
+    }
+  }
+
+  // Fallback
+  return formatUSD(price);
+}
+
+/**
  * Convierte un precio de USD a UYU
  */
 export function convertUSDToUYU(

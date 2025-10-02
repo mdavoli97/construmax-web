@@ -19,7 +19,8 @@ export async function GET(request: NextRequest) {
         id,
         name,
         description,
-        price_per_kg_usd,
+        price_per_kg,
+        currency,
         category,
         is_active,
         created_at,
@@ -92,17 +93,23 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, description, price_per_kg_usd, category } = body;
+    const {
+      name,
+      description,
+      price_per_kg,
+      currency = "USD",
+      category,
+    } = body;
 
     // Validaciones
-    if (!name || !price_per_kg_usd || !category) {
+    if (!name || !price_per_kg || !category) {
       return NextResponse.json(
         { success: false, error: "Faltan campos requeridos" },
         { status: 400 }
       );
     }
 
-    if (price_per_kg_usd <= 0) {
+    if (price_per_kg <= 0) {
       return NextResponse.json(
         { success: false, error: "El precio por kg debe ser mayor a 0" },
         { status: 400 }
@@ -118,6 +125,14 @@ export async function POST(request: NextRequest) {
     if (!validCategories.includes(category)) {
       return NextResponse.json(
         { success: false, error: "Categoría inválida" },
+        { status: 400 }
+      );
+    }
+
+    const validCurrencies = ["USD", "UYU"];
+    if (!validCurrencies.includes(currency)) {
+      return NextResponse.json(
+        { success: false, error: "Moneda inválida" },
         { status: 400 }
       );
     }
@@ -147,7 +162,8 @@ export async function POST(request: NextRequest) {
       .insert({
         name,
         description,
-        price_per_kg_usd: parseFloat(price_per_kg_usd),
+        price_per_kg: parseFloat(price_per_kg),
+        currency,
         category,
         is_active: true,
       })

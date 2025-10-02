@@ -8,7 +8,16 @@ export const productService = {
     try {
       const { data, error } = await supabase
         .from("products")
-        .select("*")
+        .select(
+          `
+          *,
+          price_group:price_groups(
+            id,
+            currency,
+            price_per_kg
+          )
+        `
+        )
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -25,7 +34,16 @@ export const productService = {
     try {
       const { data, error } = await supabase
         .from("products")
-        .select("*")
+        .select(
+          `
+          *,
+          price_group:price_groups(
+            id,
+            currency,
+            price_per_kg
+          )
+        `
+        )
         .eq("category", category)
         .order("created_at", { ascending: false });
 
@@ -42,7 +60,16 @@ export const productService = {
     try {
       const { data, error } = await supabase
         .from("products")
-        .select("*")
+        .select(
+          `
+          *,
+          price_group:price_groups(
+            id,
+            currency,
+            price_per_kg
+          )
+        `
+        )
         .eq("featured", true)
         .order("created_at", { ascending: false });
 
@@ -59,7 +86,16 @@ export const productService = {
     try {
       const { data, error } = await supabase
         .from("products")
-        .select("*")
+        .select(
+          `
+          *,
+          price_group:price_groups(
+            id,
+            currency,
+            price_per_kg
+          )
+        `
+        )
         .eq("id", id)
         .single();
 
@@ -155,6 +191,13 @@ export const productService = {
       brand?: string;
       sku?: string;
       featured?: boolean;
+      product_type?: string;
+      weight_per_unit?: number;
+      kg_per_meter?: number;
+      price_per_kg?: number;
+      price_group_id?: string | null;
+      stock_type?: string;
+      is_available?: boolean;
     }
   ): Promise<Product> {
     // Obtener token de autenticación si está disponible

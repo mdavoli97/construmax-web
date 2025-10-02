@@ -21,7 +21,8 @@ export async function GET(
         id,
         name,
         description,
-        price_per_kg_usd,
+        price_per_kg,
+        currency,
         category,
         is_active,
         created_at,
@@ -91,14 +92,25 @@ export async function PUT(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { name, description, price_per_kg_usd, category, is_active } = body;
+    const { name, description, price_per_kg, currency, category, is_active } =
+      body;
 
     // Validaciones
-    if (price_per_kg_usd !== undefined && price_per_kg_usd <= 0) {
+    if (price_per_kg !== undefined && price_per_kg <= 0) {
       return NextResponse.json(
         { success: false, error: "El precio por kg debe ser mayor a 0" },
         { status: 400 }
       );
+    }
+
+    if (currency) {
+      const validCurrencies = ["USD", "UYU"];
+      if (!validCurrencies.includes(currency)) {
+        return NextResponse.json(
+          { success: false, error: "Moneda inválida" },
+          { status: 400 }
+        );
+      }
     }
 
     if (category) {
@@ -119,7 +131,7 @@ export async function PUT(
     // Verificar que el grupo existe
     const { data: existingGroup, error: fetchError } = await supabase
       .from("price_groups")
-      .select("id, name, price_per_kg_usd")
+      .select("id, name, price_per_kg")
       .eq("id", id)
       .single();
 
@@ -157,14 +169,16 @@ export async function PUT(
       updated_at: string;
       name?: string;
       description?: string;
-      price_per_kg_usd?: number;
+      price_per_kg?: number;
+      currency?: string;
       category?: string;
       is_active?: boolean;
     } = { updated_at: new Date().toISOString() };
     if (name !== undefined) updateData.name = name;
     if (description !== undefined) updateData.description = description;
-    if (price_per_kg_usd !== undefined)
-      updateData.price_per_kg_usd = parseFloat(price_per_kg_usd);
+    if (price_per_kg !== undefined)
+      updateData.price_per_kg = parseFloat(price_per_kg);
+    if (currency !== undefined) updateData.currency = currency;
     if (category !== undefined) updateData.category = category;
     if (is_active !== undefined) updateData.is_active = is_active;
 
@@ -186,8 +200,8 @@ export async function PUT(
     // Si se cambió el precio por kg, actualizar productos relacionados
     let productsUpdated = 0;
     if (
-      price_per_kg_usd !== undefined &&
-      price_per_kg_usd !== existingGroup.price_per_kg_usd
+      price_per_kg !== undefined &&
+      price_per_kg !== existingGroup.price_per_kg
     ) {
       try {
         // Buscar productos que están asociados a este grupo de precios
@@ -202,13 +216,12 @@ export async function PUT(
           // Actualizar precios de productos
           const updatePromises = products.map((product) => {
             const newPrice =
-              parseFloat(product.weight_per_unit) *
-              parseFloat(price_per_kg_usd);
+              parseFloat(product.weight_per_unit) * parseFloat(price_per_kg);
             return supabase
               .from("products")
               .update({
                 price: newPrice.toFixed(2),
-                price_per_kg: parseFloat(price_per_kg_usd),
+                price_per_kg: parseFloat(price_per_kg),
                 updated_at: new Date().toISOString(),
               })
               .eq("id", product.id);

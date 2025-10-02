@@ -37,7 +37,8 @@ export default function EditProductPage() {
     Array<{
       id: string;
       name: string;
-      price_per_kg_usd: number;
+      price_per_kg: number;
+      currency: "USD" | "UYU";
       category: string;
     }>
   >([]);
@@ -226,15 +227,13 @@ export default function EditProductPage() {
         if (name === "price_group_id" && value && Array.isArray(priceGroups)) {
           const selectedGroup = priceGroups.find((group) => group.id === value);
           if (selectedGroup) {
-            updated.price_per_kg = selectedGroup.price_per_kg_usd.toString();
+            updated.price_per_kg = selectedGroup.price_per_kg.toString();
             updated.category = selectedGroup.category;
 
             // Recalcular precio total
             const weight = parseFloat(updated.weight_per_unit) || 0;
             if (weight > 0) {
-              updated.price = (weight * selectedGroup.price_per_kg_usd).toFixed(
-                2
-              );
+              updated.price = (weight * selectedGroup.price_per_kg).toFixed(2);
             }
           }
         }
@@ -255,15 +254,15 @@ export default function EditProductPage() {
         if (name === "price_group_id" && value && Array.isArray(priceGroups)) {
           const selectedGroup = priceGroups.find((group) => group.id === value);
           if (selectedGroup) {
-            updated.price_per_kg = selectedGroup.price_per_kg_usd.toString();
+            updated.price_per_kg = selectedGroup.price_per_kg.toString();
             updated.category = selectedGroup.category;
 
             // Recalcular precio total
             const kgPerMeter = parseFloat(updated.kg_per_meter) || 0;
             if (kgPerMeter > 0) {
-              updated.price = (
-                kgPerMeter * selectedGroup.price_per_kg_usd
-              ).toFixed(2);
+              updated.price = (kgPerMeter * selectedGroup.price_per_kg).toFixed(
+                2
+              );
             }
           }
         }
@@ -404,64 +403,43 @@ export default function EditProductPage() {
       let productData;
 
       if (formData.product_type === "perfiles") {
-        // Para perfiles: guardar info extra en description como JSON
-        const extraData = {
+        productData = {
+          ...baseProductData,
+          description: formData.description.trim() || "",
+          price: parseFloat(formData.price),
+          stock: formData.is_available ? 1 : 0,
+          // Campos directos en la base de datos
           product_type: "perfiles",
           weight_per_unit: parseFloat(formData.weight_per_unit),
           price_per_kg: parseFloat(formData.price_per_kg),
           stock_type: "availability",
           is_available: formData.is_available,
-        };
-
-        const descriptionWithMeta = {
-          description: formData.description.trim() || "",
-          meta: extraData,
-        };
-
-        productData = {
-          ...baseProductData,
-          description: JSON.stringify(descriptionWithMeta),
-          price: parseFloat(formData.price),
-          stock: formData.is_available ? 1 : 0,
+          price_group_id: formData.price_group_id || null,
         };
       } else if (formData.product_type === "chapas_conformadas") {
-        // Para chapas conformadas: guardar info extra en description como JSON
-        const extraData = {
+        productData = {
+          ...baseProductData,
+          description: formData.description.trim() || "",
+          price: parseFloat(formData.price),
+          stock: formData.is_available ? 1 : 0,
+          // Campos directos en la base de datos
           product_type: "chapas_conformadas",
           kg_per_meter: parseFloat(formData.kg_per_meter),
           price_per_kg: parseFloat(formData.price_per_kg),
           stock_type: "availability",
           is_available: formData.is_available,
-        };
-
-        const descriptionWithMeta = {
-          description: formData.description.trim() || "",
-          meta: extraData,
-        };
-
-        productData = {
-          ...baseProductData,
-          description: JSON.stringify(descriptionWithMeta),
-          price: parseFloat(formData.price),
-          stock: formData.is_available ? 1 : 0,
+          price_group_id: formData.price_group_id || null,
         };
       } else {
         // Para productos estándar
-        const extraData = {
-          product_type: "standard",
-          stock_type: "quantity",
-        };
-
-        const descriptionWithMeta = {
-          description: formData.description.trim() || "",
-          meta: extraData,
-        };
-
         productData = {
           ...baseProductData,
-          description: JSON.stringify(descriptionWithMeta),
+          description: formData.description.trim() || "",
           price: parseFloat(formData.price),
           stock: parseInt(formData.stock),
+          product_type: "standard",
+          stock_type: "quantity",
+          price_group_id: null,
         };
       }
 
@@ -781,7 +759,7 @@ export default function EditProductPage() {
                         ...prev,
                         price_group_id: value,
                         price_per_kg: selectedGroup
-                          ? selectedGroup.price_per_kg_usd.toString()
+                          ? selectedGroup.price_per_kg.toString()
                           : prev.price_per_kg,
                       }));
                     }}
@@ -793,7 +771,9 @@ export default function EditProductPage() {
                       {Array.isArray(priceGroups) &&
                         priceGroups.map((group) => (
                           <SelectItem key={group.id} value={group.id}>
-                            {group.name} - ${group.price_per_kg_usd}/kg USD
+                            {group.name} -{" "}
+                            {group.currency === "USD" ? "$" : "$U"}
+                            {group.price_per_kg}/kg {group.currency}
                           </SelectItem>
                         ))}
                     </SelectContent>

@@ -29,6 +29,12 @@ export interface Product {
   price_group_id?: string; // Para perfiles y chapas: referencia al grupo de precios
   stock_type?: "quantity" | "availability"; // quantity = número, availability = tengo/no tengo
   is_available?: boolean; // Para stock tipo availability
+  // Información del grupo de precios (cuando está disponible)
+  price_group?: {
+    id: string;
+    currency: "USD" | "UYU";
+    price_per_kg: number;
+  } | null;
 }
 
 export interface CalculationDetail {

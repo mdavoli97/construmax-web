@@ -6,7 +6,7 @@ import { EyeIcon } from "@heroicons/react/24/outline";
 import { Product } from "@/types";
 import { useItemQuantity } from "@/hooks/useItemQuantity";
 import ProductImage from "./ProductImage";
-import { getUSDToUYURate, convertUSDToUYU, formatUYU } from "@/lib/currency";
+import { getUSDToUYURate, formatPriceWithCurrency } from "@/lib/currency";
 
 interface ProductCardProps {
   product: Product;
@@ -57,21 +57,59 @@ export default function ProductCard({ product }: ProductCardProps) {
     return "standard";
   };
 
-  const formatPrice = (priceInUSD: number) => {
-    if (!exchangeRate) {
+  const formatPrice = (price: number) => {
+    // Determinar la moneda del producto
+    const currency = product.price_group?.currency || "USD";
+
+    if (!exchangeRate && currency === "USD") {
       return "Cargando...";
     }
-    const priceInUYU = convertUSDToUYU(priceInUSD, exchangeRate);
-    return formatUYU(priceInUYU);
+
+    return formatPriceWithCurrency(
+      price,
+      currency,
+      exchangeRate || undefined,
+      false
+    );
   };
 
-  const formatPriceWithIVA = (priceInUSD: number) => {
-    if (!exchangeRate) {
+  const formatPriceWithIVA = (price: number) => {
+    // Determinar la moneda del producto
+    const currency = product.price_group?.currency || "USD";
+
+    if (!exchangeRate && currency === "USD") {
       return "Cargando...";
     }
-    const priceInUYU = convertUSDToUYU(priceInUSD, exchangeRate);
-    const priceWithIVA = priceInUYU * 1.22; // 22% IVA
-    return formatUYU(priceWithIVA);
+
+    // Si está en UYU, aplicar IVA directamente
+    if (currency === "UYU") {
+      const priceWithIVA = price * 1.22; // 22% IVA
+      return formatPriceWithCurrency(
+        priceWithIVA,
+        currency,
+        exchangeRate || undefined,
+        false
+      );
+    }
+
+    // Si está en USD, convertir primero y luego aplicar IVA
+    if (currency === "USD" && exchangeRate) {
+      const priceWithIVA = price * 1.22; // 22% IVA
+      return formatPriceWithCurrency(
+        priceWithIVA,
+        currency,
+        exchangeRate || undefined,
+        false
+      );
+    }
+
+    // Fallback
+    return formatPriceWithCurrency(
+      price * 1.22,
+      currency,
+      exchangeRate || undefined,
+      false
+    );
   };
 
   // Función para obtener descripción limpia del producto

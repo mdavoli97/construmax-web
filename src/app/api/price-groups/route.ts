@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
 
     let query = supabase
       .from("price_groups")
-      .select("id, name, price_per_kg_usd, category, description")
+      .select("id, name, price_per_kg, currency, category, description")
       .eq("is_active", true);
 
     // Aplicar filtro de categoría si se especifica
