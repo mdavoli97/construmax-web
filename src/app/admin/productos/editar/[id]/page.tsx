@@ -443,10 +443,7 @@ export default function EditProductPage() {
         };
       }
 
-      await productService.update(
-        productId,
-        productData
-      );
+      await productService.update(productId, productData);
 
       success(
         "Producto actualizado",
