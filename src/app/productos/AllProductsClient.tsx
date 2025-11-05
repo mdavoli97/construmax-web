@@ -80,7 +80,11 @@ export default function AllProductsClient({
             description: `Productos sin grupo de precio específico en ${category.name}`,
             price_per_kg: 0,
             currency: "USD",
-            category: category.slug as any,
+            category: category.slug as
+              | "construccion"
+              | "metalurgica"
+              | "herramientas"
+              | "herreria",
             is_active: true,
             created_at: "",
             updated_at: "",

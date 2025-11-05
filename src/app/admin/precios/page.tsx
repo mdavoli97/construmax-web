@@ -491,7 +491,7 @@ export default function PreciosAdminPage() {
                       htmlFor="thickness-checkbox"
                       className="ml-2 block text-sm text-gray-900"
                     >
-                      Mostrar campo "Espesor"
+                      Mostrar campo &quot;Espesor&quot;
                     </label>
                   </div>
                   <div className="flex items-center">
@@ -511,7 +511,7 @@ export default function PreciosAdminPage() {
                       htmlFor="size-checkbox"
                       className="ml-2 block text-sm text-gray-900"
                     >
-                      Mostrar campo "Tamaño"
+                      Mostrar campo &quot;Tamaño&quot;
                     </label>
                   </div>
                 </div>

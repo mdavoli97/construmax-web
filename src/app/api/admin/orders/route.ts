@@ -1,6 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
+interface OrderItem {
+  product_id: string;
+  product_name: string;
+  quantity: number;
+  unit_price: number;
+  total_price: number;
+}
+
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -121,7 +129,7 @@ export async function POST(request: NextRequest) {
     if (items && items.length > 0) {
       console.log("Items to insert:", items);
 
-      const orderItems = items.map((item: any) => ({
+      const orderItems = items.map((item: OrderItem) => ({
         order_id: order.id,
         product_id: item.product_id,
         product_name: item.product_name,

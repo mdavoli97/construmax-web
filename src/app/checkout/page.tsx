@@ -336,17 +336,64 @@ export default function CheckoutPage() {
       }
 
       const result = await response.json();
+      const order = result.order;
+
+      // Agregar los items al objeto order para WhatsApp
+      const orderWithItems = {
+        ...order,
+        items: orderData.items,
+      };
+
+      // Importar servicio de WhatsApp
+      const { whatsappService } = await import("@/lib/whatsapp");
+
+      // Generar URLs de WhatsApp
+      const customerWhatsAppURL = whatsappService.generateWhatsAppURL(
+        whatsappService.businessNumber,
+        whatsappService.generateCustomerMessage(orderWithItems)
+      );
+
+      const adminWhatsAppURL = whatsappService.generateWhatsAppURL(
+        whatsappService.businessNumber,
+        whatsappService.generateAdminMessage(orderWithItems)
+      );
+
+      console.log("WhatsApp URL generada:", customerWhatsAppURL);
 
       // Simular éxito según método de pago
       if (selectedPaymentMethod === "cash") {
+        const sendWhatsApp = confirm(
+          "¡Pedido confirmado! ¿Quieres enviar un mensaje de WhatsApp para confirmar tu pedido?"
+        );
+        console.log("Usuario acepta WhatsApp:", sendWhatsApp);
+        if (sendWhatsApp) {
+          console.log("Abriendo WhatsApp...", customerWhatsAppURL);
+          window.open(customerWhatsAppURL, "_blank");
+        }
         alert(
-          "¡Pedido confirmado! Te enviaremos las instrucciones para el pago en efectivo por email."
+          "Te enviaremos las instrucciones para el pago en efectivo por email."
         );
       } else if (selectedPaymentMethod === "transfer") {
+        const sendWhatsApp = confirm(
+          "¡Pedido confirmado! ¿Quieres enviar un mensaje de WhatsApp para confirmar tu pedido?"
+        );
+        console.log("Usuario acepta WhatsApp:", sendWhatsApp);
+        if (sendWhatsApp) {
+          console.log("Abriendo WhatsApp...", customerWhatsAppURL);
+          window.open(customerWhatsAppURL, "_blank");
+        }
         alert(
-          "¡Pedido confirmado! Te enviaremos los datos para la transferencia bancaria por email."
+          "Te enviaremos los datos para la transferencia bancaria por email."
         );
       } else {
+        const sendWhatsApp = confirm(
+          "¡Pago procesado exitosamente! ¿Quieres enviar un mensaje de WhatsApp para confirmar tu pedido?"
+        );
+        console.log("Usuario acepta WhatsApp:", sendWhatsApp);
+        if (sendWhatsApp) {
+          console.log("Abriendo WhatsApp...", customerWhatsAppURL);
+          window.open(customerWhatsAppURL, "_blank");
+        }
         alert("¡Pago procesado exitosamente!");
       }
 

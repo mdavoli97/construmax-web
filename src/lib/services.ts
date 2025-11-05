@@ -78,7 +78,7 @@ export const productService = {
       if (error) throw error;
       // Normalizar datos: Supabase puede devolver price_group como arreglo
       // y los campos thickness/size a veces están dentro de description.meta
-      const normalized = (data || []).map((item: any) => {
+      const normalized = (data || []).map((item: Product) => {
         const copy = { ...item };
 
         // price_group puede venir como arreglo por el join
