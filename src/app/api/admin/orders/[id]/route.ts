@@ -8,11 +8,12 @@ const supabase = createClient(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { status } = await request.json();
-    const orderId = params.id;
+    const resolvedParams = await params;
+    const orderId = resolvedParams.id;
 
     const { data, error } = await supabase
       .from("orders")
