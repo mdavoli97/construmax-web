@@ -1,5 +1,6 @@
 import { productService, categoryService } from "@/lib/services";
 import ProductSearch from "@/components/ProductSearch";
+import AllProductsClient from "./AllProductsClient";
 
 // Forzar revalidación en cada request
 export const revalidate = 0;
@@ -23,28 +24,8 @@ export default async function ProductosPage() {
           </p>
         </div>
 
-        <ProductSearch products={products} categories={categories} />
-
-        {/* Categories Quick Links */}
-        <div className="mt-12 sm:mt-16">
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">
-            Explorar por Categoría
-          </h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
-            {categories.map((category) => (
-              <a
-                key={category.id}
-                href={`/productos/${category.slug}`}
-                className="p-3 sm:p-4 rounded-lg border-2 border-gray-200 hover:border-orange-300 transition-colors text-center"
-              >
-                <div className="text-xl sm:text-2xl mb-2">{category.icon}</div>
-                <div className="text-xs sm:text-sm font-medium text-gray-900">
-                  {category.name}
-                </div>
-              </a>
-            ))}
-          </div>
-        </div>
+        {/* All Subcategories */}
+        <AllProductsClient products={products} categories={categories} />
       </div>
     </div>
   );

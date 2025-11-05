@@ -3,11 +3,12 @@ import { useCartStore } from "@/store/cartStore";
 
 /**
  * Hook que maneja la hidratación del carrito para evitar errores de SSR
- * Retorna undefined durante el renderizado del servidor y el valor real después de la hidratación
+ * Se suscribe directamente a los items del carrito para garantizar reactividad
  */
 export function useCartCount() {
   const [isClient, setIsClient] = useState(false);
-  const getTotalItems = useCartStore((state) => state.getTotalItems);
+  // Suscribirse a los items del carrito directamente para garantizar reactividad
+  const items = useCartStore((state) => state.cart.items);
 
   useEffect(() => {
     setIsClient(true);
@@ -17,5 +18,6 @@ export function useCartCount() {
     return 0; // Durante SSR, siempre retorna 0
   }
 
-  return getTotalItems();
+  // Calcular el total directamente desde los items para asegurar reactividad
+  return items.reduce((sum, item) => sum + item.quantity, 0);
 }

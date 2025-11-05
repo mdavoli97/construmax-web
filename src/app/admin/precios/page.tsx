@@ -45,12 +45,16 @@ export default function PreciosAdminPage() {
   const [editingGroup, setEditingGroup] = useState<string | null>(null);
   const [newPrice, setNewPrice] = useState("");
   const [newCurrency, setNewCurrency] = useState<"USD" | "UYU">("USD");
+  const [editThickness, setEditThickness] = useState(false);
+  const [editSize, setEditSize] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newGroupForm, setNewGroupForm] = useState({
     name: "",
     price_per_kg: "",
     currency: "USD" as "USD" | "UYU",
     category: "metalurgica",
+    thickness: false,
+    size: false,
   });
 
   const { success, error } = useNotifications();
@@ -136,7 +140,12 @@ export default function PreciosAdminPage() {
   ) => {
     setSaving(true);
     try {
-      const updateData: { price_per_kg: number; currency?: "USD" | "UYU" } = {
+      const updateData: {
+        price_per_kg: number;
+        currency?: "USD" | "UYU";
+        thickness?: boolean;
+        size?: boolean;
+      } = {
         price_per_kg: newPriceValue,
       };
 
@@ -144,6 +153,10 @@ export default function PreciosAdminPage() {
       if (newCurrencyValue) {
         updateData.currency = newCurrencyValue;
       }
+
+      // Incluir thickness y size
+      updateData.thickness = editThickness;
+      updateData.size = editSize;
 
       const response = await fetch(`/api/admin/price-groups/${groupId}`, {
         method: "PUT",
@@ -164,6 +177,8 @@ export default function PreciosAdminPage() {
                     ...group,
                     price_per_kg: newPriceValue,
                     currency: newCurrencyValue || group.currency,
+                    thickness: editThickness,
+                    size: editSize,
                     updated_at: new Date().toISOString().split("T")[0],
                   }
                 : group
@@ -189,6 +204,8 @@ export default function PreciosAdminPage() {
           setEditingGroup(null);
           setNewPrice("");
           setNewCurrency("USD");
+          setEditThickness(false);
+          setEditSize(false);
 
           // Recargar datos para mostrar cambios
           loadPriceGroups();
@@ -224,6 +241,8 @@ export default function PreciosAdminPage() {
           price_per_kg: parseFloat(newGroupForm.price_per_kg),
           currency: newGroupForm.currency,
           category: newGroupForm.category,
+          thickness: newGroupForm.thickness,
+          size: newGroupForm.size,
         }),
       });
 
@@ -239,6 +258,8 @@ export default function PreciosAdminPage() {
             price_per_kg: "",
             currency: "USD",
             category: "metalurgica",
+            thickness: false,
+            size: false,
           });
           setShowCreateForm(false);
           success("Grupo creado", "Grupo de precios creado exitosamente");
@@ -442,6 +463,59 @@ export default function PreciosAdminPage() {
                   </Select>
                 </div>
               </div>
+
+              {/* Configuración de campos adicionales */}
+              <div className="mt-4 bg-gray-50 p-4 rounded-lg">
+                <h3 className="text-sm font-medium text-gray-900 mb-3">
+                  Configuración de Campos en Productos
+                </h3>
+                <p className="text-sm text-gray-600 mb-3">
+                  Selecciona qué campos adicionales deben mostrarse al crear
+                  productos de este grupo
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex items-center">
+                    <input
+                      id="thickness-checkbox"
+                      type="checkbox"
+                      checked={newGroupForm.thickness}
+                      onChange={(e) =>
+                        setNewGroupForm((prev) => ({
+                          ...prev,
+                          thickness: e.target.checked,
+                        }))
+                      }
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    />
+                    <label
+                      htmlFor="thickness-checkbox"
+                      className="ml-2 block text-sm text-gray-900"
+                    >
+                      Mostrar campo "Espesor"
+                    </label>
+                  </div>
+                  <div className="flex items-center">
+                    <input
+                      id="size-checkbox"
+                      type="checkbox"
+                      checked={newGroupForm.size}
+                      onChange={(e) =>
+                        setNewGroupForm((prev) => ({
+                          ...prev,
+                          size: e.target.checked,
+                        }))
+                      }
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    />
+                    <label
+                      htmlFor="size-checkbox"
+                      className="ml-2 block text-sm text-gray-900"
+                    >
+                      Mostrar campo "Tamaño"
+                    </label>
+                  </div>
+                </div>
+              </div>
               <div className="flex flex-col sm:flex-row justify-end space-y-3 sm:space-y-0 sm:space-x-3 mt-4">
                 <button
                   onClick={() => setShowCreateForm(false)}
@@ -486,6 +560,12 @@ export default function PreciosAdminPage() {
                     </th>
                     <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider">
                       Categoría
+                    </th>
+                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider">
+                      Espesor
+                    </th>
+                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider">
+                      Tamaño
                     </th>
                     <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider">
                       Productos
@@ -561,6 +641,8 @@ export default function PreciosAdminPage() {
                                 setEditingGroup(null);
                                 setNewPrice("");
                                 setNewCurrency("USD");
+                                setEditThickness(false);
+                                setEditSize(false);
                               }}
                               className="text-gray-600 hover:text-gray-900"
                             >
@@ -588,6 +670,46 @@ export default function PreciosAdminPage() {
                           {group.category}
                         </span>
                       </td>
+                      <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
+                        {editingGroup === group.id ? (
+                          <input
+                            type="checkbox"
+                            checked={editThickness}
+                            onChange={(e) => setEditThickness(e.target.checked)}
+                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                          />
+                        ) : (
+                          <span
+                            className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                              (group as any).thickness
+                                ? "bg-green-100 text-green-800"
+                                : "bg-gray-100 text-gray-800"
+                            }`}
+                          >
+                            {(group as any).thickness ? "Sí" : "No"}
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
+                        {editingGroup === group.id ? (
+                          <input
+                            type="checkbox"
+                            checked={editSize}
+                            onChange={(e) => setEditSize(e.target.checked)}
+                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                          />
+                        ) : (
+                          <span
+                            className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                              (group as any).size
+                                ? "bg-green-100 text-green-800"
+                                : "bg-gray-100 text-gray-800"
+                            }`}
+                          >
+                            {(group as any).size ? "Sí" : "No"}
+                          </span>
+                        )}
+                      </td>
                       <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {group.product_count} productos
                       </td>
@@ -601,6 +723,10 @@ export default function PreciosAdminPage() {
                               setEditingGroup(group.id);
                               setNewPrice(group.price_per_kg.toString());
                               setNewCurrency(group.currency);
+                              setEditThickness(
+                                (group as any).thickness || false
+                              );
+                              setEditSize((group as any).size || false);
                             }}
                             className="text-blue-600 hover:text-blue-900"
                             title="Editar precio y moneda"
@@ -688,6 +814,28 @@ export default function PreciosAdminPage() {
                             </SelectContent>
                           </Select>
                         </div>
+                        <div className="flex items-center space-x-4 mt-2">
+                          <label className="flex items-center space-x-2 text-sm">
+                            <input
+                              type="checkbox"
+                              checked={editThickness}
+                              onChange={(e) =>
+                                setEditThickness(e.target.checked)
+                              }
+                              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            />
+                            <span>Espesor</span>
+                          </label>
+                          <label className="flex items-center space-x-2 text-sm">
+                            <input
+                              type="checkbox"
+                              checked={editSize}
+                              onChange={(e) => setEditSize(e.target.checked)}
+                              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            />
+                            <span>Tamaño</span>
+                          </label>
+                        </div>
                         <button
                           onClick={() =>
                             handleUpdatePrice(
@@ -719,6 +867,29 @@ export default function PreciosAdminPage() {
                     )}
                   </div>
 
+                  {/* Mostrar configuración de campos adicionales */}
+                  <div className="mb-3 flex items-center space-x-4 text-sm">
+                    <span className="text-gray-600">Configuración:</span>
+                    <span
+                      className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                        (group as any).thickness
+                          ? "bg-green-100 text-green-800"
+                          : "bg-gray-100 text-gray-800"
+                      }`}
+                    >
+                      Espesor: {(group as any).thickness ? "Sí" : "No"}
+                    </span>
+                    <span
+                      className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                        (group as any).size
+                          ? "bg-green-100 text-green-800"
+                          : "bg-gray-100 text-gray-800"
+                      }`}
+                    >
+                      Tamaño: {(group as any).size ? "Sí" : "No"}
+                    </span>
+                  </div>
+
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
                       <button
@@ -726,6 +897,8 @@ export default function PreciosAdminPage() {
                           setEditingGroup(group.id);
                           setNewPrice(group.price_per_kg.toString());
                           setNewCurrency(group.currency);
+                          setEditThickness((group as any).thickness || false);
+                          setEditSize((group as any).size || false);
                         }}
                         className="text-blue-600 hover:text-blue-900"
                         title="Editar precio y moneda"
@@ -759,6 +932,8 @@ export default function PreciosAdminPage() {
                           setEditingGroup(null);
                           setNewPrice("");
                           setNewCurrency("USD");
+                          setEditThickness(false);
+                          setEditSize(false);
                         }}
                         className="w-full px-3 py-2 text-sm text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200"
                       >

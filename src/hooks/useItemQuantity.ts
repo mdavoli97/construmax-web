@@ -3,11 +3,12 @@ import { useCartStore } from "@/store/cartStore";
 
 /**
  * Hook que maneja la hidratación de la cantidad de un producto específico en el carrito
- * Retorna 0 durante el renderizado del servidor y el valor real después de la hidratación
+ * Se suscribe directamente a los items del carrito para garantizar reactividad
  */
 export function useItemQuantity(productId: string) {
   const [isClient, setIsClient] = useState(false);
-  const getItemQuantity = useCartStore((state) => state.getItemQuantity);
+  // Suscribirse a los items del carrito directamente para garantizar reactividad
+  const items = useCartStore((state) => state.cart.items);
 
   useEffect(() => {
     setIsClient(true);
@@ -17,5 +18,7 @@ export function useItemQuantity(productId: string) {
     return 0; // Durante SSR, siempre retorna 0
   }
 
-  return getItemQuantity(productId);
+  // Encontrar el item específico y retornar su cantidad
+  const item = items.find((item) => item.product.id === productId);
+  return item ? item.quantity : 0;
 }

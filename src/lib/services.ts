@@ -55,6 +55,77 @@ export const productService = {
     }
   },
 
+  // Obtener productos por categoría con campos de dimensiones explícitos
+  async getByCategoryWithDimensions(category: string): Promise<Product[]> {
+    try {
+      const { data, error } = await supabase
+        .from("products")
+        .select(
+          `
+          *,
+          price_group:price_groups(
+            id,
+            name,
+            description,
+            currency,
+            price_per_kg
+          )
+        `
+        )
+        .eq("category", category)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      // Normalizar datos: Supabase puede devolver price_group como arreglo
+      // y los campos thickness/size a veces están dentro de description.meta
+      const normalized = (data || []).map((item: any) => {
+        const copy = { ...item };
+
+        // price_group puede venir como arreglo por el join
+        if (Array.isArray(copy.price_group)) {
+          copy.price_group = copy.price_group[0] || null;
+        }
+
+        // Si thickness/size no vienen como campos directos, intentar extraerlos
+        // desde description (metadata JSON) que el admin usa para algunos productos
+        try {
+          if (
+            (copy.thickness === undefined || copy.thickness === null) &&
+            typeof copy.description === "string" &&
+            (copy.description.startsWith("{") ||
+              copy.description.startsWith("["))
+          ) {
+            const parsed = JSON.parse(copy.description);
+            const meta = parsed.meta || parsed;
+            if (meta) {
+              if (
+                (copy.thickness === undefined || copy.thickness === null) &&
+                meta.thickness
+              ) {
+                copy.thickness = meta.thickness;
+              }
+              if (
+                (copy.size === undefined || copy.size === null) &&
+                meta.size
+              ) {
+                copy.size = meta.size;
+              }
+            }
+          }
+        } catch (e) {
+          // ignore JSON parse errors
+        }
+
+        return copy;
+      });
+
+      return normalized;
+    } catch (error) {
+      console.warn("Error connecting to Supabase, using fallback data:", error);
+      return [];
+    }
+  },
+
   // Obtener productos destacados
   async getFeatured(): Promise<Product[]> {
     try {

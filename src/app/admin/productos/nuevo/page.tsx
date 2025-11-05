@@ -34,8 +34,11 @@ export default function NewProductPage() {
     Array<{
       id: string;
       name: string;
-      price_per_kg_usd: number;
+      price_per_kg: number;
+      currency: string;
       category: string;
+      thickness?: boolean;
+      size?: boolean;
     }>
   >([]);
   const { success, error } = useNotifications();
@@ -87,6 +90,9 @@ export default function NewProductPage() {
     stock_type: "availability",
     is_available: true,
     price_group_id: "",
+    // Campos adicionales basados en configuración del grupo de precios
+    thickness: "",
+    size: "",
   });
 
   const categories = [
@@ -161,23 +167,21 @@ export default function NewProductPage() {
       ) {
         const selectedGroup = priceGroups.find((group) => group.id === value);
         if (selectedGroup) {
-          updated.price_per_kg = selectedGroup.price_per_kg_usd.toString();
+          updated.price_per_kg = selectedGroup.price_per_kg.toString();
           updated.category = selectedGroup.category;
 
           // Recalcular precio total
           if (updated.product_type === "perfiles") {
             const weight = parseFloat(updated.weight_per_unit) || 0;
             if (weight > 0) {
-              updated.price = (weight * selectedGroup.price_per_kg_usd).toFixed(
-                2
-              );
+              updated.price = (weight * selectedGroup.price_per_kg).toFixed(2);
             }
           } else if (updated.product_type === "chapas_conformadas") {
             const kgPerMeter = parseFloat(updated.kg_per_meter) || 0;
             if (kgPerMeter > 0) {
-              updated.price = (
-                kgPerMeter * selectedGroup.price_per_kg_usd
-              ).toFixed(2);
+              updated.price = (kgPerMeter * selectedGroup.price_per_kg).toFixed(
+                2
+              );
             }
           }
         }
@@ -358,6 +362,9 @@ export default function NewProductPage() {
           price_per_kg: parseFloat(formData.price_per_kg),
           stock_type: "availability",
           is_available: formData.is_available,
+          // Incluir campos adicionales si tienen valor
+          ...(formData.thickness && { thickness: formData.thickness }),
+          ...(formData.size && { size: formData.size }),
         };
 
         const descriptionWithMeta = {
@@ -380,6 +387,9 @@ export default function NewProductPage() {
           price_per_kg: parseFloat(formData.price_per_kg),
           stock_type: "availability",
           is_available: formData.is_available,
+          // Incluir campos adicionales si tienen valor
+          ...(formData.thickness && { thickness: formData.thickness }),
+          ...(formData.size && { size: formData.size }),
         };
 
         const descriptionWithMeta = {
@@ -734,7 +744,7 @@ export default function NewProductPage() {
                         ...prev,
                         price_group_id: value,
                         price_per_kg: selectedGroup
-                          ? selectedGroup.price_per_kg_usd.toString()
+                          ? selectedGroup.price_per_kg.toString()
                           : prev.price_per_kg,
                       }));
                     }}
@@ -745,7 +755,8 @@ export default function NewProductPage() {
                     <SelectContent>
                       {priceGroups.map((group) => (
                         <SelectItem key={group.id} value={group.id}>
-                          {group.name} - ${group.price_per_kg_usd}/kg USD
+                          {group.name} - ${group.price_per_kg}/kg{" "}
+                          {group.currency}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -885,6 +896,62 @@ export default function NewProductPage() {
                       </span>
                     </label>
                   </div>
+
+                  {/* Campos adicionales basados en configuración del grupo de precios */}
+                  {formData.price_group_id &&
+                    (() => {
+                      const selectedGroup = priceGroups.find(
+                        (g) => g.id === formData.price_group_id
+                      );
+                      return selectedGroup &&
+                        (selectedGroup.thickness || selectedGroup.size) ? (
+                        <div className="mt-4 bg-white p-4 rounded-lg border border-blue-300">
+                          <h4 className="text-sm font-medium text-blue-900 mb-3">
+                            Información Adicional
+                          </h4>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {selectedGroup.thickness && (
+                              <div>
+                                <label
+                                  htmlFor="thickness"
+                                  className="block text-sm font-medium text-gray-800 mb-2"
+                                >
+                                  Espesor
+                                </label>
+                                <Input
+                                  type="text"
+                                  id="thickness"
+                                  name="thickness"
+                                  disabled={productCreated}
+                                  value={formData.thickness}
+                                  onChange={handleInputChange}
+                                  placeholder='Ej: 2mm, 3/16", etc.'
+                                />
+                              </div>
+                            )}
+                            {selectedGroup.size && (
+                              <div>
+                                <label
+                                  htmlFor="size"
+                                  className="block text-sm font-medium text-gray-800 mb-2"
+                                >
+                                  Tamaño
+                                </label>
+                                <Input
+                                  type="text"
+                                  id="size"
+                                  name="size"
+                                  disabled={productCreated}
+                                  value={formData.size}
+                                  onChange={handleInputChange}
+                                  placeholder='Ej: 50x50mm, 2"x2", etc.'
+                                />
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ) : null;
+                    })()}
                 </div>
               )}
 
@@ -1005,6 +1072,62 @@ export default function NewProductPage() {
                       </span>
                     </label>
                   </div>
+
+                  {/* Campos adicionales basados en configuración del grupo de precios */}
+                  {formData.price_group_id &&
+                    (() => {
+                      const selectedGroup = priceGroups.find(
+                        (g) => g.id === formData.price_group_id
+                      );
+                      return selectedGroup &&
+                        (selectedGroup.thickness || selectedGroup.size) ? (
+                        <div className="mt-4 bg-white p-4 rounded-lg border border-green-300">
+                          <h4 className="text-sm font-medium text-green-900 mb-3">
+                            Información Adicional
+                          </h4>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {selectedGroup.thickness && (
+                              <div>
+                                <label
+                                  htmlFor="thickness"
+                                  className="block text-sm font-medium text-gray-800 mb-2"
+                                >
+                                  Espesor
+                                </label>
+                                <Input
+                                  type="text"
+                                  id="thickness"
+                                  name="thickness"
+                                  disabled={productCreated}
+                                  value={formData.thickness}
+                                  onChange={handleInputChange}
+                                  placeholder='Ej: 2mm, 3/16", etc.'
+                                />
+                              </div>
+                            )}
+                            {selectedGroup.size && (
+                              <div>
+                                <label
+                                  htmlFor="size"
+                                  className="block text-sm font-medium text-gray-800 mb-2"
+                                >
+                                  Tamaño
+                                </label>
+                                <Input
+                                  type="text"
+                                  id="size"
+                                  name="size"
+                                  disabled={productCreated}
+                                  value={formData.size}
+                                  onChange={handleInputChange}
+                                  placeholder='Ej: 50x50mm, 2"x2", etc.'
+                                />
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ) : null;
+                    })()}
                 </div>
               )}
 

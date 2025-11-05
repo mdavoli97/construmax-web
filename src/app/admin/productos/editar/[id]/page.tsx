@@ -40,6 +40,8 @@ export default function EditProductPage() {
       price_per_kg: number;
       currency: "USD" | "UYU";
       category: string;
+      thickness?: boolean;
+      size?: boolean;
     }>
   >([]);
   const { success, error } = useNotifications();
@@ -70,6 +72,9 @@ export default function EditProductPage() {
     stock_type: "availability",
     is_available: true,
     price_group_id: "",
+    // Campos adicionales basados en configuración del grupo de precios
+    thickness: "",
+    size: "",
   });
 
   const categories = [
@@ -162,6 +167,9 @@ export default function EditProductPage() {
                 : true,
             price_group_id:
               productData.price_group_id || metadata?.price_group_id || "",
+            // Campos adicionales desde metadata
+            thickness: metadata?.thickness || "",
+            size: metadata?.size || "",
           });
 
           // Cargar imágenes del producto
@@ -415,6 +423,25 @@ export default function EditProductPage() {
           stock_type: "availability",
           is_available: formData.is_available,
           price_group_id: formData.price_group_id || null,
+          // Agregar metadata adicional al description si hay campos extra
+          ...(formData.thickness || formData.size
+            ? {
+                description: JSON.stringify({
+                  description: formData.description.trim() || "",
+                  meta: {
+                    product_type: "perfiles",
+                    weight_per_unit: parseFloat(formData.weight_per_unit),
+                    price_per_kg: parseFloat(formData.price_per_kg),
+                    stock_type: "availability",
+                    is_available: formData.is_available,
+                    ...(formData.thickness && {
+                      thickness: formData.thickness,
+                    }),
+                    ...(formData.size && { size: formData.size }),
+                  },
+                }),
+              }
+            : {}),
         };
       } else if (formData.product_type === "chapas_conformadas") {
         productData = {
@@ -429,6 +456,25 @@ export default function EditProductPage() {
           stock_type: "availability",
           is_available: formData.is_available,
           price_group_id: formData.price_group_id || null,
+          // Agregar metadata adicional al description si hay campos extra
+          ...(formData.thickness || formData.size
+            ? {
+                description: JSON.stringify({
+                  description: formData.description.trim() || "",
+                  meta: {
+                    product_type: "chapas_conformadas",
+                    kg_per_meter: parseFloat(formData.kg_per_meter),
+                    price_per_kg: parseFloat(formData.price_per_kg),
+                    stock_type: "availability",
+                    is_available: formData.is_available,
+                    ...(formData.thickness && {
+                      thickness: formData.thickness,
+                    }),
+                    ...(formData.size && { size: formData.size }),
+                  },
+                }),
+              }
+            : {}),
         };
       } else {
         // Para productos estándar
@@ -899,6 +945,62 @@ export default function EditProductPage() {
                       </span>
                     </label>
                   </div>
+
+                  {/* Campos adicionales basados en configuración del grupo de precios */}
+                  {formData.price_group_id &&
+                    (() => {
+                      const selectedGroup = priceGroups.find(
+                        (g) => g.id === formData.price_group_id
+                      );
+                      return selectedGroup &&
+                        (selectedGroup.thickness || selectedGroup.size) ? (
+                        <div className="mt-4 bg-white p-4 rounded-lg border border-blue-300">
+                          <h4 className="text-sm font-medium text-blue-900 mb-3">
+                            Información Adicional
+                          </h4>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {selectedGroup.thickness && (
+                              <div>
+                                <label
+                                  htmlFor="thickness"
+                                  className="block text-sm font-medium text-gray-800 mb-2"
+                                >
+                                  Espesor
+                                </label>
+                                <Input
+                                  type="text"
+                                  id="thickness"
+                                  name="thickness"
+                                  disabled={saving}
+                                  value={formData.thickness}
+                                  onChange={handleInputChange}
+                                  placeholder='Ej: 2mm, 3/16", etc.'
+                                />
+                              </div>
+                            )}
+                            {selectedGroup.size && (
+                              <div>
+                                <label
+                                  htmlFor="size"
+                                  className="block text-sm font-medium text-gray-800 mb-2"
+                                >
+                                  Tamaño
+                                </label>
+                                <Input
+                                  type="text"
+                                  id="size"
+                                  name="size"
+                                  disabled={saving}
+                                  value={formData.size}
+                                  onChange={handleInputChange}
+                                  placeholder='Ej: 50x50mm, 2"x2", etc.'
+                                />
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ) : null;
+                    })()}
                 </div>
               )}
 
@@ -1019,6 +1121,62 @@ export default function EditProductPage() {
                       </span>
                     </label>
                   </div>
+
+                  {/* Campos adicionales basados en configuración del grupo de precios */}
+                  {formData.price_group_id &&
+                    (() => {
+                      const selectedGroup = priceGroups.find(
+                        (g) => g.id === formData.price_group_id
+                      );
+                      return selectedGroup &&
+                        (selectedGroup.thickness || selectedGroup.size) ? (
+                        <div className="mt-4 bg-white p-4 rounded-lg border border-green-300">
+                          <h4 className="text-sm font-medium text-green-900 mb-3">
+                            Información Adicional
+                          </h4>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {selectedGroup.thickness && (
+                              <div>
+                                <label
+                                  htmlFor="thickness"
+                                  className="block text-sm font-medium text-gray-800 mb-2"
+                                >
+                                  Espesor
+                                </label>
+                                <Input
+                                  type="text"
+                                  id="thickness"
+                                  name="thickness"
+                                  disabled={saving}
+                                  value={formData.thickness}
+                                  onChange={handleInputChange}
+                                  placeholder='Ej: 2mm, 3/16", etc.'
+                                />
+                              </div>
+                            )}
+                            {selectedGroup.size && (
+                              <div>
+                                <label
+                                  htmlFor="size"
+                                  className="block text-sm font-medium text-gray-800 mb-2"
+                                >
+                                  Tamaño
+                                </label>
+                                <Input
+                                  type="text"
+                                  id="size"
+                                  name="size"
+                                  disabled={saving}
+                                  value={formData.size}
+                                  onChange={handleInputChange}
+                                  placeholder='Ej: 50x50mm, 2"x2", etc.'
+                                />
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ) : null;
+                    })()}
                 </div>
               )}
 

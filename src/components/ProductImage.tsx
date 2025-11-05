@@ -11,6 +11,8 @@ interface ProductImageProps {
   height?: number;
   priority?: boolean;
   sizes?: string;
+  onLoad?: () => void;
+  onError?: () => void;
 }
 
 export default function ProductImage({
@@ -22,6 +24,8 @@ export default function ProductImage({
   height = 400,
   priority = false,
   sizes,
+  onLoad,
+  onError,
 }: ProductImageProps) {
   // Si no hay src, mostrar placeholder
   if (!src) {
@@ -46,8 +50,10 @@ export default function ProductImage({
         fill
         className={`object-contain ${className}`}
         style={{ objectPosition: "center" }}
+        onLoad={onLoad}
         onError={(e) => {
           e.currentTarget.style.display = "none";
+          onError?.();
         }}
         priority={priority}
         sizes={
@@ -65,8 +71,10 @@ export default function ProductImage({
         height={height}
         className={`object-contain ${className}`}
         style={{ objectPosition: "center" }}
+        onLoad={onLoad}
         onError={(e) => {
           e.currentTarget.style.display = "none";
+          onError?.();
         }}
         priority={priority}
         sizes={sizes}

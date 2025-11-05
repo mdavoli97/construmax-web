@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Product, ProductImage } from "@/types";
 import ProductImageComponent from "./ProductImage";
+import { Skeleton } from "@/components/ui/skeleton";
 import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/react/24/outline";
 
 interface ProductImageGalleryProps {
@@ -15,6 +16,7 @@ export default function ProductImageGallery({
   productImages = [],
 }: ProductImageGalleryProps) {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [imageLoading, setImageLoading] = useState(true);
 
   // Construir array de imágenes disponibles
   const images = [];
@@ -60,24 +62,32 @@ export default function ProductImageGallery({
     setSelectedImageIndex((prev) =>
       prev === 0 ? images.length - 1 : prev - 1
     );
+    setImageLoading(true); // Reset loading cuando cambia imagen
   };
 
   const goToNext = () => {
     setSelectedImageIndex((prev) =>
       prev === images.length - 1 ? 0 : prev + 1
     );
+    setImageLoading(true); // Reset loading cuando cambia imagen
   };
 
   return (
     <div className="space-y-4 w-full">
       {/* Imagen principal */}
       <div className="relative aspect-square bg-gray-200 rounded-lg overflow-hidden group w-full max-w-lg mx-auto">
+        {imageLoading && <Skeleton className="absolute inset-0 rounded-lg" />}
         <ProductImageComponent
           src={currentImage.url}
           alt={currentImage.alt}
+          className={`transition-opacity duration-300 ${
+            imageLoading ? "opacity-0" : "opacity-100"
+          }`}
           fill
           priority
           sizes="(max-width: 768px) 100vw, 50vw"
+          onLoad={() => setImageLoading(false)}
+          onError={() => setImageLoading(false)}
         />
 
         {/* Controles de navegación */}
@@ -117,7 +127,10 @@ export default function ProductImageGallery({
                   ? "border-orange-500 ring-2 ring-orange-200"
                   : "border-gray-300 hover:border-orange-300"
               }`}
-              onClick={() => setSelectedImageIndex(index)}
+              onClick={() => {
+                setSelectedImageIndex(index);
+                setImageLoading(true);
+              }}
             >
               <ProductImageComponent
                 src={image.url}

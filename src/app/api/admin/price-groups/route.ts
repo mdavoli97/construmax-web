@@ -23,6 +23,8 @@ export async function GET(request: NextRequest) {
         currency,
         category,
         is_active,
+        thickness,
+        size,
         created_at,
         updated_at
       `);
@@ -99,6 +101,8 @@ export async function POST(request: NextRequest) {
       price_per_kg,
       currency = "USD",
       category,
+      thickness = false,
+      size = false,
     } = body;
 
     // Validaciones
@@ -166,6 +170,8 @@ export async function POST(request: NextRequest) {
         currency,
         category,
         is_active: true,
+        thickness,
+        size,
       })
       .select()
       .single();

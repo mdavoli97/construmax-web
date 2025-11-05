@@ -29,6 +29,9 @@ export interface Product {
   price_group_id?: string; // Para perfiles y chapas: referencia al grupo de precios
   stock_type?: "quantity" | "availability"; // quantity = número, availability = tengo/no tengo
   is_available?: boolean; // Para stock tipo availability
+  // Nuevos campos específicos basados en configuración del grupo de precios
+  thickness?: string; // Campo espesor cuando el grupo de precios lo requiere
+  size?: string; // Campo tamaño cuando el grupo de precios lo requiere
   // Información del grupo de precios (cuando está disponible)
   price_group?: {
     id: string;
@@ -78,4 +81,23 @@ export interface Category {
   description: string;
   icon: string;
   slug: string;
+}
+
+export interface PriceGroup {
+  id: string;
+  name: string;
+  description?: string;
+  price_per_kg: number;
+  currency: "USD" | "UYU";
+  category: "construccion" | "metalurgica" | "herramientas" | "herreria";
+  is_active: boolean;
+  thickness?: boolean; // Nuevo campo para mostrar input de espesor
+  size?: boolean; // Nuevo campo para mostrar input de tamaño
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProductGroup {
+  priceGroup: PriceGroup;
+  products: Product[];
 }

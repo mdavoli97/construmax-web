@@ -36,6 +36,11 @@ export default function ProductSearch({
     return matchesSearch && matchesCategory;
   });
 
+  // Solo mostrar resultados si el usuario está buscando activamente
+  const isSearching = searchTerm.trim().length > 0 || selectedCategory;
+  const shouldShowResults = isSearching && filteredProducts.length > 0;
+  const shouldShowNoResults = isSearching && filteredProducts.length === 0;
+
   return (
     <>
       {/* Filters */}
@@ -75,23 +80,25 @@ export default function ProductSearch({
         </div>
       </div>
 
-      {/* Results */}
-      <div className="mb-4 sm:mb-6">
-        <p className="text-gray-600 text-sm sm:text-base">
-          {filteredProducts.length} producto
-          {filteredProducts.length !== 1 ? "s" : ""} encontrado
-          {filteredProducts.length !== 1 ? "s" : ""}
-        </p>
-      </div>
+      {/* Results - Solo mostrar cuando se está buscando */}
+      {isSearching && (
+        <div className="mb-4 sm:mb-6">
+          <p className="text-gray-600 text-sm sm:text-base">
+            {filteredProducts.length} producto
+            {filteredProducts.length !== 1 ? "s" : ""} encontrado
+            {filteredProducts.length !== 1 ? "s" : ""}
+          </p>
+        </div>
+      )}
 
-      {/* Products Grid */}
-      {filteredProducts.length > 0 ? (
+      {/* Products Grid - Solo mostrar cuando hay resultados */}
+      {shouldShowResults ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
           {filteredProducts.map((product) => (
             <ProductCard key={product.id} product={product} />
           ))}
         </div>
-      ) : (
+      ) : shouldShowNoResults ? (
         <div className="text-center py-8 sm:py-12">
           <div className="text-4xl sm:text-6xl mb-4">🔍</div>
           <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">
@@ -99,6 +106,17 @@ export default function ProductSearch({
           </h3>
           <p className="text-gray-600 text-sm sm:text-base">
             Intenta con otros términos de búsqueda o categorías
+          </p>
+        </div>
+      ) : (
+        <div className="text-center py-8 sm:py-12">
+          <div className="text-4xl sm:text-6xl mb-4">🔍</div>
+          <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">
+            Busca productos específicos
+          </h3>
+          <p className="text-gray-600 text-sm sm:text-base">
+            Usa el buscador o selecciona una categoría para encontrar productos
+            específicos
           </p>
         </div>
       )}

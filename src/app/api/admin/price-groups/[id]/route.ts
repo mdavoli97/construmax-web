@@ -25,6 +25,8 @@ export async function GET(
         currency,
         category,
         is_active,
+        thickness,
+        size,
         created_at,
         updated_at,
         products:products(
@@ -92,8 +94,16 @@ export async function PUT(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { name, description, price_per_kg, currency, category, is_active } =
-      body;
+    const {
+      name,
+      description,
+      price_per_kg,
+      currency,
+      category,
+      is_active,
+      thickness,
+      size,
+    } = body;
 
     // Validaciones
     if (price_per_kg !== undefined && price_per_kg <= 0) {
@@ -173,6 +183,8 @@ export async function PUT(
       currency?: string;
       category?: string;
       is_active?: boolean;
+      thickness?: boolean;
+      size?: boolean;
     } = { updated_at: new Date().toISOString() };
     if (name !== undefined) updateData.name = name;
     if (description !== undefined) updateData.description = description;
@@ -181,6 +193,8 @@ export async function PUT(
     if (currency !== undefined) updateData.currency = currency;
     if (category !== undefined) updateData.category = category;
     if (is_active !== undefined) updateData.is_active = is_active;
+    if (thickness !== undefined) updateData.thickness = thickness;
+    if (size !== undefined) updateData.size = size;
 
     const { data: updatedGroup, error: updateError } = await supabase
       .from("price_groups")
