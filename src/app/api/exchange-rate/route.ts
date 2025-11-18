@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { getUSDToUYURate } from "@/lib/currency";
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const exchangeData = await getUSDToUYURate();
 

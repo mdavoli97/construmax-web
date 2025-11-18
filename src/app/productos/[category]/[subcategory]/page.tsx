@@ -165,6 +165,8 @@ export default function ProductFamilyPage() {
         );
         setPriceGroup(selectedPriceGroup);
 
+        console.log(productsData);
+
         // Filtrar productos que pertenecen a este grupo de precios
         const familyProducts = productsData.filter(
           (product: Product) => product.price_group_id === subcategory
@@ -402,6 +404,8 @@ export default function ProductFamilyPage() {
       </div>
     );
   }
+
+  console.log(products);
 
   if (error || !priceGroup || products.length === 0) {
     return (

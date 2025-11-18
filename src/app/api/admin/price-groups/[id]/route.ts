@@ -21,8 +21,6 @@ export async function GET(
         id,
         name,
         description,
-        price_per_kg,
-        currency,
         category,
         is_active,
         thickness,
@@ -35,6 +33,16 @@ export async function GET(
           price,
           weight_per_unit,
           is_available
+        ),
+        price_group_prices:price_group_prices(
+          id,
+          name,
+          description,
+          price_per_kg,
+          currency,
+          is_active,
+          created_at,
+          updated_at
         )
       `
       )
@@ -59,6 +67,11 @@ export async function GET(
     const products = priceGroup.products || [];
     const productPrices = products.map((p) => parseFloat(p.price));
 
+    // Calcular estadísticas de precios del grupo
+    const groupPrices = priceGroup.price_group_prices || [];
+    const activePrices = groupPrices.filter((p) => p.is_active);
+    const priceValues = activePrices.map((p) => parseFloat(p.price_per_kg));
+
     const statistics = {
       product_count: products.length,
       avg_product_price:
@@ -69,6 +82,17 @@ export async function GET(
         productPrices.length > 0 ? Math.min(...productPrices) : 0,
       max_product_price:
         productPrices.length > 0 ? Math.max(...productPrices) : 0,
+
+      // Estadísticas de precios del grupo
+      price_count: groupPrices.length,
+      active_price_count: activePrices.length,
+      avg_group_price:
+        priceValues.length > 0
+          ? priceValues.reduce((a, b) => a + b, 0) / priceValues.length
+          : 0,
+      min_group_price: priceValues.length > 0 ? Math.min(...priceValues) : 0,
+      max_group_price: priceValues.length > 0 ? Math.max(...priceValues) : 0,
+      main_price: priceValues.length > 0 ? Math.min(...priceValues) : 0,
     };
 
     return NextResponse.json({
@@ -94,54 +118,12 @@ export async function PUT(
   try {
     const { id } = await params;
     const body = await request.json();
-    const {
-      name,
-      description,
-      price_per_kg,
-      currency,
-      category,
-      is_active,
-      thickness,
-      size,
-    } = body;
-
-    // Validaciones
-    if (price_per_kg !== undefined && price_per_kg <= 0) {
-      return NextResponse.json(
-        { success: false, error: "El precio por kg debe ser mayor a 0" },
-        { status: 400 }
-      );
-    }
-
-    if (currency) {
-      const validCurrencies = ["USD", "UYU"];
-      if (!validCurrencies.includes(currency)) {
-        return NextResponse.json(
-          { success: false, error: "Moneda inválida" },
-          { status: 400 }
-        );
-      }
-    }
-
-    if (category) {
-      const validCategories = [
-        "construccion",
-        "metalurgica",
-        "herramientas",
-        "herreria",
-      ];
-      if (!validCategories.includes(category)) {
-        return NextResponse.json(
-          { success: false, error: "Categoría inválida" },
-          { status: 400 }
-        );
-      }
-    }
+    const { name, description, category, is_active, thickness, size } = body;
 
     // Verificar que el grupo existe
     const { data: existingGroup, error: fetchError } = await supabase
       .from("price_groups")
-      .select("id, name, price_per_kg")
+      .select("id, name")
       .eq("id", id)
       .single();
 
@@ -179,8 +161,6 @@ export async function PUT(
       updated_at: string;
       name?: string;
       description?: string;
-      price_per_kg?: number;
-      currency?: string;
       category?: string;
       is_active?: boolean;
       thickness?: boolean;
@@ -188,9 +168,6 @@ export async function PUT(
     } = { updated_at: new Date().toISOString() };
     if (name !== undefined) updateData.name = name;
     if (description !== undefined) updateData.description = description;
-    if (price_per_kg !== undefined)
-      updateData.price_per_kg = parseFloat(price_per_kg);
-    if (currency !== undefined) updateData.currency = currency;
     if (category !== undefined) updateData.category = category;
     if (is_active !== undefined) updateData.is_active = is_active;
     if (thickness !== undefined) updateData.thickness = thickness;
@@ -211,55 +188,10 @@ export async function PUT(
       );
     }
 
-    // Si se cambió el precio por kg, actualizar productos relacionados
-    let productsUpdated = 0;
-    if (
-      price_per_kg !== undefined &&
-      price_per_kg !== existingGroup.price_per_kg
-    ) {
-      try {
-        // Buscar productos que están asociados a este grupo de precios
-        const { data: products } = await supabase
-          .from("products")
-          .select("id, weight_per_unit, product_type")
-          .eq("price_group_id", id)
-          .eq("product_type", "perfiles")
-          .not("weight_per_unit", "is", null);
-
-        if (products && products.length > 0) {
-          // Actualizar precios de productos
-          const updatePromises = products.map((product) => {
-            const newPrice =
-              parseFloat(product.weight_per_unit) * parseFloat(price_per_kg);
-            return supabase
-              .from("products")
-              .update({
-                price: newPrice.toFixed(2),
-                price_per_kg: parseFloat(price_per_kg),
-                updated_at: new Date().toISOString(),
-              })
-              .eq("id", product.id);
-          });
-
-          await Promise.all(updatePromises);
-          productsUpdated = products.length;
-        }
-      } catch (productUpdateError) {
-        console.error("Error updating related products:", productUpdateError);
-        // No fallar la actualización del grupo por esto
-      }
-    }
-
     return NextResponse.json({
       success: true,
-      data: {
-        ...updatedGroup,
-        products_updated: productsUpdated,
-      },
-      message:
-        productsUpdated > 0
-          ? `Grupo actualizado y ${productsUpdated} productos actualizados automáticamente`
-          : "Grupo actualizado exitosamente",
+      data: updatedGroup,
+      message: "Grupo actualizado exitosamente",
     });
   } catch (error) {
     console.error("Error in PUT price group:", error);

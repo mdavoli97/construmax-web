@@ -31,13 +31,13 @@ import {
 const navigation = [
   { name: "Dashboard", href: "/admin", icon: HomeIcon },
   { name: "Productos", href: "/admin/productos", icon: BoxIcon },
+  { name: "Categorías", href: "/admin/categorias", icon: TagIcon },
   { name: "Precios", href: "/admin/precios", icon: DollarSignIcon },
   { name: "Órdenes", href: "/admin/ordenes", icon: ShoppingCartIcon },
 ];
 
 // Páginas en desarrollo - deshabilitadas temporalmente
 const disabledNavigation = [
-  { name: "Categorías", href: "#", icon: TagIcon, disabled: true },
   { name: "Reportes", href: "#", icon: BarChart3Icon, disabled: true },
 ];
 

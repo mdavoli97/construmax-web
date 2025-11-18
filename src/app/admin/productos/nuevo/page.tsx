@@ -30,17 +30,30 @@ export default function NewProductPage() {
   const [productCreated, setProductCreated] = useState(false);
   const [createdProductId, setCreatedProductId] = useState<string | null>(null);
   const [images, setImages] = useState<ProductImage[]>([]);
+  const [categories, setCategories] = useState<
+    Array<{ id: number; name: string; description?: string; slug: string }>
+  >([]);
   const [priceGroups, setPriceGroups] = useState<
     Array<{
       id: string;
       name: string;
-      price_per_kg: number;
-      currency: string;
+      price_per_kg: number | null; // Legacy field
+      currency: "USD" | "UYU" | null; // Legacy field
       category: string;
       thickness?: boolean;
       size?: boolean;
+      price_group_prices?: Array<{
+        id: string;
+        name: string;
+        description?: string;
+        price_per_kg: number;
+        currency: "USD" | "UYU";
+        is_active: boolean;
+      }>;
     }>
   >([]);
+
+  const [selectedPriceId, setSelectedPriceId] = useState<string>("");
   const { success, error } = useNotifications();
 
   // Hook para cotización de dólar
@@ -51,25 +64,40 @@ export default function NewProductPage() {
     refresh: refreshExchangeRate,
   } = useExchangeRate();
 
-  // Cargar grupos de precios al montar el componente
+  // Cargar grupos de precios y categorías al montar el componente
   useEffect(() => {
-    const loadPriceGroups = async () => {
+    const loadData = async () => {
       try {
-        const response = await fetch("/api/price-groups");
-        if (response.ok) {
-          const result = await response.json();
-          if (result.success) {
-            setPriceGroups(result.data);
+        // Cargar grupos de precios
+        const priceGroupsResponse = await fetch("/api/admin/price-groups");
+        if (priceGroupsResponse.ok) {
+          const priceGroupsResult = await priceGroupsResponse.json();
+          if (priceGroupsResult.success) {
+            setPriceGroups(priceGroupsResult.data);
           } else {
-            console.error("Error loading price groups:", result.error);
+            console.error(
+              "Error loading price groups:",
+              priceGroupsResult.error
+            );
+          }
+        }
+
+        // Cargar categorías
+        const categoriesResponse = await fetch("/api/admin/categories");
+        if (categoriesResponse.ok) {
+          const categoriesResult = await categoriesResponse.json();
+          if (categoriesResult.success) {
+            setCategories(categoriesResult.data);
+          } else {
+            console.error("Error loading categories:", categoriesResult.error);
           }
         }
       } catch (error) {
-        console.error("Error loading price groups:", error);
+        console.error("Error loading data:", error);
       }
     };
 
-    loadPriceGroups();
+    loadData();
   }, []);
 
   const [formData, setFormData] = useState({
@@ -95,12 +123,7 @@ export default function NewProductPage() {
     size: "",
   });
 
-  const categories = [
-    { value: "construccion", label: "Construcción" },
-    { value: "metalurgica", label: "Metalúrgica" },
-    { value: "herramientas", label: "Herramientas" },
-    { value: "herreria", label: "Herrería" },
-  ];
+  // Categorías se cargan dinámicamente del API
 
   const productTypes = [
     { value: "perfiles", label: "Perfiles (precio por kg)" },
@@ -158,7 +181,7 @@ export default function NewProductPage() {
         }
       }
 
-      // Si selecciona un grupo de precios, cargar el precio por kg
+      // Si selecciona un grupo de precios, actualizar categoría
       if (
         (updated.product_type === "perfiles" ||
           updated.product_type === "chapas_conformadas") &&
@@ -167,23 +190,8 @@ export default function NewProductPage() {
       ) {
         const selectedGroup = priceGroups.find((group) => group.id === value);
         if (selectedGroup) {
-          updated.price_per_kg = selectedGroup.price_per_kg.toString();
           updated.category = selectedGroup.category;
-
-          // Recalcular precio total
-          if (updated.product_type === "perfiles") {
-            const weight = parseFloat(updated.weight_per_unit) || 0;
-            if (weight > 0) {
-              updated.price = (weight * selectedGroup.price_per_kg).toFixed(2);
-            }
-          } else if (updated.product_type === "chapas_conformadas") {
-            const kgPerMeter = parseFloat(updated.kg_per_meter) || 0;
-            if (kgPerMeter > 0) {
-              updated.price = (kgPerMeter * selectedGroup.price_per_kg).toFixed(
-                2
-              );
-            }
-          }
+          // No cargar precio automáticamente, esperar a que seleccione precio específico
         }
       }
 
@@ -572,8 +580,8 @@ export default function NewProductPage() {
                     </SelectTrigger>
                     <SelectContent>
                       {categories.map((category) => (
-                        <SelectItem key={category.value} value={category.value}>
-                          {category.label}
+                        <SelectItem key={category.id} value={category.slug}>
+                          {category.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -725,46 +733,169 @@ export default function NewProductPage() {
               {/* Selector de grupo de precios para perfiles y chapas conformadas */}
               {(formData.product_type === "perfiles" ||
                 formData.product_type === "chapas_conformadas") && (
-                <div>
-                  <label
-                    htmlFor="price_group_id"
-                    className="block text-sm font-medium text-gray-800 mb-2"
-                  >
-                    Grupo de Precios *
-                  </label>
-                  <Select
-                    disabled={productCreated}
-                    value={formData.price_group_id}
-                    onValueChange={(value) => {
-                      // Encontrar el grupo seleccionado para obtener su precio
-                      const selectedGroup = priceGroups.find(
-                        (group) => group.id === value
-                      );
-                      setFormData((prev) => ({
-                        ...prev,
-                        price_group_id: value,
-                        price_per_kg: selectedGroup
-                          ? selectedGroup.price_per_kg.toString()
-                          : prev.price_per_kg,
-                      }));
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Seleccionar grupo de precios" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {priceGroups.map((group) => (
-                        <SelectItem key={group.id} value={group.id}>
-                          {group.name} - ${group.price_per_kg}/kg{" "}
-                          {group.currency}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <p className="text-sm text-gray-500 mt-1">
-                    El precio por kg se cargará automáticamente desde el grupo
-                    seleccionado
-                  </p>
+                <div className="space-y-4">
+                  {/* Selector de Grupo */}
+                  <div>
+                    <label
+                      htmlFor="price_group_id"
+                      className="block text-sm font-medium text-gray-800 mb-2"
+                    >
+                      Grupo de Precios *
+                    </label>
+                    <Select
+                      disabled={productCreated}
+                      value={formData.price_group_id}
+                      onValueChange={(value) => {
+                        setFormData((prev) => ({
+                          ...prev,
+                          price_group_id: value,
+                        }));
+                        setSelectedPriceId(""); // Reset price selection
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Seleccionar grupo de precios" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Array.isArray(priceGroups) &&
+                          priceGroups.map((group) => (
+                            <SelectItem key={group.id} value={group.id}>
+                              {group.name} - {group.category}
+                              {group.price_group_prices &&
+                              group.price_group_prices.length > 0
+                                ? ` (${group.price_group_prices.length} precios disponibles)`
+                                : group.price_per_kg
+                                ? ` - ${group.currency === "USD" ? "$" : "$U"}${
+                                    group.price_per_kg
+                                  }/kg`
+                                : " (sin precios)"}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Selector de Precio Específico */}
+                  {formData.price_group_id && (
+                    <div>
+                      <label
+                        htmlFor="selected_price"
+                        className="block text-sm font-medium text-gray-800 mb-2"
+                      >
+                        Precio Específico *
+                      </label>
+                      {(() => {
+                        const selectedGroup = priceGroups.find(
+                          (g) => g.id === formData.price_group_id
+                        );
+                        const groupPrices =
+                          selectedGroup?.price_group_prices || [];
+
+                        if (groupPrices.length === 0) {
+                          // Mostrar precio legacy si no hay precios múltiples
+                          if (selectedGroup?.price_per_kg) {
+                            return (
+                              <div className="bg-gray-50 border border-gray-200 rounded p-3">
+                                <div className="text-sm text-gray-900">
+                                  <span className="font-medium">
+                                    Precio Base:
+                                  </span>
+                                  <span className="ml-2">
+                                    {selectedGroup.currency === "USD"
+                                      ? "$"
+                                      : "$U"}
+                                    {selectedGroup.price_per_kg}/kg (
+                                    {selectedGroup.currency})
+                                  </span>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (selectedGroup.price_per_kg) {
+                                      // Usar handleInputChange para activar el recálculo automático
+                                      handleInputChange({
+                                        target: {
+                                          name: "price_per_kg",
+                                          value:
+                                            selectedGroup.price_per_kg.toString(),
+                                        },
+                                      } as React.ChangeEvent<HTMLInputElement>);
+                                    }
+                                  }}
+                                  className="mt-2 text-xs bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700"
+                                >
+                                  Usar este precio
+                                </button>
+                              </div>
+                            );
+                          } else {
+                            return (
+                              <div className="bg-yellow-50 border border-yellow-200 rounded p-3">
+                                <div className="text-sm text-yellow-800">
+                                  Este grupo no tiene precios configurados.
+                                </div>
+                              </div>
+                            );
+                          }
+                        }
+
+                        return (
+                          <div className="space-y-2">
+                            <Select
+                              disabled={productCreated}
+                              value={selectedPriceId}
+                              onValueChange={(value) => {
+                                setSelectedPriceId(value);
+                                const selectedPrice = groupPrices.find(
+                                  (p) => p.id === value
+                                );
+                                if (selectedPrice) {
+                                  // Usar handleInputChange para activar el recálculo automático
+                                  handleInputChange({
+                                    target: {
+                                      name: "price_per_kg",
+                                      value:
+                                        selectedPrice.price_per_kg.toString(),
+                                    },
+                                  } as React.ChangeEvent<HTMLInputElement>);
+                                }
+                              }}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Seleccionar precio específico" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {groupPrices
+                                  .filter((price) => price.is_active)
+                                  .map((price) => (
+                                    <SelectItem key={price.id} value={price.id}>
+                                      <div className="flex flex-col">
+                                        <div className="font-medium">
+                                          {price.name} -{" "}
+                                          {price.currency === "USD"
+                                            ? "$"
+                                            : "$U"}
+                                          {price.price_per_kg}/kg
+                                        </div>
+                                        {price.description && (
+                                          <div className="text-xs text-gray-500">
+                                            {price.description}
+                                          </div>
+                                        )}
+                                      </div>
+                                    </SelectItem>
+                                  ))}
+                              </SelectContent>
+                            </Select>
+                            <p className="text-sm text-gray-500">
+                              Selecciona el precio específico que quieres usar
+                              para este producto
+                            </p>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  )}
                 </div>
               )}
 

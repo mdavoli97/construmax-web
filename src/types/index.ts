@@ -89,7 +89,7 @@ export interface PriceGroup {
   description?: string;
   price_per_kg: number;
   currency: "USD" | "UYU";
-  category: "construccion" | "metalurgica" | "herramientas" | "herreria";
+  category?: "construccion" | "metalurgica" | "herramientas" | "herreria"; // Opcional para compatibilidad
   is_active: boolean;
   thickness?: boolean; // Nuevo campo para mostrar input de espesor
   size?: boolean; // Nuevo campo para mostrar input de tamaño

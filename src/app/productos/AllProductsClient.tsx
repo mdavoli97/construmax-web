@@ -119,7 +119,8 @@ export default function AllProductsClient({
     filteredGroups.forEach((group) => {
       const categoryName =
         categories.find((c) => c.slug === group.priceGroup.category)?.name ||
-        group.priceGroup.category;
+        group.priceGroup.category ||
+        "Sin categoría";
       if (!grouped[categoryName]) {
         grouped[categoryName] = [];
       }
@@ -203,7 +204,7 @@ export default function AllProductsClient({
                     key={group.priceGroup.id}
                     priceGroup={group.priceGroup}
                     products={group.products}
-                    category={group.priceGroup.category}
+                    category={group.priceGroup.category || "sin-categoria"}
                     onClick={() => handleSubcategoryClick(group.priceGroup)}
                   />
                 ))}

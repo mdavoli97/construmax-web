@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { ShoppingCartIcon, MenuIcon } from "lucide-react";
 import { useCartCount } from "@/hooks/useCartCount";
@@ -24,50 +24,52 @@ import {
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 
-// Estructura de navegación con submenús
-const navigationStructure = [
-  {
-    name: "Inicio",
-    href: "/",
-    type: "link" as const,
-  },
-  {
-    name: "Productos",
-    type: "menu" as const,
-    items: [
-      {
-        title: "Todos los Productos",
-        href: "/productos",
-        description: "Explora nuestro catálogo completo de productos",
-        icon: "📦",
-      },
-      {
-        title: "Construcción",
-        href: "/productos/construccion",
-        description: "Materiales y herramientas para construcción",
-        icon: "🏗️",
-      },
-      {
-        title: "Metalúrgica",
-        href: "/productos/metalurgica",
-        description: "Productos especializados en metalurgia",
-        icon: "⚙️",
-      },
-      {
-        title: "Herramientas",
-        href: "/productos/herramientas",
-        description: "Herramientas profesionales y de uso general",
-        icon: "🔧",
-      },
-      {
-        title: "Herrería",
-        href: "/productos/herreria",
-        description: "Productos especializados para herrería",
-        icon: "🔨",
-      },
-    ],
-  },
-];
+// Tipos para la estructura de navegación
+interface Category {
+  id: number;
+  name: string;
+  description: string | null;
+  slug?: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+interface NavigationItem {
+  title: string;
+  href: string;
+  description: string;
+  icon: string;
+}
+
+interface NavigationStructure {
+  name: string;
+  href?: string;
+  type: "link" | "menu";
+  items?: NavigationItem[];
+}
+
+// Función para mapear categorías a iconos
+const getCategoryIcon = (categoryName: string): string => {
+  const iconMap: Record<string, string> = {
+    construccion: "🏗️",
+    construcción: "🏗️",
+    metalurgica: "⚙️",
+    metalúrgica: "⚙️",
+    herramientas: "🔧",
+    herreria: "🔨",
+    herrería: "🔨",
+    plomeria: "🔧",
+    plomería: "🔧",
+    electricidad: "⚡",
+    pintura: "🎨",
+    jardineria: "🌱",
+    jardinería: "🌱",
+  };
+
+  const key = categoryName.toLowerCase();
+  return iconMap[key] || "�";
+};
 
 // Componente para los items del menú con descripción (Desktop)
 const ListItem = ({
@@ -104,7 +106,11 @@ const ListItem = ({
 };
 
 // Componente MobileNav con Sheet de shadcn/ui
-const MobileNav = () => {
+const MobileNav = ({
+  navigationStructure,
+}: {
+  navigationStructure: NavigationStructure[];
+}) => {
   const [open, setOpen] = useState(false);
 
   return (
@@ -207,6 +213,92 @@ const MobileNav = () => {
 };
 export default function Header() {
   const totalItems = useCartCount();
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Obtener categorías de la base de datos
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await fetch("/api/categories");
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success) {
+            setCategories(data.data.filter((cat: Category) => cat.is_active));
+          } else {
+            console.error("API returned success: false", data.error);
+          }
+        } else {
+          console.error("HTTP error:", response.status, response.statusText);
+        }
+      } catch (error) {
+        console.error("Error fetching categories:", error);
+        // En caso de error, usar categorías por defecto
+        setCategories([
+          {
+            id: 1,
+            name: "Construcción",
+            slug: "construccion",
+            description: "Materiales para construcción",
+            is_active: true,
+            created_at: "",
+            updated_at: "",
+          },
+          {
+            id: 2,
+            name: "Metalúrgica",
+            slug: "metalurgica",
+            description: "Productos metalúrgicos",
+            is_active: true,
+            created_at: "",
+            updated_at: "",
+          },
+          {
+            id: 3,
+            name: "Herramientas",
+            slug: "herramientas",
+            description: "Herramientas profesionales",
+            is_active: true,
+            created_at: "",
+            updated_at: "",
+          },
+        ]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCategories();
+  }, []);
+
+  // Crear estructura de navegación dinámica
+  const navigationStructure: NavigationStructure[] = [
+    {
+      name: "Inicio",
+      href: "/",
+      type: "link" as const,
+    },
+    {
+      name: "Productos",
+      type: "menu" as const,
+      items: [
+        {
+          title: "Todos los Productos",
+          href: "/productos",
+          description: "Explora nuestro catálogo completo de productos",
+          icon: "📦",
+        },
+        ...categories.map((category) => ({
+          title: category.name,
+          href: `/productos/${category.slug || category.name.toLowerCase()}`,
+          description:
+            category.description ||
+            `Productos de ${category.name.toLowerCase()}`,
+          icon: getCategoryIcon(category.name),
+        })),
+      ],
+    },
+  ];
 
   return (
     <header className="bg-white shadow-lg sticky top-0 z-50">
@@ -229,40 +321,53 @@ export default function Header() {
           <div className="hidden lg:flex">
             <NavigationMenu>
               <NavigationMenuList>
-                {navigationStructure.map((item) => (
-                  <NavigationMenuItem key={item.name}>
-                    {item.type === "link" ? (
-                      <NavigationMenuLink
-                        asChild
-                        className={cn(
-                          navigationMenuTriggerStyle(),
-                          "text-gray-700 hover:text-orange-600 hover:bg-orange-50"
-                        )}
-                      >
-                        <Link href={item.href!}>{item.name}</Link>
-                      </NavigationMenuLink>
-                    ) : (
-                      <>
-                        <NavigationMenuTrigger className="text-gray-700 hover:text-orange-600 hover:bg-orange-50 data-[state=open]:bg-orange-50 data-[state=open]:text-orange-600">
-                          {item.name}
-                        </NavigationMenuTrigger>
-                        <NavigationMenuContent>
-                          <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
-                            {item.items?.map((subItem) => (
-                              <ListItem
-                                key={subItem.title}
-                                title={subItem.title}
-                                href={subItem.href}
-                              >
-                                {subItem.description}
-                              </ListItem>
-                            ))}
-                          </ul>
-                        </NavigationMenuContent>
-                      </>
-                    )}
+                {loading ? (
+                  <NavigationMenuItem>
+                    <NavigationMenuLink
+                      className={cn(
+                        navigationMenuTriggerStyle(),
+                        "text-gray-400"
+                      )}
+                    >
+                      Cargando...
+                    </NavigationMenuLink>
                   </NavigationMenuItem>
-                ))}
+                ) : (
+                  navigationStructure.map((item) => (
+                    <NavigationMenuItem key={item.name}>
+                      {item.type === "link" ? (
+                        <NavigationMenuLink
+                          asChild
+                          className={cn(
+                            navigationMenuTriggerStyle(),
+                            "text-gray-700 hover:text-orange-600 hover:bg-orange-50"
+                          )}
+                        >
+                          <Link href={item.href!}>{item.name}</Link>
+                        </NavigationMenuLink>
+                      ) : (
+                        <>
+                          <NavigationMenuTrigger className="text-gray-700 hover:text-orange-600 hover:bg-orange-50 data-[state=open]:bg-orange-50 data-[state=open]:text-orange-600">
+                            {item.name}
+                          </NavigationMenuTrigger>
+                          <NavigationMenuContent>
+                            <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
+                              {item.items?.map((subItem) => (
+                                <ListItem
+                                  key={subItem.title}
+                                  title={subItem.title}
+                                  href={subItem.href}
+                                >
+                                  {subItem.description}
+                                </ListItem>
+                              ))}
+                            </ul>
+                          </NavigationMenuContent>
+                        </>
+                      )}
+                    </NavigationMenuItem>
+                  ))
+                )}
               </NavigationMenuList>
             </NavigationMenu>
           </div>
@@ -286,7 +391,7 @@ export default function Header() {
             </Link>
 
             {/* Mobile Navigation Component */}
-            <MobileNav />
+            <MobileNav navigationStructure={navigationStructure} />
           </div>
         </div>
       </div>

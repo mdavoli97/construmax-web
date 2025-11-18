@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import {
   DollarSignIcon,
   SaveIcon,
@@ -17,18 +18,31 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
 interface PriceGroup {
   id: string;
   name: string;
-  price_per_kg: number;
-  currency: "USD" | "UYU";
+  price_per_kg: number | null; // Legacy field
+  currency: "USD" | "UYU" | null; // Legacy field
   category: string;
   product_count: number;
   created_at: string;
   updated_at: string;
+  // New fields for multiple prices
+  price_group_prices?: Array<{
+    id: string;
+    name: string;
+    description?: string;
+    price_per_kg: number;
+    currency: "USD" | "UYU";
+    is_active: boolean;
+  }>;
+  price_count?: number;
+  min_price?: number;
+  max_price?: number;
+  main_currency?: "USD" | "UYU";
 }
-
 interface Product {
   id: string;
   name: string;
@@ -38,6 +52,7 @@ interface Product {
 }
 
 export default function PreciosAdminPage() {
+  const router = useRouter();
   const [priceGroups, setPriceGroups] = useState<PriceGroup[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -50,20 +65,94 @@ export default function PreciosAdminPage() {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newGroupForm, setNewGroupForm] = useState({
     name: "",
-    price_per_kg: "",
-    currency: "USD" as "USD" | "UYU",
-    category: "metalurgica",
+    description: "",
     thickness: false,
     size: false,
   });
 
+  // Form states for new price in creation
+  const [newGroupPrices, setNewGroupPrices] = useState<
+    {
+      name: string;
+      description: string;
+      price_per_kg: string;
+      currency: "USD" | "UYU";
+      is_active: boolean;
+    }[]
+  >([]);
+  const [showAddPriceForm, setShowAddPriceForm] = useState(false);
+  const [newPriceName, setNewPriceName] = useState("");
+  const [newPriceDescription, setNewPriceDescription] = useState("");
+  const [newPricePerKg, setNewPricePerKg] = useState("");
+  const [newPriceCurrency, setNewPriceCurrency] = useState<"USD" | "UYU">(
+    "USD"
+  );
+
   const { success, error } = useNotifications();
 
+  // Handle adding price to new group
+  const handleAddPriceToNewGroup = () => {
+    if (!newPriceName.trim() || !newPricePerKg) {
+      error("Campos requeridos", "Por favor completa el nombre y precio");
+      return;
+    }
+
+    // Validate unique name
+    if (
+      newGroupPrices.some(
+        (price) =>
+          price.name.toLowerCase() === newPriceName.trim().toLowerCase()
+      )
+    ) {
+      error("Nombre duplicado", "Ya existe un precio con ese nombre");
+      return;
+    }
+
+    const priceValue = parseFloat(newPricePerKg);
+    if (isNaN(priceValue) || priceValue <= 0) {
+      error("Precio inválido", "El precio debe ser un número mayor a 0");
+      return;
+    }
+
+    const newPrice = {
+      name: newPriceName.trim(),
+      description: newPriceDescription.trim(),
+      price_per_kg: newPricePerKg,
+      currency: newPriceCurrency,
+      is_active: true,
+    };
+
+    setNewGroupPrices((prev) => [...prev, newPrice]);
+
+    // Clear form
+    setNewPriceName("");
+    setNewPriceDescription("");
+    setNewPricePerKg("");
+    setNewPriceCurrency("USD");
+    setShowAddPriceForm(false);
+
+    success("Precio agregado", `Precio "${newPrice.name}" agregado al grupo`);
+  };
+
+  const handleRemovePriceFromNewGroup = (index: number) => {
+    const price = newGroupPrices[index];
+    if (confirm(`¿Eliminar el precio "${price.name}"?`)) {
+      setNewGroupPrices((prev) => prev.filter((_, i) => i !== index));
+      success("Precio eliminado", `Precio "${price.name}" eliminado del grupo`);
+    }
+  };
+
   const categories = [
-    "metalurgica",
-    "construccion",
-    "herramientas",
-    "herreria",
+    "Chapas",
+    "Hierros",
+    "Aceros",
+    "Caños",
+    "Perfiles",
+    "Alambres",
+    "Mallas",
+    "Electrodos",
+    "Herramientas",
+    "Otros",
   ];
 
   const currencies = [
@@ -94,6 +183,9 @@ export default function PreciosAdminPage() {
     } catch (err) {
       console.error("Error loading price groups:", err);
       error("Error al cargar grupos de precios");
+    } finally {
+      // Terminar loading después de cargar los grupos de precios
+      setLoading(false);
     }
   };
 
@@ -106,8 +198,6 @@ export default function PreciosAdminPage() {
       }
     } catch (error) {
       console.error("Error loading products:", error);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -224,8 +314,13 @@ export default function PreciosAdminPage() {
   };
 
   const handleCreateGroup = async () => {
-    if (!newGroupForm.name.trim() || !newGroupForm.price_per_kg) {
-      error("Campos requeridos", "Por favor completa todos los campos");
+    if (!newGroupForm.name.trim()) {
+      error("Campos requeridos", "Por favor completa el nombre del grupo");
+      return;
+    }
+
+    if (newGroupPrices.length === 0) {
+      error("Precios requeridos", "Debes agregar al menos un precio al grupo");
       return;
     }
 
@@ -238,29 +333,33 @@ export default function PreciosAdminPage() {
         },
         body: JSON.stringify({
           name: newGroupForm.name.trim(),
-          price_per_kg: parseFloat(newGroupForm.price_per_kg),
-          currency: newGroupForm.currency,
-          category: newGroupForm.category,
+          description: newGroupForm.description.trim(),
           thickness: newGroupForm.thickness,
           size: newGroupForm.size,
+          prices: newGroupPrices.map((price) => ({
+            name: price.name.trim(),
+            description: price.description.trim(),
+            price_per_kg: parseFloat(price.price_per_kg),
+            currency: price.currency,
+            is_active: price.is_active,
+          })),
         }),
       });
 
       if (response.ok) {
         const result = await response.json();
         if (result.success) {
-          // Agregar el nuevo grupo al estado
-          setPriceGroups((prev) => [result.data, ...prev]);
+          // Recargar la lista de grupos
+          loadPriceGroups();
 
           // Limpiar formulario
           setNewGroupForm({
             name: "",
-            price_per_kg: "",
-            currency: "USD",
-            category: "metalurgica",
+            description: "",
             thickness: false,
             size: false,
           });
+          setNewGroupPrices([]);
           setShowCreateForm(false);
           success("Grupo creado", "Grupo de precios creado exitosamente");
         } else {
@@ -372,100 +471,61 @@ export default function PreciosAdminPage() {
         {/* Crear nuevo grupo */}
         {showCreateForm && (
           <div className="bg-white rounded-lg shadow">
-            <div className="px-4 sm:px-6 py-4 border-b border-gray-200">
+            <div className="px-4 sm:px-6 py-4 border-b border-gray-200 flex items-center justify-between">
               <h2 className="text-lg font-semibold text-gray-900">
                 Crear Nuevo Grupo de Precios
               </h2>
+              <button
+                onClick={() => setShowCreateForm(false)}
+                className="p-2 hover:bg-gray-100 rounded-md"
+              >
+                ✕
+              </button>
             </div>
-            <div className="p-4 sm:p-6">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div>
+            <div className="p-4 sm:p-6 space-y-6">
+              {/* Información básica del grupo */}
+              <div>
+                <h3 className="text-md font-medium text-gray-900 mb-4">
+                  Información Básica
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Nombre del Grupo *
+                    </label>
+                    <Input
+                      type="text"
+                      value={newGroupForm.name}
+                      onChange={(e) =>
+                        setNewGroupForm((prev) => ({
+                          ...prev,
+                          name: e.target.value,
+                        }))
+                      }
+                      placeholder="Ej: Caños Estructurales"
+                    />
+                  </div>
+                </div>
+                <div className="mt-4">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Nombre del Grupo
+                    Descripción
                   </label>
-                  <Input
-                    type="text"
-                    value={newGroupForm.name}
+                  <Textarea
+                    value={newGroupForm.description}
                     onChange={(e) =>
                       setNewGroupForm((prev) => ({
                         ...prev,
-                        name: e.target.value,
+                        description: e.target.value,
                       }))
                     }
-                    placeholder="Ej: Caños Estructurales"
+                    placeholder="Descripción opcional del grupo de precios"
+                    rows={3}
                   />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Precio por Kg
-                  </label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={newGroupForm.price_per_kg}
-                    onChange={(e) =>
-                      setNewGroupForm((prev) => ({
-                        ...prev,
-                        price_per_kg: e.target.value,
-                      }))
-                    }
-                    placeholder="1.25"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Moneda
-                  </label>
-                  <Select
-                    value={newGroupForm.currency}
-                    onValueChange={(value: "USD" | "UYU") =>
-                      setNewGroupForm((prev) => ({
-                        ...prev,
-                        currency: value,
-                      }))
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Seleccionar moneda" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {currencies.map((currency) => (
-                        <SelectItem key={currency.value} value={currency.value}>
-                          {currency.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Categoría
-                  </label>
-                  <Select
-                    value={newGroupForm.category}
-                    onValueChange={(value) =>
-                      setNewGroupForm((prev) => ({
-                        ...prev,
-                        category: value,
-                      }))
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Seleccionar categoría" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {categories.map((category) => (
-                        <SelectItem key={category} value={category}>
-                          {category.charAt(0).toUpperCase() + category.slice(1)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
                 </div>
               </div>
 
               {/* Configuración de campos adicionales */}
-              <div className="mt-4 bg-gray-50 p-4 rounded-lg">
+              <div className="bg-gray-50 p-4 rounded-lg">
                 <h3 className="text-sm font-medium text-gray-900 mb-3">
                   Configuración de Campos en Productos
                 </h3>
@@ -491,7 +551,7 @@ export default function PreciosAdminPage() {
                       htmlFor="thickness-checkbox"
                       className="ml-2 block text-sm text-gray-900"
                     >
-                      Mostrar campo &quot;Espesor&quot;
+                      Mostrar campo "Espesor"
                     </label>
                   </div>
                   <div className="flex items-center">
@@ -511,21 +571,186 @@ export default function PreciosAdminPage() {
                       htmlFor="size-checkbox"
                       className="ml-2 block text-sm text-gray-900"
                     >
-                      Mostrar campo &quot;Tamaño&quot;
+                      Mostrar campo "Tamaño"
                     </label>
                   </div>
                 </div>
               </div>
-              <div className="flex flex-col sm:flex-row justify-end space-y-3 sm:space-y-0 sm:space-x-3 mt-4">
+
+              {/* Precios del grupo */}
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-md font-medium text-gray-900">
+                    Precios del Grupo
+                  </h3>
+                  <button
+                    onClick={() => setShowAddPriceForm(true)}
+                    className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  >
+                    <PlusIcon className="h-4 w-4 mr-1" />
+                    Agregar Precio
+                  </button>
+                </div>
+
+                {/* Lista de precios agregados */}
+                {newGroupPrices.length > 0 && (
+                  <div className="space-y-2 mb-4">
+                    {newGroupPrices.map((price, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center justify-between bg-gray-50 p-3 rounded-lg"
+                      >
+                        <div>
+                          <div className="font-medium text-gray-900">
+                            {price.name}
+                          </div>
+                          <div className="text-sm text-gray-600">
+                            {price.currency === "USD" ? "$" : "$U"}{" "}
+                            {price.price_per_kg} por kg
+                            {price.description && ` • ${price.description}`}
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => handleRemovePriceFromNewGroup(index)}
+                          className="p-1 hover:bg-red-100 text-red-600 rounded"
+                        >
+                          <TrashIcon className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {newGroupPrices.length === 0 && (
+                  <div className="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
+                    <DollarSignIcon className="mx-auto h-12 w-12 text-gray-400" />
+                    <h3 className="mt-2 text-sm font-medium text-gray-900">
+                      No hay precios agregados
+                    </h3>
+                    <p className="mt-1 text-sm text-gray-500">
+                      Agrega al menos un precio para crear el grupo.
+                    </p>
+                  </div>
+                )}
+
+                {/* Formulario para agregar precio */}
+                {showAddPriceForm && (
+                  <div className="border border-gray-200 rounded-lg p-4 bg-white">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="text-sm font-medium text-gray-900">
+                        Nuevo Precio
+                      </h4>
+                      <button
+                        onClick={() => {
+                          setShowAddPriceForm(false);
+                          setNewPriceName("");
+                          setNewPriceDescription("");
+                          setNewPricePerKg("");
+                          setNewPriceCurrency("USD");
+                        }}
+                        className="text-gray-400 hover:text-gray-600"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          Nombre del Precio *
+                        </label>
+                        <Input
+                          type="text"
+                          value={newPriceName}
+                          onChange={(e) => setNewPriceName(e.target.value)}
+                          placeholder="Ej: Lista, Mayorista, Distribuidor"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          Precio por Kg *
+                        </label>
+                        <div className="flex">
+                          <Select
+                            value={newPriceCurrency}
+                            onValueChange={(value: "USD" | "UYU") =>
+                              setNewPriceCurrency(value)
+                            }
+                          >
+                            <SelectTrigger className="w-20">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="USD">$</SelectItem>
+                              <SelectItem value="UYU">$U</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={newPricePerKg}
+                            onChange={(e) => setNewPricePerKg(e.target.value)}
+                            placeholder="0.00"
+                            className="flex-1 ml-1"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mt-3">
+                      <label className="block text-xs font-medium text-gray-700 mb-1">
+                        Descripción
+                      </label>
+                      <Textarea
+                        value={newPriceDescription}
+                        onChange={(e) => setNewPriceDescription(e.target.value)}
+                        placeholder="Descripción opcional del precio"
+                        rows={2}
+                      />
+                    </div>
+                    <div className="flex justify-end space-x-2 mt-4">
+                      <button
+                        onClick={() => {
+                          setShowAddPriceForm(false);
+                          setNewPriceName("");
+                          setNewPriceDescription("");
+                          setNewPricePerKg("");
+                          setNewPriceCurrency("USD");
+                        }}
+                        className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        onClick={handleAddPriceToNewGroup}
+                        className="px-3 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700"
+                      >
+                        Agregar Precio
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Botones de acción */}
+              <div className="flex flex-col sm:flex-row justify-end space-y-3 sm:space-y-0 sm:space-x-3 pt-4 border-t">
                 <button
-                  onClick={() => setShowCreateForm(false)}
+                  onClick={() => {
+                    setShowCreateForm(false);
+                    setNewGroupForm({
+                      name: "",
+                      description: "",
+                      thickness: false,
+                      size: false,
+                    });
+                    setNewGroupPrices([]);
+                    setShowAddPriceForm(false);
+                  }}
                   className="w-full sm:w-auto px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
                 >
                   Cancelar
                 </button>
                 <button
                   onClick={handleCreateGroup}
-                  disabled={saving}
+                  disabled={saving || newGroupPrices.length === 0}
                   className="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400"
                 >
                   {saving ? "Creando..." : "Crear Grupo"}
@@ -562,12 +787,6 @@ export default function PreciosAdminPage() {
                       Categoría
                     </th>
                     <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider">
-                      Espesor
-                    </th>
-                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider">
-                      Tamaño
-                    </th>
-                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider">
                       Productos
                     </th>
                     <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider">
@@ -600,7 +819,9 @@ export default function PreciosAdminPage() {
                               value={newPrice}
                               onChange={(e) => setNewPrice(e.target.value)}
                               className="w-20 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900"
-                              placeholder={group.price_per_kg.toString()}
+                              placeholder={
+                                group.price_per_kg?.toString() || "0"
+                              }
                             />
                             <Select
                               value={newCurrency}
@@ -651,64 +872,58 @@ export default function PreciosAdminPage() {
                           </div>
                         ) : (
                           <div className="flex items-center justify-between">
-                            <span className="text-lg font-bold text-green-600">
-                              {currencies.find(
-                                (c) => c.value === group.currency
-                              )?.symbol || "$"}
-                              {group.price_per_kg.toFixed(2)}
-                            </span>
+                            <div className="text-sm">
+                              {group.price_count && group.price_count > 0 ? (
+                                <div>
+                                  <span className="font-medium text-green-600">
+                                    {group.price_count} precio
+                                    {group.price_count !== 1 ? "s" : ""}
+                                  </span>
+                                  {group.min_price && group.max_price && (
+                                    <div className="text-xs text-gray-500 mt-1">
+                                      {group.main_currency
+                                        ? `${
+                                            currencies.find(
+                                              (c) =>
+                                                c.value === group.main_currency
+                                            )?.symbol || "$"
+                                          }${group.min_price.toFixed(2)} - ${
+                                            currencies.find(
+                                              (c) =>
+                                                c.value === group.main_currency
+                                            )?.symbol || "$"
+                                          }${group.max_price.toFixed(2)}`
+                                        : `Rango: ${group.min_price.toFixed(
+                                            2
+                                          )} - ${group.max_price.toFixed(2)}`}
+                                    </div>
+                                  )}
+                                </div>
+                              ) : group.price_per_kg ? (
+                                <span className="text-gray-600">
+                                  {currencies.find(
+                                    (c) => c.value === group.currency
+                                  )?.symbol || "$"}
+                                  {group.price_per_kg.toFixed(2)}
+                                </span>
+                              ) : (
+                                <span className="text-gray-400">
+                                  Sin precios
+                                </span>
+                              )}
+                            </div>
                           </div>
                         )}
                       </td>
                       <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                          {group.currency}
+                          {group.main_currency || group.currency || "Múltiples"}
                         </span>
                       </td>
                       <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                           {group.category}
                         </span>
-                      </td>
-                      <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
-                        {editingGroup === group.id ? (
-                          <input
-                            type="checkbox"
-                            checked={editThickness}
-                            onChange={(e) => setEditThickness(e.target.checked)}
-                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                          />
-                        ) : (
-                          <span
-                            className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                              (group as any).thickness
-                                ? "bg-green-100 text-green-800"
-                                : "bg-gray-100 text-gray-800"
-                            }`}
-                          >
-                            {(group as any).thickness ? "Sí" : "No"}
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
-                        {editingGroup === group.id ? (
-                          <input
-                            type="checkbox"
-                            checked={editSize}
-                            onChange={(e) => setEditSize(e.target.checked)}
-                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                          />
-                        ) : (
-                          <span
-                            className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                              (group as any).size
-                                ? "bg-green-100 text-green-800"
-                                : "bg-gray-100 text-gray-800"
-                            }`}
-                          >
-                            {(group as any).size ? "Sí" : "No"}
-                          </span>
-                        )}
                       </td>
                       <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {group.product_count} productos
@@ -719,17 +934,11 @@ export default function PreciosAdminPage() {
                       <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex items-center space-x-3">
                           <button
-                            onClick={() => {
-                              setEditingGroup(group.id);
-                              setNewPrice(group.price_per_kg.toString());
-                              setNewCurrency(group.currency);
-                              setEditThickness(
-                                (group as any).thickness || false
-                              );
-                              setEditSize((group as any).size || false);
-                            }}
+                            onClick={() =>
+                              router.push(`/admin/precios/grupo/${group.id}`)
+                            }
                             className="text-blue-600 hover:text-blue-900"
-                            title="Editar precio y moneda"
+                            title="Editar grupo de precios"
                           >
                             <EditIcon className="h-4 w-4" />
                           </button>
@@ -772,7 +981,8 @@ export default function PreciosAdminPage() {
                           {group.name}
                         </h3>
                         <p className="text-xs text-gray-500 mt-1">
-                          {group.product_count} productos • {group.currency}
+                          {group.product_count} productos •{" "}
+                          {group.currency || "Múltiples monedas"}
                         </p>
                       </div>
                     </div>
@@ -791,7 +1001,7 @@ export default function PreciosAdminPage() {
                             value={newPrice}
                             onChange={(e) => setNewPrice(e.target.value)}
                             className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900"
-                            placeholder={group.price_per_kg.toString()}
+                            placeholder={group.price_per_kg?.toString() || "0"}
                           />
                           <Select
                             value={newCurrency}
@@ -854,9 +1064,19 @@ export default function PreciosAdminPage() {
                     ) : (
                       <div className="flex items-center justify-between">
                         <span className="text-lg font-bold text-green-600">
-                          {currencies.find((c) => c.value === group.currency)
-                            ?.symbol || "$"}
-                          {group.price_per_kg.toFixed(2)} {group.currency}/kg
+                          {group.currency
+                            ? currencies.find((c) => c.value === group.currency)
+                                ?.symbol || "$"
+                            : ""}
+                          {group.price_count && group.price_count > 0
+                            ? `${group.price_count} precio${
+                                group.price_count !== 1 ? "s" : ""
+                              }`
+                            : group.price_per_kg
+                            ? `${group.price_per_kg.toFixed(2)} ${
+                                group.currency
+                              }/kg`
+                            : "Sin precios"}
                         </span>
                         <span className="text-xs text-gray-500">
                           {new Date(group.updated_at).toLocaleDateString(
@@ -893,15 +1113,11 @@ export default function PreciosAdminPage() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
                       <button
-                        onClick={() => {
-                          setEditingGroup(group.id);
-                          setNewPrice(group.price_per_kg.toString());
-                          setNewCurrency(group.currency);
-                          setEditThickness((group as any).thickness || false);
-                          setEditSize((group as any).size || false);
-                        }}
+                        onClick={() =>
+                          router.push(`/admin/precios/grupo/${group.id}`)
+                        }
                         className="text-blue-600 hover:text-blue-900"
-                        title="Editar precio y moneda"
+                        title="Editar grupo de precios"
                       >
                         <EditIcon className="h-4 w-4" />
                       </button>
