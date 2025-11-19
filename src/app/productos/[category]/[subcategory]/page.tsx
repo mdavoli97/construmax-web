@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
   ArrowLeftIcon,
@@ -35,9 +35,15 @@ import {
 export default function ProductFamilyPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const category = params.category as string;
   const subcategory = params.subcategory as string;
+
+  // Leer search params para producto preseleccionado
+  const preselectedProductId = searchParams.get("productId");
+  const preselectedThickness = searchParams.get("thickness");
+  const preselectedSize = searchParams.get("size");
 
   // Estados principales del producto
   const [product, setProduct] = useState<Product | null>(null); // Producto seleccionado por dimensiones
@@ -48,10 +54,16 @@ export default function ProductFamilyPage() {
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isApplyingPreselected, setIsApplyingPreselected] = useState(false);
+  const [hasValidatedPreselected, setHasValidatedPreselected] = useState(false);
 
   // Estados para selección de dimensiones
-  const [selectedSize, setSelectedSize] = useState<string>("");
-  const [selectedThickness, setSelectedThickness] = useState<string>("");
+  const [selectedSize, setSelectedSize] = useState<string>(
+    preselectedSize || ""
+  );
+  const [selectedThickness, setSelectedThickness] = useState<string>(
+    preselectedThickness || ""
+  );
 
   // Estados para carrito (copiados de la vista original)
   const [quantity, setQuantity] = useState<string | number>(1);
@@ -67,10 +79,199 @@ export default function ProductFamilyPage() {
 
   const currentQuantity = product ? getItemQuantity(product.id) : 0;
 
+  // Función para actualizar la URL con los parámetros del producto seleccionado
+  const updateURL = (
+    productId: string | null,
+    thickness: string | null,
+    size: string | null
+  ) => {
+    // No actualizar URL si estamos aplicando preselección desde search params
+    if (isApplyingPreselected) return;
+
+    const params = new URLSearchParams();
+
+    if (productId) {
+      params.set("productId", productId);
+    }
+
+    if (thickness) {
+      params.set("thickness", thickness);
+    }
+
+    if (size) {
+      params.set("size", size);
+    }
+
+    const queryString = params.toString();
+    const newURL = queryString
+      ? `${window.location.pathname}?${queryString}`
+      : window.location.pathname;
+
+    // Usar replace para no agregar al historial del navegador
+    router.replace(newURL);
+  };
+
   // Cargar datos al montar el componente
   useEffect(() => {
     loadData();
   }, [category, subcategory]);
+
+  // Seleccionar producto preseleccionado cuando se cargan los productos
+  useEffect(() => {
+    console.log("Preselected values:", {
+      productId: preselectedProductId,
+      thickness: preselectedThickness,
+      size: preselectedSize,
+    });
+
+    if (preselectedProductId && products.length > 0) {
+      const targetProduct = products.find((p) => p.id === preselectedProductId);
+      console.log("Found target product:", targetProduct);
+
+      if (targetProduct) {
+        setProduct(targetProduct);
+        loadProductImages(targetProduct.id);
+
+        // Asegurar que los valores de thickness y size se mantengan
+        console.log(
+          "Setting preselected values - thickness:",
+          preselectedThickness,
+          "size:",
+          preselectedSize
+        );
+      }
+    }
+  }, [preselectedProductId, products, preselectedThickness, preselectedSize]);
+
+  // Validar y ajustar valores preseleccionados contra opciones disponibles
+  useEffect(() => {
+    if (
+      products.length > 0 &&
+      (preselectedThickness || preselectedSize) &&
+      !hasValidatedPreselected
+    ) {
+      console.log("=== Validating preselected values ===");
+      console.log("Preselected thickness:", preselectedThickness);
+      console.log("Preselected size:", preselectedSize);
+      console.log("Current selectedThickness:", selectedThickness);
+      console.log("Current selectedSize:", selectedSize);
+
+      setIsApplyingPreselected(true);
+
+      // Obtener opciones disponibles
+      const availableThicknesses = getThicknessOptions();
+      const allAvailableSizes = getSizeOptions(); // Todos los tamaños sin filtro
+
+      console.log("Available thicknesses:", availableThicknesses);
+      console.log("All available sizes:", allAvailableSizes);
+
+      // Primero validar y establecer thickness
+      let finalThickness = selectedThickness;
+      if (preselectedThickness) {
+        if (availableThicknesses.includes(preselectedThickness)) {
+          console.log(
+            "✅ Setting exact thickness match:",
+            preselectedThickness
+          );
+          if (selectedThickness !== preselectedThickness) {
+            setSelectedThickness(preselectedThickness);
+          }
+          finalThickness = preselectedThickness;
+        } else {
+          console.log(
+            "❌ Preselected thickness not found, trying partial matches"
+          );
+          console.log("Looking for partial match in:", availableThicknesses);
+          const matchingThickness = availableThicknesses.find((t) => {
+            const match1 = t.includes(preselectedThickness);
+            const match2 = preselectedThickness.includes(t);
+            console.log(
+              `Comparing "${t}" with "${preselectedThickness}": includes1=${match1}, includes2=${match2}`
+            );
+            return match1 || match2;
+          });
+          if (matchingThickness) {
+            console.log("✅ Found partial thickness match:", matchingThickness);
+            if (selectedThickness !== matchingThickness) {
+              setSelectedThickness(matchingThickness);
+            }
+            finalThickness = matchingThickness;
+          } else {
+            console.log("❌ No thickness match found");
+          }
+        }
+      }
+
+      // Luego validar size - usar finalThickness si está disponible
+      if (preselectedSize) {
+        // Obtener tamaños para el espesor final (si hay uno)
+        const sizesForThickness = finalThickness
+          ? getSizeOptions(finalThickness)
+          : allAvailableSizes;
+        console.log(
+          "Sizes for thickness",
+          finalThickness,
+          ":",
+          sizesForThickness
+        );
+
+        if (sizesForThickness.includes(preselectedSize)) {
+          console.log("✅ Setting exact size match:", preselectedSize);
+          if (selectedSize !== preselectedSize) {
+            setSelectedSize(preselectedSize);
+          }
+        } else {
+          console.log("❌ Preselected size not found, trying partial matches");
+          console.log("Looking for partial match in:", sizesForThickness);
+          const matchingSize = sizesForThickness.find((s) => {
+            const match1 = s.includes(preselectedSize);
+            const match2 = preselectedSize.includes(s);
+            console.log(
+              `Comparing "${s}" with "${preselectedSize}": includes1=${match1}, includes2=${match2}`
+            );
+            return match1 || match2;
+          });
+          if (matchingSize) {
+            console.log("✅ Found partial size match:", matchingSize);
+            if (selectedSize !== matchingSize) {
+              setSelectedSize(matchingSize);
+            }
+          } else {
+            console.log("❌ No size match found");
+          }
+        }
+      }
+
+      console.log("=== End validation ===");
+
+      // Marcar como validado para evitar ejecutar nuevamente
+      setHasValidatedPreselected(true);
+
+      // Limpiar la bandera después de un breve delay para asegurar que todos los efectos se ejecuten
+      setTimeout(() => {
+        setIsApplyingPreselected(false);
+      }, 100);
+    }
+  }, [
+    products,
+    preselectedThickness,
+    preselectedSize,
+    hasValidatedPreselected,
+  ]);
+
+  // Debug useEffect para monitorear el estado del Select
+  useEffect(() => {
+    console.log("🔍 Select state debug:", {
+      selectedSize,
+      selectedThickness,
+      hasThickness: hasThickness(),
+      isDisabled: hasThickness() && !selectedThickness,
+      availableSizes:
+        !hasThickness() || selectedThickness
+          ? getSizeOptions(hasThickness() ? selectedThickness : undefined)
+          : [],
+    });
+  }, [selectedSize, selectedThickness]);
 
   // Actualizar producto seleccionado cuando cambian las dimensiones
   useEffect(() => {
@@ -85,6 +286,8 @@ export default function ProductFamilyPage() {
       setProduct(firstProduct);
       if (firstProduct) {
         loadProductImages(firstProduct.id);
+        // Actualizar URL con el producto seleccionado
+        updateURL(firstProduct.id, null, null);
       }
       return;
     }
@@ -115,25 +318,47 @@ export default function ProductFamilyPage() {
 
     setProduct(selectedProduct || null);
 
-    // Si encontramos un producto, cargar sus imágenes
+    // Si encontramos un producto, cargar sus imágenes y actualizar URL
     if (selectedProduct) {
       loadProductImages(selectedProduct.id);
+      // Actualizar URL con el producto y dimensiones seleccionadas
+      updateURL(selectedProduct.id, selectedThickness, selectedSize);
+    } else {
+      // Si no hay producto seleccionado pero hay dimensiones, limpiar productId de la URL
+      if (selectedThickness || selectedSize) {
+        updateURL(null, selectedThickness, selectedSize);
+      }
     }
   }, [selectedSize, selectedThickness, products]);
 
-  // Limpiar selección de tamaño cuando cambia el espesor
+  // Limpiar selección de tamaño cuando cambia el espesor (pero no durante preselección)
   useEffect(() => {
+    // No ejecutar durante la preselección inicial o si aún no hemos validado
+    if (isApplyingPreselected || !hasValidatedPreselected) {
+      console.log(
+        "Skipping size cleanup - applying preselected values or not validated yet"
+      );
+      return;
+    }
+
     if (selectedThickness && selectedSize) {
       // Verificar si la combinación actual sigue siendo válida
       const availableSizes = getSizeOptions(selectedThickness);
       if (!availableSizes.includes(selectedSize)) {
+        console.log("Clearing size - not available for current thickness");
         setSelectedSize("");
       }
-    } else if (selectedThickness) {
-      // Si solo hay espesor seleccionado, limpiar tamaño para forzar nueva selección
+    } else if (selectedThickness && products.length > 0) {
+      // Solo limpiar tamaño si ya pasamos la validación inicial
+      console.log("Clearing size - thickness changed after validation");
       setSelectedSize("");
     }
-  }, [selectedThickness, products]);
+  }, [
+    selectedThickness,
+    products,
+    isApplyingPreselected,
+    hasValidatedPreselected,
+  ]);
 
   const loadData = async () => {
     try {
@@ -217,10 +442,61 @@ export default function ProductFamilyPage() {
     const sizes = filteredProducts
       .map((p) => p.size)
       .filter((size): size is string => Boolean(size) && size?.trim() !== "");
-    return [...new Set(sizes)].sort();
+
+    return [...new Set(sizes)].sort((a, b) => {
+      // Extraer y convertir dimensiones, fracciones, números mixtos y números decimales
+      const getNumericValue = (str: string) => {
+        // Buscar dimensiones como 20x50, 30x70, etc.
+        const dimensionMatch = str.match(/(\d+)x(\d+)/i);
+        if (dimensionMatch) {
+          const width = parseInt(dimensionMatch[1]);
+          const height = parseInt(dimensionMatch[2]);
+          // Priorizar por ancho, luego por alto
+          return width * 1000 + height;
+        }
+
+        // Buscar números mixtos como 1¼, 1½, 1¾, 2¼, etc.
+        const mixedMatch = str.match(/(\d+)([¼½¾⅛⅜⅝⅞])/);
+        if (mixedMatch) {
+          const wholeNumber = parseInt(mixedMatch[1]);
+          const fraction = mixedMatch[2];
+
+          // Mapeo de caracteres Unicode a valores decimales
+          const fractionMap: { [key: string]: number } = {
+            "¼": 0.25, // 1/4
+            "½": 0.5, // 1/2
+            "¾": 0.75, // 3/4
+            "⅛": 0.125, // 1/8
+            "⅜": 0.375, // 3/8
+            "⅝": 0.625, // 5/8
+            "⅞": 0.875, // 7/8
+          };
+
+          return wholeNumber + (fractionMap[fraction] || 0);
+        }
+
+        // Buscar fracciones simples como 1/2, 3/8, etc.
+        const fractionMatch = str.match(/(\d+)\/(\d+)/);
+        if (fractionMatch) {
+          const numerator = parseInt(fractionMatch[1]);
+          const denominator = parseInt(fractionMatch[2]);
+          return numerator / denominator;
+        }
+
+        // Buscar números decimales o enteros
+        const decimalMatch = str.match(/(\d+(?:\.\d+)?)/);
+        return decimalMatch ? parseFloat(decimalMatch[1]) : 0;
+      };
+
+      const numA = getNumericValue(a);
+      const numB = getNumericValue(b);
+
+      return numA - numB;
+    });
   };
 
   const getThicknessOptions = () => {
+    console.log("Getting thickness options", products);
     const thicknesses = products
       .map((p) => p.thickness)
       .filter(
@@ -228,7 +504,56 @@ export default function ProductFamilyPage() {
           Boolean(thickness) && thickness?.trim() !== ""
       );
 
-    return [...new Set(thicknesses)].sort();
+    return [...new Set(thicknesses)].sort((a, b) => {
+      // Extraer y convertir dimensiones, fracciones, números mixtos y números decimales
+      const getNumericValue = (str: string) => {
+        // Buscar dimensiones como 20x50, 30x70, etc.
+        const dimensionMatch = str.match(/(\d+)x(\d+)/i);
+        if (dimensionMatch) {
+          const width = parseInt(dimensionMatch[1]);
+          const height = parseInt(dimensionMatch[2]);
+          // Priorizar por ancho, luego por alto
+          return width * 1000 + height;
+        }
+
+        // Buscar números mixtos como 1¼, 1½, 1¾, 2¼, etc.
+        const mixedMatch = str.match(/(\d+)([¼½¾⅛⅜⅝⅞])/);
+        if (mixedMatch) {
+          const wholeNumber = parseInt(mixedMatch[1]);
+          const fraction = mixedMatch[2];
+
+          // Mapeo de caracteres Unicode a valores decimales
+          const fractionMap: { [key: string]: number } = {
+            "¼": 0.25, // 1/4
+            "½": 0.5, // 1/2
+            "¾": 0.75, // 3/4
+            "⅛": 0.125, // 1/8
+            "⅜": 0.375, // 3/8
+            "⅝": 0.625, // 5/8
+            "⅞": 0.875, // 7/8
+          };
+
+          return wholeNumber + (fractionMap[fraction] || 0);
+        }
+
+        // Buscar fracciones simples como 1/2, 3/8, etc.
+        const fractionMatch = str.match(/(\d+)\/(\d+)/);
+        if (fractionMatch) {
+          const numerator = parseInt(fractionMatch[1]);
+          const denominator = parseInt(fractionMatch[2]);
+          return numerator / denominator;
+        }
+
+        // Buscar números decimales (con coma o punto)
+        const decimalMatch = str.match(/(\d+(?:[.,]\d+)?)/);
+        return decimalMatch ? parseFloat(decimalMatch[1].replace(",", ".")) : 0;
+      };
+
+      const numA = getNumericValue(a);
+      const numB = getNumericValue(b);
+
+      return numA - numB;
+    });
   };
 
   // Funciones para determinar qué dimensiones están disponibles
@@ -616,7 +941,13 @@ export default function ProductFamilyPage() {
                       </label>
                       <Select
                         value={selectedSize}
-                        onValueChange={setSelectedSize}
+                        onValueChange={(value) => {
+                          console.log(
+                            "Select onValueChange triggered with:",
+                            value
+                          );
+                          setSelectedSize(value);
+                        }}
                         disabled={hasThickness() && !selectedThickness}
                       >
                         <SelectTrigger
@@ -651,79 +982,108 @@ export default function ProductFamilyPage() {
               </div>
             )}
 
-            {/* Quantity and Add to Cart - Solo mostrar si hay producto seleccionado */}
-            {product && isInStock(product) && (
-              <div className="space-y-4">
-                {/* Información contextual sobre opciones de cantidad - Solo para productos con calculadora */}
-                {getProductType(product) === "chapas_conformadas" && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
-                    <p className="text-xs sm:text-sm text-blue-800">
-                      <span className="font-medium">
-                        💡 Opciones para agregar cantidad:
-                      </span>
-                      <br />• Puedes escribir la cantidad directamente en el
-                      campo
-                      <br />• O usar nuestra calculadora de chapas para cálculos
-                      automáticos
-                    </p>
-                  </div>
-                )}
+            {/* Quantity and Add to Cart - Siempre visible pero deshabilitado si no hay producto */}
+            <div className="space-y-4">
+              {/* Información contextual sobre opciones de cantidad - Solo para productos con calculadora */}
+              {product && getProductType(product) === "chapas_conformadas" && (
+                <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+                  <p className="text-xs sm:text-sm text-blue-800">
+                    <span className="font-medium">
+                      💡 Opciones para agregar cantidad:
+                    </span>
+                    <br />• Puedes escribir la cantidad directamente en el campo
+                    <br />• O usar nuestra calculadora de chapas para cálculos
+                    automáticos
+                  </p>
+                </div>
+              )}
 
-                <div className="flex flex-col w-full sm:flex-row sm:items-center gap-3 sm:gap-4">
-                  <span className="font-medium text-gray-700 text-sm sm:text-base">
-                    Cantidad:
-                  </span>
-                  <div className="flex items-center justify-between border border-gray-300 rounded-md w-full md:w-fit">
-                    <button
-                      onClick={() => {
-                        const quantityNum = getQuantityAsNumber();
-                        const isChapas =
-                          getProductType(product) === "chapas_conformadas";
-                        const step = isChapas ? 0.1 : 1;
-                        const minValue = isChapas ? 0.1 : 1;
-                        const newValue = Math.max(minValue, quantityNum - step);
-                        setQuantity(Math.round(newValue * 100) / 100);
-                      }}
-                      className="p-2 sm:p-3 hover:bg-gray-100 transition-colors flex-shrink-0"
-                    >
-                      <MinusIcon className="h-4 w-4 sm:h-5 sm:w-5" />
-                    </button>
-                    <Input
-                      type="number"
-                      value={quantity}
-                      onChange={handleQuantityInputChange}
-                      min="0"
-                      step={
-                        getProductType(product) === "chapas_conformadas"
-                          ? "0.1"
-                          : "1"
-                      }
-                      className="w-20 sm:w-24 text-center font-medium text-sm sm:text-base [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                    />
-                    <button
-                      onClick={() => {
-                        const quantityNum = getQuantityAsNumber();
-                        const isChapas =
-                          getProductType(product) === "chapas_conformadas";
-                        const step = isChapas ? 0.1 : 1;
-                        const maxQuantity = getMaxQuantity(product);
-                        const newValue = Math.min(
-                          maxQuantity,
-                          quantityNum + step
-                        );
-                        setQuantity(Math.round(newValue * 100) / 100);
-                      }}
-                      className="p-2 sm:p-3 hover:bg-gray-100 transition-colors flex-shrink-0"
-                      disabled={
-                        getQuantityAsNumber() >= getMaxQuantity(product)
-                      }
-                    >
-                      <PlusIcon className="h-4 w-4 sm:h-5 sm:w-5" />
-                    </button>
-                  </div>
+              {/* Mensaje cuando no hay producto seleccionado */}
+              {!product && needsDimensionSelection() && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3">
+                  <p className="text-xs sm:text-sm text-yellow-800">
+                    <span className="font-medium">
+                      ⚠️ Selecciona las dimensiones para continuar
+                    </span>
+                    <br />
+                    {hasThickness() &&
+                      !selectedThickness &&
+                      "• Elige un espesor"}
+                    {hasThickness() &&
+                      selectedThickness &&
+                      hasSize() &&
+                      !selectedSize &&
+                      "• Elige un tamaño"}
+                  </p>
+                </div>
+              )}
 
-                  {/* Calculadora para chapas conformadas */}
-                  {getProductType(product) === "chapas_conformadas" && (
+              <div className="flex flex-col w-full sm:flex-row sm:items-center gap-3 sm:gap-4">
+                <span className="font-medium text-gray-700 text-sm sm:text-base">
+                  Cantidad:
+                </span>
+                <div
+                  className={`flex items-center justify-between border border-gray-300 rounded-md w-full md:w-fit ${
+                    !product ? "opacity-50" : ""
+                  }`}
+                >
+                  <button
+                    onClick={() => {
+                      if (!product) return;
+                      const quantityNum = getQuantityAsNumber();
+                      const isChapas =
+                        getProductType(product) === "chapas_conformadas";
+                      const step = isChapas ? 0.1 : 1;
+                      const minValue = isChapas ? 0.1 : 1;
+                      const newValue = Math.max(minValue, quantityNum - step);
+                      setQuantity(Math.round(newValue * 100) / 100);
+                    }}
+                    className="p-2 sm:p-3 hover:bg-gray-100 transition-colors flex-shrink-0"
+                    disabled={!product}
+                  >
+                    <MinusIcon className="h-4 w-4 sm:h-5 sm:w-5" />
+                  </button>
+                  <Input
+                    type="number"
+                    value={quantity}
+                    onChange={handleQuantityInputChange}
+                    min="0"
+                    step={
+                      product &&
+                      getProductType(product) === "chapas_conformadas"
+                        ? "0.1"
+                        : "1"
+                    }
+                    className="w-20 sm:w-24 text-center font-medium text-sm sm:text-base [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    disabled={!product}
+                  />
+                  <button
+                    onClick={() => {
+                      if (!product) return;
+                      const quantityNum = getQuantityAsNumber();
+                      const isChapas =
+                        getProductType(product) === "chapas_conformadas";
+                      const step = isChapas ? 0.1 : 1;
+                      const maxQuantity = getMaxQuantity(product);
+                      const newValue = Math.min(
+                        maxQuantity,
+                        quantityNum + step
+                      );
+                      setQuantity(Math.round(newValue * 100) / 100);
+                    }}
+                    className="p-2 sm:p-3 hover:bg-gray-100 transition-colors flex-shrink-0"
+                    disabled={
+                      !product ||
+                      getQuantityAsNumber() >= getMaxQuantity(product)
+                    }
+                  >
+                    <PlusIcon className="h-4 w-4 sm:h-5 sm:w-5" />
+                  </button>
+                </div>
+
+                {/* Calculadora para chapas conformadas */}
+                {product &&
+                  getProductType(product) === "chapas_conformadas" && (
                     <button
                       onClick={() => setShowCalculator(!showCalculator)}
                       className="bg-blue-500 text-white px-3 py-2 rounded-md hover:bg-blue-600 transition-colors text-xs sm:text-sm whitespace-nowrap"
@@ -731,54 +1091,64 @@ export default function ProductFamilyPage() {
                       🧮 Calculadora
                     </button>
                   )}
-                </div>
-
-                {/* Calculadora para chapas conformadas */}
-                {showCalculator &&
-                  getProductType(product) === "chapas_conformadas" && (
-                    <ChapasCalculator
-                      onCalculateResult={(
-                        result: number,
-                        details?: CalculationDetail[]
-                      ) => {
-                        setQuantity(Math.round(result * 100) / 100);
-                        setCalculationDetails(details);
-                      }}
-                      onClose={() => setShowCalculator(false)}
-                    />
-                  )}
-
-                {/* Total Price */}
-                <div className="bg-gray-50 p-3 sm:p-4 rounded-md">
-                  <div className="flex justify-between items-center">
-                    <span className="font-medium text-gray-700 text-sm sm:text-base">
-                      Total:
-                    </span>
-                    <span className="text-xl sm:text-2xl font-bold text-orange-600">
-                      {formatPriceWithIVA(
-                        product.price * getQuantityAsNumber(),
-                        product.price_group?.currency
-                      )}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Add to Cart Button */}
-                <button
-                  onClick={handleAddToCart}
-                  className="add-to-cart-btn w-full bg-orange-600 hover:bg-orange-700 text-white font-semibold py-3 px-6 rounded-md transition-colors duration-200 flex items-center justify-center gap-2 text-sm sm:text-base"
-                  disabled={!product || getQuantityAsNumber() <= 0}
-                >
-                  <ShoppingCartIcon className="h-5 w-5" />
-                  Agregar al Carrito
-                </button>
               </div>
-            )}
+
+              {/* Calculadora para chapas conformadas */}
+              {showCalculator &&
+                product &&
+                getProductType(product) === "chapas_conformadas" && (
+                  <ChapasCalculator
+                    onCalculateResult={(
+                      result: number,
+                      details?: CalculationDetail[]
+                    ) => {
+                      setQuantity(Math.round(result * 100) / 100);
+                      setCalculationDetails(details);
+                    }}
+                    onClose={() => setShowCalculator(false)}
+                  />
+                )}
+
+              {/* Total Price */}
+              <div
+                className={`bg-gray-50 p-3 sm:p-4 rounded-md ${
+                  !product ? "opacity-50" : ""
+                }`}
+              >
+                <div className="flex justify-between items-center">
+                  <span className="font-medium text-gray-700 text-sm sm:text-base">
+                    Total:
+                  </span>
+                  <span className="text-xl sm:text-2xl font-bold text-orange-600">
+                    {product
+                      ? formatPriceWithIVA(
+                          product.price * getQuantityAsNumber(),
+                          product.price_group?.currency
+                        )
+                      : getPriceRange()}
+                  </span>
+                </div>
+              </div>
+
+              {/* Add to Cart Button */}
+              <button
+                onClick={handleAddToCart}
+                className={`add-to-cart-btn w-full font-semibold py-3 px-6 rounded-md transition-colors duration-200 flex items-center justify-center gap-2 text-sm sm:text-base ${
+                  !product || getQuantityAsNumber() <= 0
+                    ? "bg-gray-400 cursor-not-allowed text-gray-200"
+                    : "bg-orange-600 hover:bg-orange-700 text-white"
+                }`}
+                disabled={!product || getQuantityAsNumber() <= 0}
+              >
+                <ShoppingCartIcon className="h-5 w-5" />
+                {!product ? "Selecciona un producto" : "Agregar al Carrito"}
+              </button>
+            </div>
           </div>
         </div>
 
         {/* Related Products */}
-        {relatedProducts.length > 0 && (
+        {/* {relatedProducts.length > 0 && (
           <div className="mt-16">
             <h2 className="text-2xl font-bold text-gray-900 mb-6">
               Otras familias de productos en {categoryInfo?.name}
@@ -789,7 +1159,7 @@ export default function ProductFamilyPage() {
               ))}
             </div>
           </div>
-        )}
+        )} */}
       </div>
     </div>
   );

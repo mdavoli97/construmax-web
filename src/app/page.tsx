@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { categoryService, productService } from "@/lib/services";
-import ProductCard from "@/components/ProductCard";
+import FeaturedSubcategories from "@/components/FeaturedSubcategories";
 import {
   TruckIcon,
   ShieldCheckIcon,
@@ -12,9 +12,9 @@ import {
 export const revalidate = 0;
 
 export default async function HomePage() {
-  const [categories, featuredProducts] = await Promise.all([
+  const [categories, products] = await Promise.all([
     categoryService.getAll(),
-    productService.getFeatured(),
+    productService.getAll(),
   ]);
 
   return (
@@ -49,17 +49,13 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Featured Products Section */}
+      {/* Featured Subcategories Section */}
       <section className="py-12 sm:py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h2 className="text-2xl sm:text-3xl font-bold text-center mb-8 sm:mb-12">
-            Productos Destacados
+            Nuestras Especialidades
           </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
-            {featuredProducts.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
+          <FeaturedSubcategories products={products} categories={categories} />
           <div className="text-center mt-8 sm:mt-12">
             <Link
               href="/productos"

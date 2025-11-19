@@ -26,11 +26,11 @@ export default function ProductCard({ product }: ProductCardProps) {
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation(); // Prevenir navegación cuando se hace click en agregar al carrito
-    router.push(`/productos/producto/${product.id}`);
+    router.push(`/productos/${product.category}/${product.id}`);
   };
 
   const handleCardClick = () => {
-    router.push(`/productos/producto/${product.id}`);
+    router.push(`/productos/${product.category}/${product.id}`);
   };
 
   // Función para obtener el tipo de producto

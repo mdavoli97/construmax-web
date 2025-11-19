@@ -178,10 +178,13 @@ export default function ChapasCalculator({
                   className="flex items-center justify-between bg-white p-2 rounded border"
                 >
                   <div className="text-sm">
-                    <span className="font-medium">{calc.largo}m</span> ×{" "}
-                    <span className="font-medium">{calc.cantidad}</span> ={" "}
+                    <span className="font-medium">
+                      {calc.cantidad} chapas de
+                    </span>{" "}
+                    <span className="font-medium">{calc.largo}m</span>
                     <span className="font-bold text-blue-600">
-                      {calc.total}m
+                      {" "}
+                      = {calc.total}m
                     </span>
                   </div>
                   <button
@@ -224,16 +227,6 @@ export default function ChapasCalculator({
             </div>
           </div>
         )}
-
-        <div className="text-xs text-gray-500 bg-gray-50 p-3 rounded-md">
-          <p className="font-medium mb-1">💡 Cómo usar:</p>
-          <p>• Ingresa el largo en metros (máx. 2 decimales)</p>
-          <p>• Indica la cantidad de piezas de ese largo</p>
-          <p>• Haz clic en &quot;Agregar&quot; para sumar al total</p>
-          <p>
-            • Puedes agregar múltiples cálculos y eliminar los que no necesites
-          </p>
-        </div>
       </div>
     </div>
   );

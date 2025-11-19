@@ -3,7 +3,9 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { ShoppingCartIcon, MenuIcon } from "lucide-react";
+import { MagnifyingGlassIcon } from "@heroicons/react/24/outline";
 import { useCartCount } from "@/hooks/useCartCount";
+import SearchDialog from "@/components/SearchDialog";
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -215,6 +217,20 @@ export default function Header() {
   const totalItems = useCartCount();
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchOpen, setSearchOpen] = useState(false);
+
+  // Añadir shortcut de teclado para el buscador
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key === "k") {
+        event.preventDefault();
+        setSearchOpen(true);
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   // Obtener categorías de la base de datos
   useEffect(() => {
@@ -372,8 +388,29 @@ export default function Header() {
             </NavigationMenu>
           </div>
 
-          {/* Cart and Mobile menu button */}
+          {/* Search, Cart and Mobile menu button */}
           <div className="flex items-center space-x-2 sm:space-x-4">
+            {/* Search Button */}
+            <button
+              onClick={() => setSearchOpen(true)}
+              className="hidden sm:flex items-center gap-2 px-3 py-2 text-sm text-gray-500 bg-gray-50 rounded-md hover:bg-gray-100 transition-colors border border-gray-200 min-w-[200px]"
+            >
+              <MagnifyingGlassIcon className="h-4 w-4" />
+              <span className="flex-1 text-left">Buscar productos...</span>
+              <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
+                <span className="text-xs">⌘</span>K
+              </kbd>
+            </button>
+
+            {/* Mobile Search Button */}
+            <button
+              onClick={() => setSearchOpen(true)}
+              className="sm:hidden p-2 text-gray-700 hover:text-orange-600 transition-colors rounded-md hover:bg-orange-50"
+            >
+              <MagnifyingGlassIcon className="h-6 w-6" />
+              <span className="sr-only">Buscar</span>
+            </button>
+
             <Link
               href="/carrito"
               className="relative p-2 text-gray-700 hover:text-orange-600 transition-colors rounded-md hover:bg-orange-50"
@@ -395,6 +432,9 @@ export default function Header() {
           </div>
         </div>
       </div>
+
+      {/* Search Dialog */}
+      <SearchDialog open={searchOpen} setOpen={setSearchOpen} />
     </header>
   );
 }
