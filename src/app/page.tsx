@@ -6,6 +6,7 @@ import {
   organizationSchema,
   localBusinessSchema,
   websiteSchema,
+  siteNavigationSchema,
 } from "@/lib/schemas";
 import {
   TruckIcon,
@@ -27,7 +28,12 @@ export default async function HomePage() {
     <div className="min-h-screen">
       {/* Structured Data */}
       <StructuredData
-        data={[organizationSchema, localBusinessSchema, websiteSchema]}
+        data={[
+          organizationSchema,
+          localBusinessSchema,
+          websiteSchema,
+          siteNavigationSchema,
+        ]}
       />
 
       {/* Hero Section */}
@@ -35,27 +41,33 @@ export default async function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 lg:py-24">
           <div className="text-center">
             <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-4 sm:mb-6">
-              Materiales de Construcción y Metalúrgica en Uruguay
+              ConstruMax
               <span className="block text-orange-200 text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-normal mt-2">
-                Tu proveedor confiable desde 2025
+                Encontrá los mejores precios del mercado
               </span>
             </h1>
             <p className="text-lg sm:text-xl md:text-2xl mb-6 sm:mb-8 text-orange-100 max-w-3xl mx-auto px-4">
-              Tu proveedor confiable en Uruguay. Calidad, precio y servicio
-              desde 2025.
+              Materiales de construcción, barraca de hierro, portland. Encontrá
+              los mejores precios del mercado en ConstruMax.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center px-4">
               <Link
                 href="/productos"
                 className="w-full sm:w-auto bg-white text-orange-600 px-6 sm:px-8 py-3 rounded-lg font-semibold hover:bg-orange-50 transition-colors text-center"
               >
-                Ver Productos
+                Nuestros Productos
               </Link>
               <Link
                 href="/productos/construccion"
                 className="w-full sm:w-auto border-2 border-white text-white px-6 sm:px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-orange-600 transition-colors text-center"
               >
                 Construcción
+              </Link>
+              <Link
+                href="/productos/metalurgica"
+                className="w-full sm:w-auto border-2 border-white text-white px-6 sm:px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-orange-600 transition-colors text-center"
+              >
+                Metalúrgica
               </Link>
             </div>
           </div>
@@ -66,7 +78,7 @@ export default async function HomePage() {
       <section className="py-12 sm:py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h2 className="text-2xl sm:text-3xl font-bold text-center mb-8 sm:mb-12">
-            Especialidades en Materiales de Construcción
+            Especialidades en Construcción y Metalúrgica
           </h2>
           <FeaturedSubcategories products={products} categories={categories} />
           <div className="text-center mt-8 sm:mt-12">
@@ -150,6 +162,49 @@ export default async function HomePage() {
                 </div>
               </Link>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* About Section */}
+      <section id="contacto" className="py-12 sm:py-16 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-8 sm:mb-12">
+            <h2 className="text-2xl sm:text-3xl font-bold mb-4">Contactanos</h2>
+            <p className="text-gray-600 text-lg">
+              Estamos aquí para ayudarte con tu proyecto
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="text-center">
+              <div className="bg-orange-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-orange-600 text-xl">📞</span>
+              </div>
+              <h3 className="text-lg font-semibold mb-2">Teléfono</h3>
+              <p className="text-gray-600">+598 97971111</p>
+            </div>
+            <div className="text-center">
+              <div className="bg-orange-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-orange-600 text-xl">📍</span>
+              </div>
+              <h3 className="text-lg font-semibold mb-2">Ubicación</h3>
+              <p className="text-gray-600">
+                José Mármol 615
+                <br />
+                Montevideo, Uruguay
+              </p>
+            </div>
+            <div className="text-center">
+              <div className="bg-orange-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-orange-600 text-xl">🕐</span>
+              </div>
+              <h3 className="text-lg font-semibold mb-2">Horarios</h3>
+              <p className="text-gray-600">
+                Lun-Vie: 8:00-18:00
+                <br />
+                Sáb: 8:00-13:00
+              </p>
+            </div>
           </div>
         </div>
       </section>

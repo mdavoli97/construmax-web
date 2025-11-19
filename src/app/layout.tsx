@@ -5,20 +5,19 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://www.construmax.com.uy"),
   title: {
     default:
-      "Barraca Construcción - Materiales de Construcción y Metalúrgica en Uruguay",
-    template: "%s | Barraca Construcción",
+      "ConstruMax - Tienda Online ¡Todo lo que necesitas para construir!",
+    template: "%s | ConstruMax",
   },
   description:
-    "✅ Tu proveedor confiable de materiales de construcción y metalúrgica en Uruguay desde 2025. ⚡ Cemento, hierros, herramientas, electricidad y plomería. 🚚 Envío gratis en compras +$50.000",
+    "Materiales de construcción, barraca de hierro, portland. Encontrá los mejores precios del mercado en ConstruMax.",
   keywords: [
     "materiales construcción Uruguay",
     "ConstruMax",
-    "cemento Uruguay",
+    "portland Uruguay",
     "hierros construcción",
-    "herramientas construcción",
+
     "materiales metalúrgica",
-    "electricidad construcción",
-    "plomería materiales",
+
     "construcción Montevideo",
     "materiales obras",
   ],
@@ -41,9 +40,9 @@ export const metadata: Metadata = {
     locale: "es_UY",
     url: "https://www.construmax.com.uy/",
     siteName: "ConstruMax",
-    title: "ConstruMax - Materiales de Construcción y Metalúrgica en Uruguay",
+    title: "ConstruMax - Tienda Online ¡Todo lo que necesitas para construir!",
     description:
-      "✅ Tu proveedor confiable de materiales de construcción y metalúrgica en Uruguay desde 2025. ⚡ Cemento, hierros, herramientas, electricidad y plomería. 🚚 Envío gratis en compras +$50.000",
+      "Materiales de construcción, barraca de hierro, portland. Encontrá los mejores precios del mercado en ConstruMax.",
     images: [
       {
         url: "/og-image.jpg",
@@ -59,7 +58,7 @@ export const metadata: Metadata = {
     creator: "@ConstruMax",
     title: "ConstruMax - Materiales de Construcción Uruguay",
     description:
-      "✅ Tu proveedor confiable de materiales de construcción y metalúrgica en Uruguay desde 2025. 🚚 Envío gratis +$50.000",
+      "Materiales de construcción, barraca de hierro, portland. Encontra los mejores precios del mercado en ConstruMax.",
     images: ["/twitter-image.jpg"],
   },
   alternates: {
@@ -67,6 +66,16 @@ export const metadata: Metadata = {
   },
   verification: {
     google: "VR3BjiW5XRkz9GM09GJ3wYu6fhE-K8MLL6Lfk4Sgzfk",
+  },
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "16x16 32x32", type: "image/x-icon" },
+      { url: "/favicon.svg", sizes: "any", type: "image/svg+xml" },
+    ],
+    apple: [
+      { url: "/apple-icon.svg", sizes: "180x180", type: "image/svg+xml" },
+    ],
+    shortcut: "/favicon.ico",
   },
   category: "construcción",
   classification: "Materiales de Construcción y Metalúrgica",

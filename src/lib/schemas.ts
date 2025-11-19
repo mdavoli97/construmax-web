@@ -13,7 +13,7 @@ export const organizationSchema = {
   url: "https://www.construmax.com.uy/",
   logo: "https://www.construmax.com.uy/logo.png",
   description:
-    "Proveedor líder de materiales de construcción y metalúrgica en Uruguay desde 2025",
+    "Materiales de construcción, barraca de hierro, portland. Encontrá los mejores precios del mercado en ConstruMax.",
   foundingDate: "2025",
   address: {
     "@type": "PostalAddress",
@@ -186,13 +186,15 @@ export const localBusinessSchema = {
   },
 };
 
-// Schema para WebSite con SearchAction
+// Schema para WebSite con SearchAction y mejor estructura de navegación
 export const websiteSchema = {
   "@context": "https://schema.org",
   "@type": "WebSite",
   name: "ConstruMax",
+  alternateName: "ConstruMax Uruguay",
   url: "https://www.construmax.com.uy/",
-  description: "Materiales de construcción y metalúrgica en Uruguay",
+  description:
+    "Materiales de construcción, barraca de hierro, portland. Encontrá los mejores precios del mercado en ConstruMax.",
   publisher: {
     "@type": "Organization",
     name: "ConstruMax",
@@ -205,5 +207,95 @@ export const websiteSchema = {
         "https://www.construmax.com.uy/productos?buscar={search_term_string}",
     },
     "query-input": "required name=search_term_string",
+  },
+  mainEntity: {
+    "@type": "ItemList",
+    name: "Secciones principales",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        item: {
+          "@type": "WebPage",
+          "@id": "https://www.construmax.com.uy/productos/construccion",
+          name: "Construcción",
+          description:
+            "Materiales para construcción - cemento, hierros, bloques, ladrillos",
+        },
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        item: {
+          "@type": "WebPage",
+          "@id": "https://www.construmax.com.uy/productos/metalurgica",
+          name: "Metalúrgica",
+          description:
+            "Productos metalúrgicos - chapas, perfiles, soldadura, herrajes",
+        },
+      },
+      {
+        "@type": "ListItem",
+        position: 3,
+        item: {
+          "@type": "WebPage",
+          "@id": "https://www.construmax.com.uy/productos",
+          name: "Nuestros Productos",
+          description:
+            "Catálogo completo de productos - construcción y metalúrgica",
+        },
+      },
+    ],
+  },
+};
+
+// Schema para mejorar la visualización de sitelinks en Google
+export const siteNavigationSchema = {
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "@id": "https://www.construmax.com.uy/",
+  name: "ConstruMax - Inicio",
+  isPartOf: {
+    "@type": "WebSite",
+    "@id": "https://www.construmax.com.uy/",
+  },
+  about: {
+    "@type": "LocalBusiness",
+    "@id": "https://www.construmax.com.uy/#organization",
+  },
+  mainEntity: {
+    "@type": "ItemList",
+    name: "Navegación principal",
+    description: "Secciones principales de ConstruMax",
+    itemListElement: [
+      {
+        "@type": "SiteNavigationElement",
+        position: 1,
+        name: "Contactanos",
+        description: "Información de contacto y ubicación",
+        url: "https://www.construmax.com.uy/#contacto",
+      },
+      {
+        "@type": "SiteNavigationElement",
+        position: 2,
+        name: "Construcción",
+        description: "Materiales para construcción - cemento, hierros, bloques",
+        url: "https://www.construmax.com.uy/productos/construccion",
+      },
+      {
+        "@type": "SiteNavigationElement",
+        position: 3,
+        name: "Metalúrgica",
+        description: "Productos metalúrgicos - chapas, perfiles, soldadura",
+        url: "https://www.construmax.com.uy/productos/metalurgica",
+      },
+      {
+        "@type": "SiteNavigationElement",
+        position: 4,
+        name: "Nuestros Productos",
+        description: "Catálogo completo de productos disponibles",
+        url: "https://www.construmax.com.uy/productos",
+      },
+    ],
   },
 };
