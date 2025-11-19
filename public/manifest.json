@@ -1,0 +1,26 @@
+{
+  "name": "ConstruMax - Materiales de Construcción Uruguay",
+  "short_name": "ConstruMax",
+  "description": "Tu proveedor confiable de materiales de construcción y metalúrgica en Uruguay desde 2025",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ea580c",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["construccion", "materiales", "herramientas", "metalurgica"],
+  "lang": "es-UY"
+}

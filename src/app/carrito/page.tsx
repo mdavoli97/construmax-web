@@ -319,8 +319,8 @@ export default function CarritoPage() {
                                             key={calc.id || index}
                                             className="font-mono bg-white px-2 py-1 rounded border"
                                           >
-                                            {calc.largo}m × {calc.cantidad} ={" "}
-                                            {calc.total}m
+                                            {calc.cantidad} chapas de{" "}
+                                            {calc.largo}m = {calc.total}m
                                           </div>
                                         )
                                       )}

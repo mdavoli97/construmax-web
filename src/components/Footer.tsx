@@ -17,12 +17,12 @@ export default function Footer() {
                 🏗️
               </div>
               <span className="ml-2 text-lg sm:text-xl font-bold">
-                Barraca Construcción
+                ConstruMax
               </span>
             </div>
             <p className="text-gray-300 mb-4 text-sm sm:text-base">
               Tu proveedor confiable de materiales de construcción y metalúrgica
-              en Uruguay. Calidad, precio y servicio desde 1995.
+              en Uruguay. Calidad, precio y servicio desde 2025.
             </p>
             <div className="space-y-2">
               <div className="flex items-center text-gray-300 text-sm sm:text-base">
@@ -135,7 +135,7 @@ export default function Footer() {
         <div className="border-t border-gray-800 mt-6 sm:mt-8 pt-6 sm:pt-8">
           <div className="flex flex-col sm:flex-row justify-between items-center space-y-4 sm:space-y-0">
             <p className="text-gray-400 text-xs sm:text-sm text-center sm:text-left">
-              © 2024 Barraca Construcción. Todos los derechos reservados.
+              © 2024 ConstruMax. Todos los derechos reservados.
             </p>
             <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-6">
               <Link

@@ -1,4 +1,4 @@
-# Barraca Construcción - E-commerce
+# ConstruMax - E-commerce
 
 Una plataforma de e-commerce completa para una barraca de materiales de construcción y metalúrgica en Uruguay, construida con Next.js 15, TypeScript, Tailwind CSS y MercadoPago.
 
@@ -33,31 +33,35 @@ Una plataforma de e-commerce completa para una barraca de materiales de construc
 
 ## 📋 Requisitos Previos
 
-- Node.js 18+ 
+- Node.js 18+
 - npm o yarn
 - Cuenta de MercadoPago para Uruguay
 
 ## 🔧 Instalación
 
 1. **Clonar el repositorio**
+
    ```bash
    git clone <url-del-repositorio>
    cd barraca-web
    ```
 
 2. **Instalar dependencias**
+
    ```bash
    npm install
    ```
 
 3. **Configurar variables de entorno**
    Crear un archivo `.env.local` en la raíz del proyecto:
+
    ```env
    MERCADOPAGO_ACCESS_TOKEN=TEST-12345678-1234-1234-1234-123456789012
    NEXT_PUBLIC_BASE_URL=http://localhost:3000
    ```
 
 4. **Ejecutar en desarrollo**
+
    ```bash
    npm run dev
    ```
@@ -70,20 +74,24 @@ Una plataforma de e-commerce completa para una barraca de materiales de construc
 ## 🔑 Configuración de MercadoPago
 
 ### 1. Crear cuenta en MercadoPago
+
 - Registrarse en [MercadoPago Uruguay](https://www.mercadopago.com.uy/)
 - Completar la verificación de cuenta
 
 ### 2. Obtener credenciales
+
 - Ir a [Credenciales](https://www.mercadopago.com.uy/developers/panel/credentials)
 - Copiar el **Access Token** de producción o sandbox
 
 ### 3. Configurar webhooks
+
 - En el panel de desarrolladores, configurar la URL del webhook:
   ```
   https://tu-dominio.com/api/webhook
   ```
 
 ### 4. Actualizar variables de entorno
+
 ```env
 MERCADOPAGO_ACCESS_TOKEN=APP_USR-1234567890123456789012345678901234-123456-1234567890123456789012345678901234
 NEXT_PUBLIC_BASE_URL=https://tu-dominio.com
@@ -119,14 +127,18 @@ src/
 ## 🎨 Personalización
 
 ### Colores
+
 Los colores principales están definidos en Tailwind CSS:
+
 - **Naranja**: `orange-600` (color principal)
 - **Gris**: `gray-50`, `gray-900` (fondos y texto)
 
 ### Productos
+
 Editar `src/lib/data.ts` para agregar, modificar o eliminar productos.
 
 ### Categorías
+
 Modificar el array `categories` en `src/lib/data.ts`.
 
 ## 🚀 Despliegue
@@ -134,16 +146,19 @@ Modificar el array `categories` en `src/lib/data.ts`.
 ### Vercel (Recomendado para demos)
 
 1. **Instalar Vercel CLI**:
+
    ```bash
    npm install -g vercel
    ```
 
 2. **Hacer deploy**:
+
    ```bash
    vercel
    ```
 
 3. **Configurar variables de entorno en Vercel Dashboard**:
+
    - `NEXT_PUBLIC_SUPABASE_URL`
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
    - `NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY`
@@ -154,6 +169,7 @@ Modificar el array `categories` en `src/lib/data.ts`.
    - URL: `https://tu-dominio.vercel.app/api/webhook`
 
 ### Otros proveedores
+
 - **Netlify**: Configurar build command `npm run build`
 - **Railway**: Conectar repositorio y configurar variables
 - **DigitalOcean App Platform**: Desplegar desde GitHub
@@ -168,6 +184,7 @@ Modificar el array `categories` en `src/lib/data.ts`.
 ## 📱 Responsive Design
 
 El sitio está optimizado para:
+
 - 📱 Móviles (320px+)
 - 📱 Tablets (768px+)
 - 💻 Desktop (1024px+)
@@ -201,6 +218,7 @@ Este proyecto está bajo la Licencia MIT. Ver el archivo `LICENSE` para más det
 ## 📞 Soporte
 
 Para soporte técnico o consultas:
+
 - 📧 Email: info@barraca.com.uy
 - 📱 Teléfono: +598 2 123 4567
 - 🌐 Sitio web: https://barraca.com.uy
@@ -208,6 +226,7 @@ Para soporte técnico o consultas:
 ## 🔄 Actualizaciones
 
 ### Próximas características
+
 - [ ] Panel de administración
 - [ ] Sistema de usuarios
 - [ ] Historial de pedidos

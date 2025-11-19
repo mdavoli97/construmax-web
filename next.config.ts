@@ -1,8 +1,15 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Configuración para SEO y performance
+  trailingSlash: false,
+  compress: true,
+  poweredByHeader: false,
+
+  // Configuración de imágenes
   images: {
     domains: ["localhost"],
+    formats: ["image/webp", "image/avif"],
     remotePatterns: [
       {
         protocol: "https",

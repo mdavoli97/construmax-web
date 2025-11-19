@@ -1,6 +1,12 @@
 import Link from "next/link";
 import { categoryService, productService } from "@/lib/services";
 import FeaturedSubcategories from "@/components/FeaturedSubcategories";
+import StructuredData from "@/components/StructuredData";
+import {
+  organizationSchema,
+  localBusinessSchema,
+  websiteSchema,
+} from "@/lib/schemas";
 import {
   TruckIcon,
   ShieldCheckIcon,
@@ -19,17 +25,24 @@ export default async function HomePage() {
 
   return (
     <div className="min-h-screen">
+      {/* Structured Data */}
+      <StructuredData
+        data={[organizationSchema, localBusinessSchema, websiteSchema]}
+      />
+
       {/* Hero Section */}
       <section className="bg-gradient-to-r from-orange-600 to-orange-700 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 lg:py-24">
           <div className="text-center">
             <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-4 sm:mb-6">
-              Materiales de Construcción
-              <span className="block text-orange-200">y Metalúrgica</span>
+              Materiales de Construcción y Metalúrgica en Uruguay
+              <span className="block text-orange-200 text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-normal mt-2">
+                Tu proveedor confiable desde 2025
+              </span>
             </h1>
             <p className="text-lg sm:text-xl md:text-2xl mb-6 sm:mb-8 text-orange-100 max-w-3xl mx-auto px-4">
               Tu proveedor confiable en Uruguay. Calidad, precio y servicio
-              desde 1995.
+              desde 2025.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center px-4">
               <Link
@@ -53,7 +66,7 @@ export default async function HomePage() {
       <section className="py-12 sm:py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h2 className="text-2xl sm:text-3xl font-bold text-center mb-8 sm:mb-12">
-            Nuestras Especialidades
+            Especialidades en Materiales de Construcción
           </h2>
           <FeaturedSubcategories products={products} categories={categories} />
           <div className="text-center mt-8 sm:mt-12">
@@ -115,7 +128,7 @@ export default async function HomePage() {
       <section className="py-12 sm:py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h2 className="text-2xl sm:text-3xl font-bold text-center mb-8 sm:mb-12">
-            Nuestras Categorías
+            Categorías de Productos
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
             {categories.map((category) => (
@@ -147,7 +160,7 @@ export default async function HomePage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-12 items-center">
             <div className="order-2 lg:order-1">
               <h2 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6">
-                Sobre Nosotros
+                Sobre ConstruMax
               </h2>
               <p className="text-gray-600 mb-4 text-sm sm:text-base">
                 Con más de 25 años de experiencia en el mercado uruguayo, somos
