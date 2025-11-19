@@ -219,6 +219,14 @@ export const productService = {
     sku: string;
     featured?: boolean;
     price_group_id?: string | null;
+    product_type?: string;
+    weight_per_unit?: number;
+    kg_per_meter?: number;
+    price_per_kg?: number;
+    stock_type?: string;
+    is_available?: boolean;
+    thickness?: string | null;
+    size?: string | null;
   }): Promise<Product> {
     // Obtener token de autenticación si está disponible
     const token =
@@ -269,6 +277,8 @@ export const productService = {
       price_group_id?: string | null;
       stock_type?: string;
       is_available?: boolean;
+      thickness?: string | null;
+      size?: string | null;
     }
   ): Promise<Product> {
     // Obtener token de autenticación si está disponible

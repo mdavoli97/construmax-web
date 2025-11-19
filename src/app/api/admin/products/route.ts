@@ -82,8 +82,6 @@ export async function POST(request: NextRequest) {
       },
     ];
 
-    console.log("Intentando asegurar que las categorías existen...");
-
     // Verificar si la categoría específica existe
     const { data: categoryExists } = await adminClient
       .from("categories")
@@ -158,19 +156,23 @@ export async function POST(request: NextRequest) {
       featured: body.featured,
       price_group_id: body.price_group_id || null,
       // Campos específicos para perfiles y chapas conformadas (ahora las columnas ya existen)
-      product_type: extraData.product_type || "standard",
-      weight_per_unit: extraData.weight_per_unit || null,
-      kg_per_meter: extraData.kg_per_meter || null,
-      price_per_kg: extraData.price_per_kg || null,
-      stock_type: extraData.stock_type || "quantity",
+      product_type: body.product_type || extraData.product_type || "standard",
+      weight_per_unit:
+        body.weight_per_unit || extraData.weight_per_unit || null,
+      kg_per_meter: body.kg_per_meter || extraData.kg_per_meter || null,
+      price_per_kg: body.price_per_kg || extraData.price_per_kg || null,
+      stock_type: body.stock_type || extraData.stock_type || "quantity",
       is_available:
-        extraData.is_available !== undefined ? extraData.is_available : true,
+        body.is_available !== undefined
+          ? body.is_available
+          : extraData.is_available !== undefined
+          ? extraData.is_available
+          : true,
+      thickness: body.thickness || null,
+      size: body.size || null,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
-
-    console.log("Datos del producto a insertar (sanitizados):", productData);
-    console.log("Body original recibido:", JSON.stringify(body, null, 2));
 
     // Insertar producto usando cliente admin
     const { data, error } = await adminClient
@@ -198,8 +200,6 @@ export async function POST(request: NextRequest) {
 
       throw error;
     }
-
-    console.log("Producto creado exitosamente:", data);
 
     // Revalidate the product pages after creation
     revalidatePath("/productos");

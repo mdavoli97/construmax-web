@@ -363,54 +363,34 @@ export default function NewProductPage() {
       let productData;
 
       if (formData.product_type === "perfiles") {
-        // Para perfiles: guardar info extra en description como JSON
-        const extraData = {
+        productData = {
+          ...baseProductData,
+          description: formData.description.trim() || "",
+          price: parseFloat(formData.price), // Precio calculado automáticamente
+          stock: formData.is_available ? 1 : 0, // 1 = disponible, 0 = no disponible
           product_type: "perfiles",
           weight_per_unit: parseFloat(formData.weight_per_unit),
           price_per_kg: parseFloat(formData.price_per_kg),
           stock_type: "availability",
           is_available: formData.is_available,
-          // Incluir campos adicionales si tienen valor
-          ...(formData.thickness && { thickness: formData.thickness }),
-          ...(formData.size && { size: formData.size }),
-        };
-
-        const descriptionWithMeta = {
-          description: formData.description.trim() || "",
-          meta: extraData,
-        };
-
-        productData = {
-          ...baseProductData,
-          description: JSON.stringify(descriptionWithMeta),
-          price: parseFloat(formData.price), // Precio calculado automáticamente
-          stock: formData.is_available ? 1 : 0, // 1 = disponible, 0 = no disponible
           price_group_id: formData.price_group_id || null,
+          thickness: formData.thickness || null,
+          size: formData.size || null,
         };
       } else if (formData.product_type === "chapas_conformadas") {
-        // Para chapas conformadas: guardar info extra en description como JSON
-        const extraData = {
+        productData = {
+          ...baseProductData,
+          description: formData.description.trim() || "",
+          price: parseFloat(formData.price), // Precio calculado automáticamente por metro
+          stock: formData.is_available ? 1 : 0, // 1 = disponible, 0 = no disponible
           product_type: "chapas_conformadas",
           kg_per_meter: parseFloat(formData.kg_per_meter),
           price_per_kg: parseFloat(formData.price_per_kg),
           stock_type: "availability",
           is_available: formData.is_available,
-          // Incluir campos adicionales si tienen valor
-          ...(formData.thickness && { thickness: formData.thickness }),
-          ...(formData.size && { size: formData.size }),
-        };
-
-        const descriptionWithMeta = {
-          description: formData.description.trim() || "",
-          meta: extraData,
-        };
-
-        productData = {
-          ...baseProductData,
-          description: JSON.stringify(descriptionWithMeta),
-          price: parseFloat(formData.price), // Precio calculado automáticamente por metro
-          stock: formData.is_available ? 1 : 0, // 1 = disponible, 0 = no disponible
           price_group_id: formData.price_group_id || null,
+          thickness: formData.thickness || null,
+          size: formData.size || null,
         };
       } else {
         // Para productos estándar

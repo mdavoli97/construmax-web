@@ -79,6 +79,10 @@ export default function EditarGrupoPrecioPage() {
   // Form states for group info
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [category, setCategory] = useState("");
+  const [categories, setCategories] = useState<
+    { slug: string; name: string }[]
+  >([]);
   const [isActive, setIsActive] = useState(true);
   const [thickness, setThickness] = useState(false);
   const [size, setSize] = useState(false);
@@ -102,6 +106,26 @@ export default function EditarGrupoPrecioPage() {
   );
   const [editPriceIsActive, setEditPriceIsActive] = useState(true);
 
+  // Load categories
+  const loadCategories = async () => {
+    try {
+      const response = await fetch("/api/categories");
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success) {
+          setCategories(
+            result.data.map((cat: any) => ({
+              slug: cat.slug,
+              name: cat.name,
+            }))
+          );
+        }
+      }
+    } catch (err) {
+      console.error("Error loading categories:", err);
+    }
+  };
+
   // Load price group data
   useEffect(() => {
     if (!groupId) return;
@@ -122,6 +146,7 @@ export default function EditarGrupoPrecioPage() {
         setPriceGroup(group);
         setName(group.name);
         setDescription(group.description || "");
+        setCategory(group.category || "");
         setIsActive(group.is_active);
         setThickness(group.thickness || false);
         setSize(group.size || false);
@@ -135,10 +160,11 @@ export default function EditarGrupoPrecioPage() {
     };
 
     fetchPriceGroup();
+    loadCategories();
   }, [groupId, addNotification, router]);
 
   const handleSave = async () => {
-    if (!name.trim()) {
+    if (!name.trim() || !category) {
       addNotification(
         "error",
         "Por favor completa todos los campos requeridos"
@@ -156,6 +182,7 @@ export default function EditarGrupoPrecioPage() {
         body: JSON.stringify({
           name: name.trim(),
           description: description.trim(),
+          category: category,
           is_active: isActive,
           thickness,
           size,
@@ -463,6 +490,28 @@ export default function EditarGrupoPrecioPage() {
                   placeholder="Nombre del grupo de precios"
                   disabled={saving}
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Categoría *
+                </label>
+                <Select
+                  value={category}
+                  onValueChange={(value) => setCategory(value)}
+                  disabled={saving}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Selecciona una categoría" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map((cat) => (
+                      <SelectItem key={cat.slug} value={cat.slug}>
+                        {cat.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div>

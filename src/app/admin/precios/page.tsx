@@ -55,6 +55,9 @@ export default function PreciosAdminPage() {
   const router = useRouter();
   const [priceGroups, setPriceGroups] = useState<PriceGroup[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<
+    { slug: string; name: string }[]
+  >([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [editingGroup, setEditingGroup] = useState<string | null>(null);
@@ -66,6 +69,7 @@ export default function PreciosAdminPage() {
   const [newGroupForm, setNewGroupForm] = useState({
     name: "",
     description: "",
+    category: "metalurgica",
     thickness: false,
     size: false,
   });
@@ -142,19 +146,6 @@ export default function PreciosAdminPage() {
     }
   };
 
-  const categories = [
-    "Chapas",
-    "Hierros",
-    "Aceros",
-    "Caños",
-    "Perfiles",
-    "Alambres",
-    "Mallas",
-    "Electrodos",
-    "Herramientas",
-    "Otros",
-  ];
-
   const currencies = [
     { value: "USD", label: "USD ($)", symbol: "$" },
     { value: "UYU", label: "UYU ($U)", symbol: "$U" },
@@ -163,7 +154,27 @@ export default function PreciosAdminPage() {
   useEffect(() => {
     loadPriceGroups();
     loadProducts();
+    loadCategories();
   }, []);
+
+  const loadCategories = async () => {
+    try {
+      const response = await fetch("/api/categories");
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success) {
+          setCategories(
+            result.data.map((cat: any) => ({
+              slug: cat.slug,
+              name: cat.name,
+            }))
+          );
+        }
+      }
+    } catch (err) {
+      console.error("Error loading categories:", err);
+    }
+  };
 
   const loadPriceGroups = async () => {
     try {
@@ -334,6 +345,7 @@ export default function PreciosAdminPage() {
         body: JSON.stringify({
           name: newGroupForm.name.trim(),
           description: newGroupForm.description.trim(),
+          category: newGroupForm.category,
           thickness: newGroupForm.thickness,
           size: newGroupForm.size,
           prices: newGroupPrices.map((price) => ({
@@ -356,6 +368,7 @@ export default function PreciosAdminPage() {
           setNewGroupForm({
             name: "",
             description: "",
+            category: "metalurgica",
             thickness: false,
             size: false,
           });
@@ -489,6 +502,31 @@ export default function PreciosAdminPage() {
                   Información Básica
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Categoría *
+                    </label>
+                    <Select
+                      value={newGroupForm.category}
+                      onValueChange={(value) =>
+                        setNewGroupForm((prev) => ({
+                          ...prev,
+                          category: value,
+                        }))
+                      }
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Selecciona una categoría" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categories.map((cat) => (
+                          <SelectItem key={cat.slug} value={cat.slug}>
+                            {cat.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Nombre del Grupo *
@@ -738,6 +776,7 @@ export default function PreciosAdminPage() {
                     setNewGroupForm({
                       name: "",
                       description: "",
+                      category: "metalurgica",
                       thickness: false,
                       size: false,
                     });

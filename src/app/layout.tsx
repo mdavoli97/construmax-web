@@ -66,7 +66,7 @@ export const metadata: Metadata = {
     canonical: "https://www.construmax.com.uy/",
   },
   verification: {
-    google: "VR3BjjW5XRkz9GM09GJ3wYu6fhE-K8MLL6L",
+    google: "VR3BjiW5XRkz9GM09GJ3wYu6fhE-K8MLL6Lfk4Sgzfk",
   },
   category: "construcción",
   classification: "Materiales de Construcción y Metalúrgica",

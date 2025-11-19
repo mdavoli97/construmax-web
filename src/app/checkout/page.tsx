@@ -358,8 +358,6 @@ export default function CheckoutPage() {
         whatsappService.generateAdminMessage(orderWithItems)
       );
 
-      console.log("WhatsApp URL generada:", customerWhatsAppURL);
-
       // Simular éxito según método de pago
       if (selectedPaymentMethod === "cash") {
         const sendWhatsApp = confirm(

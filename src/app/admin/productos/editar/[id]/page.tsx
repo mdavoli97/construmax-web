@@ -180,9 +180,9 @@ export default function EditProductPage() {
                 ? metadata.is_available
                 : true,
             price_group_id: currentPriceGroupId || "",
-            // Campos adicionales desde metadata
-            thickness: metadata?.thickness || "",
-            size: metadata?.size || "",
+            // Campos adicionales directos de la base de datos
+            thickness: productData.thickness || "",
+            size: productData.size || "",
           });
 
           // Cargar grupos de precios con sus precios múltiples
@@ -450,32 +450,14 @@ export default function EditProductPage() {
           description: formData.description.trim() || "",
           price: parseFloat(formData.price),
           stock: formData.is_available ? 1 : 0,
-          // Campos directos en la base de datos
           product_type: "perfiles",
           weight_per_unit: parseFloat(formData.weight_per_unit),
           price_per_kg: parseFloat(formData.price_per_kg),
           stock_type: "availability",
           is_available: formData.is_available,
           price_group_id: formData.price_group_id || null,
-          // Agregar metadata adicional al description si hay campos extra
-          ...(formData.thickness || formData.size
-            ? {
-                description: JSON.stringify({
-                  description: formData.description.trim() || "",
-                  meta: {
-                    product_type: "perfiles",
-                    weight_per_unit: parseFloat(formData.weight_per_unit),
-                    price_per_kg: parseFloat(formData.price_per_kg),
-                    stock_type: "availability",
-                    is_available: formData.is_available,
-                    ...(formData.thickness && {
-                      thickness: formData.thickness,
-                    }),
-                    ...(formData.size && { size: formData.size }),
-                  },
-                }),
-              }
-            : {}),
+          thickness: formData.thickness || null,
+          size: formData.size || null,
         };
       } else if (formData.product_type === "chapas_conformadas") {
         productData = {
@@ -483,32 +465,14 @@ export default function EditProductPage() {
           description: formData.description.trim() || "",
           price: parseFloat(formData.price),
           stock: formData.is_available ? 1 : 0,
-          // Campos directos en la base de datos
           product_type: "chapas_conformadas",
           kg_per_meter: parseFloat(formData.kg_per_meter),
           price_per_kg: parseFloat(formData.price_per_kg),
           stock_type: "availability",
           is_available: formData.is_available,
           price_group_id: formData.price_group_id || null,
-          // Agregar metadata adicional al description si hay campos extra
-          ...(formData.thickness || formData.size
-            ? {
-                description: JSON.stringify({
-                  description: formData.description.trim() || "",
-                  meta: {
-                    product_type: "chapas_conformadas",
-                    kg_per_meter: parseFloat(formData.kg_per_meter),
-                    price_per_kg: parseFloat(formData.price_per_kg),
-                    stock_type: "availability",
-                    is_available: formData.is_available,
-                    ...(formData.thickness && {
-                      thickness: formData.thickness,
-                    }),
-                    ...(formData.size && { size: formData.size }),
-                  },
-                }),
-              }
-            : {}),
+          thickness: formData.thickness || null,
+          size: formData.size || null,
         };
       } else {
         // Para productos estándar

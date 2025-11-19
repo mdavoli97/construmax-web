@@ -117,6 +117,7 @@ export async function POST(request: NextRequest) {
     const {
       name,
       description,
+      category = "metalurgica", // Default category
       thickness = false,
       size = false,
       prices = [], // Array of prices to create with the group
@@ -216,6 +217,7 @@ export async function POST(request: NextRequest) {
         .insert({
           name: name.trim(),
           description: description?.trim() || null,
+          category: category,
           is_active: true,
           thickness,
           size,
@@ -250,6 +252,7 @@ export async function POST(request: NextRequest) {
       .insert({
         name: name.trim(),
         description: description?.trim() || null,
+        category: category,
         is_active: true,
         thickness,
         size,

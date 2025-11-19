@@ -60,7 +60,6 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    console.log("Received order data:", body);
 
     const {
       customer_name,
@@ -107,8 +106,6 @@ export async function POST(request: NextRequest) {
       status: "pending",
     };
 
-    console.log("Order data to insert:", orderData);
-
     const { data: order, error: orderError } = await supabase
       .from("orders")
       .insert(orderData)
@@ -123,12 +120,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log("Order created successfully:", order);
-
-    // Crear los items de la orden
     if (items && items.length > 0) {
-      console.log("Items to insert:", items);
-
       const orderItems = items.map((item: OrderItem) => ({
         order_id: order.id,
         product_id: item.product_id,
@@ -137,8 +129,6 @@ export async function POST(request: NextRequest) {
         unit_price: item.unit_price,
         total_price: item.total_price,
       }));
-
-      console.log("Order items to insert:", orderItems);
 
       const { error: itemsError } = await supabase
         .from("order_items")
@@ -158,10 +148,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    console.log("Order and items created successfully");
     return NextResponse.json({ success: true, order }, { status: 201 });
   } catch (error) {
-    console.error("Error:", error);
     return NextResponse.json(
       { error: "Error interno del servidor" },
       { status: 500 }

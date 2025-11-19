@@ -26,13 +26,10 @@ export default function TestWhatsApp() {
       whatsappService.generateCustomerMessage(testOrder)
     );
 
-    console.log("URL generada:", url);
-
     // Probar con window.open
     const opened = window.open(url, "_blank");
 
     if (!opened) {
-      console.log("Popup bloqueado, probando con location.href");
       window.location.href = url;
     }
   };

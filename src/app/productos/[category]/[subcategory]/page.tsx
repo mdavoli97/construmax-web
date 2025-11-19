@@ -118,27 +118,12 @@ export default function ProductFamilyPage() {
 
   // Seleccionar producto preseleccionado cuando se cargan los productos
   useEffect(() => {
-    console.log("Preselected values:", {
-      productId: preselectedProductId,
-      thickness: preselectedThickness,
-      size: preselectedSize,
-    });
-
     if (preselectedProductId && products.length > 0) {
       const targetProduct = products.find((p) => p.id === preselectedProductId);
-      console.log("Found target product:", targetProduct);
 
       if (targetProduct) {
         setProduct(targetProduct);
         loadProductImages(targetProduct.id);
-
-        // Asegurar que los valores de thickness y size se mantengan
-        console.log(
-          "Setting preselected values - thickness:",
-          preselectedThickness,
-          "size:",
-          preselectedSize
-        );
       }
     }
   }, [preselectedProductId, products, preselectedThickness, preselectedSize]);
@@ -150,48 +135,28 @@ export default function ProductFamilyPage() {
       (preselectedThickness || preselectedSize) &&
       !hasValidatedPreselected
     ) {
-      console.log("=== Validating preselected values ===");
-      console.log("Preselected thickness:", preselectedThickness);
-      console.log("Preselected size:", preselectedSize);
-      console.log("Current selectedThickness:", selectedThickness);
-      console.log("Current selectedSize:", selectedSize);
-
       setIsApplyingPreselected(true);
 
       // Obtener opciones disponibles
       const availableThicknesses = getThicknessOptions();
       const allAvailableSizes = getSizeOptions(); // Todos los tamaños sin filtro
 
-      console.log("Available thicknesses:", availableThicknesses);
-      console.log("All available sizes:", allAvailableSizes);
-
       // Primero validar y establecer thickness
       let finalThickness = selectedThickness;
       if (preselectedThickness) {
         if (availableThicknesses.includes(preselectedThickness)) {
-          console.log(
-            "✅ Setting exact thickness match:",
-            preselectedThickness
-          );
           if (selectedThickness !== preselectedThickness) {
             setSelectedThickness(preselectedThickness);
           }
           finalThickness = preselectedThickness;
         } else {
-          console.log(
-            "❌ Preselected thickness not found, trying partial matches"
-          );
-          console.log("Looking for partial match in:", availableThicknesses);
           const matchingThickness = availableThicknesses.find((t) => {
             const match1 = t.includes(preselectedThickness);
             const match2 = preselectedThickness.includes(t);
-            console.log(
-              `Comparing "${t}" with "${preselectedThickness}": includes1=${match1}, includes2=${match2}`
-            );
+
             return match1 || match2;
           });
           if (matchingThickness) {
-            console.log("✅ Found partial thickness match:", matchingThickness);
             if (selectedThickness !== matchingThickness) {
               setSelectedThickness(matchingThickness);
             }
@@ -208,31 +173,19 @@ export default function ProductFamilyPage() {
         const sizesForThickness = finalThickness
           ? getSizeOptions(finalThickness)
           : allAvailableSizes;
-        console.log(
-          "Sizes for thickness",
-          finalThickness,
-          ":",
-          sizesForThickness
-        );
 
         if (sizesForThickness.includes(preselectedSize)) {
-          console.log("✅ Setting exact size match:", preselectedSize);
           if (selectedSize !== preselectedSize) {
             setSelectedSize(preselectedSize);
           }
         } else {
-          console.log("❌ Preselected size not found, trying partial matches");
-          console.log("Looking for partial match in:", sizesForThickness);
           const matchingSize = sizesForThickness.find((s) => {
             const match1 = s.includes(preselectedSize);
             const match2 = preselectedSize.includes(s);
-            console.log(
-              `Comparing "${s}" with "${preselectedSize}": includes1=${match1}, includes2=${match2}`
-            );
+
             return match1 || match2;
           });
           if (matchingSize) {
-            console.log("✅ Found partial size match:", matchingSize);
             if (selectedSize !== matchingSize) {
               setSelectedSize(matchingSize);
             }
@@ -241,8 +194,6 @@ export default function ProductFamilyPage() {
           }
         }
       }
-
-      console.log("=== End validation ===");
 
       // Marcar como validado para evitar ejecutar nuevamente
       setHasValidatedPreselected(true);
@@ -258,20 +209,6 @@ export default function ProductFamilyPage() {
     preselectedSize,
     hasValidatedPreselected,
   ]);
-
-  // Debug useEffect para monitorear el estado del Select
-  useEffect(() => {
-    console.log("🔍 Select state debug:", {
-      selectedSize,
-      selectedThickness,
-      hasThickness: hasThickness(),
-      isDisabled: hasThickness() && !selectedThickness,
-      availableSizes:
-        !hasThickness() || selectedThickness
-          ? getSizeOptions(hasThickness() ? selectedThickness : undefined)
-          : [],
-    });
-  }, [selectedSize, selectedThickness]);
 
   // Actualizar producto seleccionado cuando cambian las dimensiones
   useEffect(() => {
@@ -335,9 +272,6 @@ export default function ProductFamilyPage() {
   useEffect(() => {
     // No ejecutar durante la preselección inicial o si aún no hemos validado
     if (isApplyingPreselected || !hasValidatedPreselected) {
-      console.log(
-        "Skipping size cleanup - applying preselected values or not validated yet"
-      );
       return;
     }
 
@@ -345,12 +279,9 @@ export default function ProductFamilyPage() {
       // Verificar si la combinación actual sigue siendo válida
       const availableSizes = getSizeOptions(selectedThickness);
       if (!availableSizes.includes(selectedSize)) {
-        console.log("Clearing size - not available for current thickness");
         setSelectedSize("");
       }
     } else if (selectedThickness && products.length > 0) {
-      // Solo limpiar tamaño si ya pasamos la validación inicial
-      console.log("Clearing size - thickness changed after validation");
       setSelectedSize("");
     }
   }, [
@@ -389,8 +320,6 @@ export default function ProductFamilyPage() {
           (group: PriceGroup) => group.id === subcategory
         );
         setPriceGroup(selectedPriceGroup);
-
-        console.log(productsData);
 
         // Filtrar productos que pertenecen a este grupo de precios
         const familyProducts = productsData.filter(
@@ -496,7 +425,6 @@ export default function ProductFamilyPage() {
   };
 
   const getThicknessOptions = () => {
-    console.log("Getting thickness options", products);
     const thicknesses = products
       .map((p) => p.thickness)
       .filter(
@@ -730,8 +658,6 @@ export default function ProductFamilyPage() {
     );
   }
 
-  console.log(products);
-
   if (error || !priceGroup || products.length === 0) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -942,10 +868,6 @@ export default function ProductFamilyPage() {
                       <Select
                         value={selectedSize}
                         onValueChange={(value) => {
-                          console.log(
-                            "Select onValueChange triggered with:",
-                            value
-                          );
                           setSelectedSize(value);
                         }}
                         disabled={hasThickness() && !selectedThickness}
