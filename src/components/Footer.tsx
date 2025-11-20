@@ -21,21 +21,21 @@ export default function Footer() {
               </span>
             </div>
             <p className="text-gray-300 mb-4 text-sm sm:text-base">
-              Tu proveedor confiable de materiales de construcción y metalúrgica
-              en Uruguay. Calidad, precio y servicio desde 2025.
+              Materiales de construcción, barraca de hierro, portland. Encontrá
+              los mejores precios del mercado en ConstruMax.
             </p>
             <div className="space-y-2">
               <div className="flex items-center text-gray-300 text-sm sm:text-base">
                 <PhoneIcon className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-orange-500 flex-shrink-0" />
-                <span>+598 2 123 4567</span>
+                <span>+598 97 971 111</span>
               </div>
               <div className="flex items-center text-gray-300 text-sm sm:text-base">
                 <EnvelopeIcon className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-orange-500 flex-shrink-0" />
-                <span>info@barraca.com.uy</span>
+                <span>curlamsas@gmail.com.uy</span>
               </div>
               <div className="flex items-start text-gray-300 text-sm sm:text-base">
                 <MapPinIcon className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-orange-500 mt-0.5 flex-shrink-0" />
-                <span>Av. 18 de Julio 1234, Montevideo, Uruguay</span>
+                <span>José Mármol 615, Montevideo, Uruguay</span>
               </div>
             </div>
           </div>

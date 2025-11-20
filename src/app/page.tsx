@@ -218,14 +218,13 @@ export default async function HomePage() {
                 Sobre ConstruMax
               </h2>
               <p className="text-gray-600 mb-4 text-sm sm:text-base">
-                Con más de 25 años de experiencia en el mercado uruguayo, somos
-                tu proveedor confiable de materiales de construcción y
-                metalúrgica.
+                Materiales de construcción, barraca de hierro, portland.
+                Encontrá los mejores precios del mercado en ConstruMax.
               </p>
               <p className="text-gray-600 mb-6 text-sm sm:text-base">
                 Ofrecemos una amplia gama de productos de calidad, desde cemento
-                y hierros hasta herramientas y materiales eléctricos, siempre
-                con los mejores precios y un servicio excepcional.
+                y hierros hasta herramientas, siempre con los mejores precios y
+                un servicio excepcional.
               </p>
               <Link
                 href="/productos"

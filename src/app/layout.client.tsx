@@ -64,7 +64,7 @@ export default function ClientLayout({
               url: "https://www.construmax.com.uy/",
               logo: "https://www.construmax.com.uy/logo.png",
               description:
-                "Proveedor de materiales de construcción y metalúrgica en Uruguay desde 2025",
+                "Materiales de construcción, barraca de hierro, portland. Encontrá los mejores precios del mercado en ConstruMax.",
               foundingDate: "2025",
               address: {
                 "@type": "PostalAddress",
