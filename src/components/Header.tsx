@@ -192,6 +192,21 @@ const MobileNav = ({
                   ))}
               </nav>
             </div>
+
+            <div className="space-y-3">
+              <h4 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">
+                ACERCA DE
+              </h4>
+              <nav className="space-y-1">
+                <Link
+                  href="/about"
+                  className="flex items-center py-3 px-4 text-sm text-gray-700 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors font-medium"
+                  onClick={() => setOpen(false)}
+                >
+                  ℹ️ Acerca del Desarrollador
+                </Link>
+              </nav>
+            </div>
           </div>
         </div>
 

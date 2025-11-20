@@ -78,14 +78,6 @@ export default function Footer() {
                   Metalúrgica
                 </Link>
               </li>
-              <li>
-                <Link
-                  href="/productos/herramientas"
-                  className="text-gray-300 hover:text-orange-500 transition-colors text-sm sm:text-base"
-                >
-                  Herramientas
-                </Link>
-              </li>
             </ul>
           </div>
 
@@ -97,34 +89,18 @@ export default function Footer() {
             <ul className="space-y-2">
               <li>
                 <Link
-                  href="/productos/electricidad"
+                  href="/productos/construccion"
                   className="text-gray-300 hover:text-orange-500 transition-colors text-sm sm:text-base"
                 >
-                  Electricidad
+                  Construcción
                 </Link>
               </li>
               <li>
                 <Link
-                  href="/productos/plomeria"
+                  href="/productos/metalurgica"
                   className="text-gray-300 hover:text-orange-500 transition-colors text-sm sm:text-base"
                 >
-                  Plomería
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/carrito"
-                  className="text-gray-300 hover:text-orange-500 transition-colors text-sm sm:text-base"
-                >
-                  Carrito
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/checkout"
-                  className="text-gray-300 hover:text-orange-500 transition-colors text-sm sm:text-base"
-                >
-                  Checkout
+                  Metalúrgica
                 </Link>
               </li>
             </ul>
@@ -133,24 +109,17 @@ export default function Footer() {
 
         {/* Bottom Bar */}
         <div className="border-t border-gray-800 mt-6 sm:mt-8 pt-6 sm:pt-8">
-          <div className="flex flex-col sm:flex-row justify-between items-center space-y-4 sm:space-y-0">
-            <p className="text-gray-400 text-xs sm:text-sm text-center sm:text-left">
-              © 2024 ConstruMax. Todos los derechos reservados.
+          <div className="text-center">
+            <p className="text-gray-400 text-xs sm:text-sm">
+              CONSTRUMAX 2024 © - Desarrollado y gestionado por{" "}
+              <Link
+                href="/about"
+                target="_blank"
+                className="text-gray-300 hover:text-orange-400 transition-colors"
+              >
+                MDEV
+              </Link>
             </p>
-            <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-6">
-              <Link
-                href="/terminos"
-                className="text-gray-400 hover:text-orange-500 text-xs sm:text-sm transition-colors text-center"
-              >
-                Términos y Condiciones
-              </Link>
-              <Link
-                href="/privacidad"
-                className="text-gray-400 hover:text-orange-500 text-xs sm:text-sm transition-colors text-center"
-              >
-                Política de Privacidad
-              </Link>
-            </div>
           </div>
         </div>
       </div>
