@@ -1,19 +1,14 @@
 "use client";
 
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { usePathname } from "next/navigation";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const inter = Inter({
   subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+  display: "swap",
 });
 
 export default function ClientLayout({
@@ -104,9 +99,9 @@ export default function ClientLayout({
         />
       </head>
       <body
-        className={`${geistSans.variable} ${
-          geistMono.variable
-        } antialiased min-h-screen ${isAdminRoute ? "" : "flex flex-col"}`}
+        className={`${inter.className} antialiased min-h-screen ${
+          isAdminRoute ? "" : "flex flex-col"
+        }`}
       >
         {!isAdminRoute && <Header />}
         <main className={isAdminRoute ? "" : "flex-1 w-full"}>{children}</main>

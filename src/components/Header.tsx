@@ -332,112 +332,87 @@ export default function Header() {
   ];
 
   return (
-    <header className="bg-white shadow-lg sticky top-0 z-50">
+    <header className="bg-white border-b border-gray-100 sticky top-0 z-50 backdrop-blur-lg bg-white/95">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
+        <div className="flex justify-between items-center h-20">
           {/* Logo */}
           <div className="flex-shrink-0">
             <Link href="/" className="flex items-center">
               <Image
                 src="/logo.svg"
                 alt="ConstruMax Logo"
-                className="bg-slate-600 p-2 rounded-lg"
                 width={150}
                 height={50}
+                className="bg-gray-800 p-2 rounded-xl shadow-sm"
               />
             </Link>
           </div>
 
-          {/* Desktop Navigation with shadcn Navigation Menu */}
-          <div className="hidden lg:flex">
-            <NavigationMenu>
-              <NavigationMenuList>
-                {loading ? (
-                  <NavigationMenuItem>
-                    <NavigationMenuLink
-                      className={cn(
-                        navigationMenuTriggerStyle(),
-                        "text-gray-400"
-                      )}
-                    >
-                      Cargando...
-                    </NavigationMenuLink>
-                  </NavigationMenuItem>
-                ) : (
-                  navigationStructure.map((item) => (
-                    <NavigationMenuItem key={item.name}>
-                      {item.type === "link" ? (
-                        <NavigationMenuLink
-                          asChild
-                          className={cn(
-                            navigationMenuTriggerStyle(),
-                            "text-gray-700 hover:text-orange-600 hover:bg-orange-50"
-                          )}
-                        >
-                          <Link href={item.href!}>{item.name}</Link>
-                        </NavigationMenuLink>
-                      ) : (
-                        <>
-                          <NavigationMenuTrigger className="text-gray-700 hover:text-orange-600 hover:bg-orange-50 data-[state=open]:bg-orange-50 data-[state=open]:text-orange-600">
-                            {item.name}
-                          </NavigationMenuTrigger>
-                          <NavigationMenuContent>
-                            <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
-                              {item.items?.map((subItem) => (
-                                <ListItem
-                                  key={subItem.title}
-                                  title={subItem.title}
-                                  href={subItem.href}
-                                >
-                                  {subItem.description}
-                                </ListItem>
-                              ))}
-                            </ul>
-                          </NavigationMenuContent>
-                        </>
-                      )}
-                    </NavigationMenuItem>
-                  ))
-                )}
-              </NavigationMenuList>
-            </NavigationMenu>
+          {/* Center Search Bar - Prominente */}
+          <div className="hidden lg:flex flex-1 max-w-2xl mx-8">
+            <div className="relative w-full">
+              <button
+                onClick={() => setSearchOpen(true)}
+                className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-500 bg-gray-50 hover:bg-gray-100 rounded-xl transition-all duration-200 border border-gray-200 hover:border-gray-300 focus:border-orange-300 focus:ring-2 focus:ring-orange-100 group"
+              >
+                <MagnifyingGlassIcon className="h-5 w-5 text-gray-400 group-hover:text-orange-500 transition-colors" />
+                <span className="flex-1 text-left font-medium">
+                  Buscar productos, categorías...
+                </span>
+              </button>
+            </div>
           </div>
 
-          {/* Search, Cart and Mobile menu button */}
-          <div className="flex items-center space-x-2 sm:space-x-4">
-            {/* Search Button */}
-            <button
-              onClick={() => setSearchOpen(true)}
-              className="hidden sm:flex items-center gap-2 px-3 py-2 text-sm text-gray-500 bg-gray-50 rounded-md hover:bg-gray-100 transition-colors border border-gray-200 min-w-[200px]"
+          {/* Desktop Navigation */}
+          <div className="hidden lg:flex items-center space-x-4">
+            {/* Elegant Phone Number */}
+            <a
+              href="tel:+59897971111"
+              className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-orange-50 to-orange-100 border border-orange-200 rounded-lg hover:from-orange-100 hover:to-orange-200 hover:border-orange-300 transition-all duration-200 group"
             >
-              <MagnifyingGlassIcon className="h-4 w-4" />
-              <span className="flex-1 text-left">Buscar productos...</span>
-              <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
-                <span className="text-xs">⌘</span>K
-              </kbd>
-            </button>
+              <div className="w-6 h-6 bg-gradient-to-r from-orange-500 to-orange-600 rounded-md flex items-center justify-center">
+                <svg
+                  className="w-3 h-3 text-white"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
+                </svg>
+              </div>
+              <div className="text-left">
+                <p className="text-xs font-bold text-gray-900 group-hover:text-orange-700 transition-colors">
+                  +598 97971111
+                </p>
+              </div>
+            </a>
+          </div>
 
+          {/* Right side actions */}
+          <div className="flex items-center space-x-3">
             {/* Mobile Search Button */}
             <button
               onClick={() => setSearchOpen(true)}
-              className="sm:hidden p-2 text-gray-700 hover:text-orange-600 transition-colors rounded-md hover:bg-orange-50"
+              className="lg:hidden p-2.5 text-gray-700 hover:text-orange-600 transition-colors rounded-xl hover:bg-orange-50"
             >
               <MagnifyingGlassIcon className="h-6 w-6" />
               <span className="sr-only">Buscar</span>
             </button>
 
+            {/* Cart Button */}
             <Link
               href="/carrito"
-              className="relative p-2 text-gray-700 hover:text-orange-600 transition-colors rounded-md hover:bg-orange-50"
+              className="relative p-2.5 text-gray-700 hover:text-orange-600 transition-colors rounded-xl hover:bg-orange-50 group"
             >
               <ShoppingCartIcon className="h-6 w-6" />
               {totalItems > 0 && (
                 <span
-                  className={`absolute -top-1 -right-1 bg-orange-600 text-white rounded-full h-5 w-5 flex items-center justify-center ${
-                    totalItems > 99 ? "text-[10px]" : "text-xs"
-                  } font-medium`}
+                  className={`absolute -top-1 -right-1 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-full flex items-center justify-center font-bold shadow-lg ${
+                    Math.floor(totalItems) > 99
+                      ? "h-6 w-8 text-xs px-1"
+                      : "h-5 w-5 text-xs"
+                  }`}
                 >
-                  {totalItems > 99 ? "+99" : totalItems}
+                  {Math.floor(totalItems) > 99 ? "99+" : Math.floor(totalItems)}
                 </span>
               )}
             </Link>

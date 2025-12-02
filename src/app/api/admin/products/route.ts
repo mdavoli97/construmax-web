@@ -68,18 +68,6 @@ export async function POST(request: NextRequest) {
         icon: "⚙️",
         slug: "metalurgica",
       },
-      {
-        name: "Herramientas",
-        description: "Herramientas manuales y eléctricas",
-        icon: "🔧",
-        slug: "herramientas",
-      },
-      {
-        name: "Herrería",
-        description: "Materiales de herrería",
-        icon: "⚡",
-        slug: "herreria",
-      },
     ];
 
     // Verificar si la categoría específica existe

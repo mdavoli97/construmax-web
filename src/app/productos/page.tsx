@@ -16,7 +16,7 @@ export const metadata: Metadata = {
     "catálogo construcción Uruguay",
     "productos construcción completo",
     "materiales construcción variedad",
-    "cemento hierros herramientas",
+    "portland hierros herramientas",
     "electricidad plomería construcción",
     "materiales obra completos",
   ],

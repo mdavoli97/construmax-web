@@ -70,48 +70,51 @@ export default function SubcategoryCard({
   return (
     <div
       onClick={onClick}
-      className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 cursor-pointer group overflow-hidden"
+      className="bg-white rounded-xl shadow-md border-2 border-gray-200 hover:shadow-xl hover:border-orange-300 transition-all duration-300 cursor-pointer group overflow-hidden flex flex-col h-full"
     >
       {/* Image Container */}
-      <div className="aspect-square bg-gray-100 relative overflow-hidden">
+      <div className="aspect-[4/3] bg-gradient-to-br from-gray-50 via-white to-gray-100 relative overflow-hidden">
         {firstProduct ? (
-          <ProductImage
-            src={firstProduct.primary_image || ""}
-            alt={firstProduct.name}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-          />
+          <>
+            <ProductImage
+              src={firstProduct.primary_image || ""}
+              alt={firstProduct.name}
+              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out"
+            />
+            {/* Overlay gradient */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+          </>
         ) : (
-          <div className="w-full h-full flex items-center justify-center bg-gray-200">
-            <span className="text-6xl text-gray-400">📦</span>
+          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
+            <div className="text-center">
+              <span className="text-5xl text-gray-300 mb-2 block">📦</span>
+              <p className="text-xs text-gray-400 font-medium">Sin imagen</p>
+            </div>
           </div>
         )}
       </div>
 
       {/* Content */}
-      <div className="p-4">
+      <div className="p-4 flex flex-col flex-grow">
         {/* Title */}
-        <h3 className="font-semibold text-gray-900 text-lg mb-2 line-clamp-2 group-hover:text-orange-600 transition-colors min-h-[3.5rem] flex items-start">
+        <h3 className="font-bold text-gray-900 text-base mb-2 line-clamp-2 group-hover:text-orange-600 transition-colors duration-300 leading-tight">
           {priceGroup.name}
         </h3>
 
-        {/* Description */}
-        {priceGroup.description && (
-          <p className="text-sm text-gray-600 mb-3 line-clamp-2">
-            {priceGroup.description}
-          </p>
-        )}
-
         {/* Product Count */}
-        <p className="text-sm text-gray-500 mb-3">
+        <p className="text-sm text-gray-600 mb-3">
           {products.length} producto{products.length !== 1 ? "s" : ""}
         </p>
 
         {/* Price Range */}
         <div className="mb-4">
-          <div className="text-xl font-bold text-gray-900">
+          <div className="text-lg font-bold text-gray-900">
             {formatPriceRange()}
           </div>
         </div>
+
+        {/* Spacer to push button to bottom */}
+        <div className="flex-grow"></div>
 
         {/* Action Button */}
         <button
@@ -119,9 +122,9 @@ export default function SubcategoryCard({
             e.stopPropagation();
             onClick();
           }}
-          className="w-full bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-md transition-colors duration-200 flex items-center justify-center gap-2 group-hover:bg-orange-700"
+          className="w-full inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-orange-600 bg-white border border-orange-200 rounded-lg hover:border-orange-300 hover:bg-orange-50 transition-all duration-200"
         >
-          <EyeIcon className="h-4 w-4" />
+          <EyeIcon className="h-4 w-4 mr-2" />
           Ver Productos
         </button>
       </div>

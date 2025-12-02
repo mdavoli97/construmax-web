@@ -263,58 +263,56 @@ export default function ProductCard({ product }: ProductCardProps) {
   return (
     <div
       onClick={handleCardClick}
-      className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow cursor-pointer flex flex-col h-full"
+      className="bg-white rounded-xl shadow-md border-2 border-gray-200 overflow-hidden hover:shadow-xl hover:border-orange-300 transition-all duration-300 cursor-pointer flex flex-col h-full group"
     >
+      {" "}
       {/* Product Image */}
-      <div className="relative h-40 sm:h-48 bg-gray-200">
+      <div className="relative h-20 sm:h-24 bg-gradient-to-br from-gray-50 via-white to-orange-50/30 overflow-hidden">
         <ProductImage
           src={product.primary_image}
           alt={product.name}
           fill
-          className="rounded-t-lg"
+          className="object-cover group-hover:scale-110 transition-transform duration-700 ease-out"
           sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
         />
+        {/* Image overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
         {product.featured && (
-          <div className="absolute top-2 left-2 bg-orange-500 text-white px-2 py-1 rounded text-xs font-medium z-10">
-            Destacado
+          <div className="absolute top-4 left-4 bg-gradient-to-r from-orange-500 to-orange-600 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-lg backdrop-blur-sm border border-orange-400/30">
+            ⭐ Destacado
           </div>
         )}
       </div>
-
       {/* Product Info */}
-      <div className="p-3 sm:p-4 flex flex-col flex-grow">
-        <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2 h-10 sm:h-13 line-clamp-2 flex items-start">
+      <div className="p-3 flex flex-col flex-grow">
+        <h3 className="text-sm font-bold text-gray-900 mb-2 line-clamp-2 leading-tight group-hover:text-orange-600 transition-colors duration-300">
           {product.name}
         </h3>
 
-        <p className="text-gray-600 text-xs sm:text-sm mb-3 line-clamp-2">
-          {getCleanDescription(product)}
-        </p>
-
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-3 gap-1">
-          <span className="text-lg sm:text-2xl font-bold text-orange-600">
+        <div className="flex flex-col gap-1 mb-2">
+          <span className="text-base font-bold bg-gradient-to-r from-orange-600 via-orange-500 to-orange-700 bg-clip-text text-transparent">
             {formatPriceWithIVA(product.price)}
           </span>
-          <span className="text-xs sm:text-sm text-gray-500">
+          <span className="text-xs text-gray-500 font-medium">
             {getPriceUnit(product)}
           </span>
         </div>
 
         {product.brand && (
-          <p className="text-xs sm:text-sm text-gray-500 mb-3">
-            Marca: {product.brand}
+          <p className="text-xs text-gray-600 mb-2 font-medium">
+            {product.brand}
           </p>
         )}
 
         <div className="flex items-center justify-center mb-3">
           <span
-            className={`text-xs sm:text-sm font-medium px-2 sm:px-3 py-1 rounded-full ${
+            className={`text-xs font-bold px-2 py-1 rounded-md ${
               getStockDisplay(product) === "Disponible"
-                ? "bg-green-100 text-green-800"
-                : "bg-red-100 text-red-800"
+                ? "bg-green-100 text-green-700"
+                : "bg-red-100 text-red-700"
             }`}
           >
-            {getStockDisplay(product)}
+            {getStockDisplay(product) === "Disponible" ? "✓" : "✗"}
           </span>
         </div>
 
@@ -325,12 +323,10 @@ export default function ProductCard({ product }: ProductCardProps) {
         <button
           onClick={handleAddToCart}
           disabled={!isAvailable(product)}
-          className="w-full bg-orange-600 text-white py-2 px-3 sm:px-4 rounded-md hover:bg-orange-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center justify-center space-x-2 text-sm sm:text-base"
+          className="w-full inline-flex items-center justify-center px-3 py-2 text-xs font-medium text-orange-600 bg-white border border-orange-200 rounded-lg hover:border-orange-300 hover:bg-orange-50 transition-all duration-200 disabled:bg-gray-100 disabled:text-gray-400 disabled:border-gray-200 disabled:cursor-not-allowed"
         >
-          <EyeIcon className="h-4 w-4 sm:h-5 sm:w-5" />
-          <span>
-            {!isAvailable(product) ? "No disponible" : "Ver producto"}
-          </span>
+          <EyeIcon className="h-3 w-3 mr-1" />
+          <span>{!isAvailable(product) ? "No disponible" : "Ver"}</span>
         </button>
 
         {currentQuantity > 0 && (
