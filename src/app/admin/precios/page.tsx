@@ -65,6 +65,8 @@ export default function PreciosAdminPage() {
   const [newCurrency, setNewCurrency] = useState<"USD" | "UYU">("USD");
   const [editThickness, setEditThickness] = useState(false);
   const [editSize, setEditSize] = useState(false);
+  const [editPresentation, setEditPresentation] = useState(false);
+  const [editLength, setEditLength] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newGroupForm, setNewGroupForm] = useState({
     name: "",
@@ -72,6 +74,8 @@ export default function PreciosAdminPage() {
     category: "metalurgica",
     thickness: false,
     size: false,
+    presentation: false,
+    length: false,
   });
 
   // Form states for new price in creation
@@ -246,6 +250,8 @@ export default function PreciosAdminPage() {
         currency?: "USD" | "UYU";
         thickness?: boolean;
         size?: boolean;
+        presentation?: boolean;
+        length?: boolean;
       } = {
         price_per_kg: newPriceValue,
       };
@@ -255,9 +261,11 @@ export default function PreciosAdminPage() {
         updateData.currency = newCurrencyValue;
       }
 
-      // Incluir thickness y size
+      // Incluir thickness, size, presentation y length
       updateData.thickness = editThickness;
       updateData.size = editSize;
+      updateData.presentation = editPresentation;
+      updateData.length = editLength;
 
       const response = await fetch(`/api/admin/price-groups/${groupId}`, {
         method: "PUT",
@@ -348,6 +356,8 @@ export default function PreciosAdminPage() {
           category: newGroupForm.category,
           thickness: newGroupForm.thickness,
           size: newGroupForm.size,
+          presentation: newGroupForm.presentation,
+          length: newGroupForm.length,
           prices: newGroupPrices.map((price) => ({
             name: price.name.trim(),
             description: price.description.trim(),
@@ -371,6 +381,8 @@ export default function PreciosAdminPage() {
             category: "metalurgica",
             thickness: false,
             size: false,
+            presentation: false,
+            length: false,
           });
           setNewGroupPrices([]);
           setShowCreateForm(false);
@@ -612,6 +624,46 @@ export default function PreciosAdminPage() {
                       Mostrar campo "Tamaño"
                     </label>
                   </div>
+                  <div className="flex items-center">
+                    <input
+                      id="presentation-checkbox"
+                      type="checkbox"
+                      checked={newGroupForm.presentation}
+                      onChange={(e) =>
+                        setNewGroupForm((prev) => ({
+                          ...prev,
+                          presentation: e.target.checked,
+                        }))
+                      }
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    />
+                    <label
+                      htmlFor="presentation-checkbox"
+                      className="ml-2 block text-sm text-gray-900"
+                    >
+                      Mostrar campo "Presentación"
+                    </label>
+                  </div>
+                  <div className="flex items-center">
+                    <input
+                      id="length-checkbox"
+                      type="checkbox"
+                      checked={newGroupForm.length}
+                      onChange={(e) =>
+                        setNewGroupForm((prev) => ({
+                          ...prev,
+                          length: e.target.checked,
+                        }))
+                      }
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    />
+                    <label
+                      htmlFor="length-checkbox"
+                      className="ml-2 block text-sm text-gray-900"
+                    >
+                      Mostrar campo "Largo"
+                    </label>
+                  </div>
                 </div>
               </div>
 
@@ -779,6 +831,8 @@ export default function PreciosAdminPage() {
                       category: "metalurgica",
                       thickness: false,
                       size: false,
+                      presentation: false,
+                      length: false,
                     });
                     setNewGroupPrices([]);
                     setShowAddPriceForm(false);
@@ -903,6 +957,9 @@ export default function PreciosAdminPage() {
                                 setNewCurrency("USD");
                                 setEditThickness(false);
                                 setEditSize(false);
+                                setEditPresentation(false);
+                                setEditLength(false);
+                                setEditLength(false);
                               }}
                               className="text-gray-600 hover:text-gray-900"
                             >
@@ -1084,6 +1141,26 @@ export default function PreciosAdminPage() {
                             />
                             <span>Tamaño</span>
                           </label>
+                          <label className="flex items-center space-x-2 text-sm">
+                            <input
+                              type="checkbox"
+                              checked={editPresentation}
+                              onChange={(e) =>
+                                setEditPresentation(e.target.checked)
+                              }
+                              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            />
+                            <span>Presentación</span>
+                          </label>
+                          <label className="flex items-center space-x-2 text-sm">
+                            <input
+                              type="checkbox"
+                              checked={editLength}
+                              onChange={(e) => setEditLength(e.target.checked)}
+                              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            />
+                            <span>Largo</span>
+                          </label>
                         </div>
                         <button
                           onClick={() =>
@@ -1102,7 +1179,20 @@ export default function PreciosAdminPage() {
                       </div>
                     ) : (
                       <div className="flex items-center justify-between">
-                        <span className="text-lg font-bold text-green-600">
+                        <span
+                          className="text-lg font-bold text-green-600 cursor-pointer hover:text-green-700"
+                          onClick={() => {
+                            setEditingGroup(group.id);
+                            setNewPrice(group.price_per_kg?.toString() || "");
+                            setNewCurrency(group.currency || "USD");
+                            setEditThickness((group as any).thickness || false);
+                            setEditSize((group as any).size || false);
+                            setEditPresentation(
+                              (group as any).presentation || false
+                            );
+                            setEditLength((group as any).length || false);
+                          }}
+                        >
                           {group.currency
                             ? currencies.find((c) => c.value === group.currency)
                                 ?.symbol || "$"
@@ -1147,6 +1237,24 @@ export default function PreciosAdminPage() {
                     >
                       Tamaño: {(group as any).size ? "Sí" : "No"}
                     </span>
+                    <span
+                      className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                        (group as any).presentation
+                          ? "bg-green-100 text-green-800"
+                          : "bg-gray-100 text-gray-800"
+                      }`}
+                    >
+                      Presentación: {(group as any).presentation ? "Sí" : "No"}
+                    </span>
+                    <span
+                      className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                        (group as any).length
+                          ? "bg-green-100 text-green-800"
+                          : "bg-gray-100 text-gray-800"
+                      }`}
+                    >
+                      Largo: {(group as any).length ? "Sí" : "No"}
+                    </span>
                   </div>
 
                   <div className="flex items-center justify-between">
@@ -1189,6 +1297,8 @@ export default function PreciosAdminPage() {
                           setNewCurrency("USD");
                           setEditThickness(false);
                           setEditSize(false);
+                          setEditPresentation(false);
+                          setEditLength(false);
                         }}
                         className="w-full px-3 py-2 text-sm text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200"
                       >

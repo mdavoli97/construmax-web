@@ -5,6 +5,7 @@ import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { usePathname } from "next/navigation";
+import { ExchangeRateProvider } from "@/contexts/ExchangeRateContext";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -103,9 +104,13 @@ export default function ClientLayout({
           isAdminRoute ? "" : "flex flex-col"
         }`}
       >
-        {!isAdminRoute && <Header />}
-        <main className={isAdminRoute ? "" : "flex-1 w-full"}>{children}</main>
-        {!isAdminRoute && <Footer />}
+        <ExchangeRateProvider>
+          {!isAdminRoute && <Header />}
+          <main className={isAdminRoute ? "" : "flex-1 w-full"}>
+            {children}
+          </main>
+          {!isAdminRoute && <Footer />}
+        </ExchangeRateProvider>
       </body>
     </html>
   );

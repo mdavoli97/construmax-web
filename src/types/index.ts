@@ -32,6 +32,8 @@ export interface Product {
   // Nuevos campos específicos basados en configuración del grupo de precios
   thickness?: string; // Campo espesor cuando el grupo de precios lo requiere
   size?: string; // Campo tamaño cuando el grupo de precios lo requiere
+  presentation?: string; // Campo presentación cuando el grupo de precios lo requiere
+  length?: string; // Campo largo cuando el grupo de precios lo requiere
   // Información del grupo de precios (cuando está disponible)
   price_group?: {
     id: string;
@@ -93,6 +95,8 @@ export interface PriceGroup {
   is_active: boolean;
   thickness?: boolean; // Nuevo campo para mostrar input de espesor
   size?: boolean; // Nuevo campo para mostrar input de tamaño
+  presentation?: boolean; // Nuevo campo para mostrar input de presentación
+  length?: boolean; // Nuevo campo para mostrar input de largo
   created_at: string;
   updated_at: string;
 }

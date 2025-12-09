@@ -27,6 +27,22 @@ export default function CarritoPage() {
   // Hook para cotización de dólar
   const { exchangeRate } = useExchangeRate();
 
+  // Función para calcular el total del carrito en UYU considerando diferentes monedas
+  const calculateCartTotalInUYU = () => {
+    if (!exchangeRate) return 0;
+
+    return cart.items.reduce((total, item) => {
+      const itemTotal = item.product.price * item.quantity;
+      const currency = item.product.price_group?.currency || "USD";
+
+      if (currency === "UYU") {
+        return total + itemTotal;
+      } else {
+        return total + convertUSDToUYU(itemTotal, exchangeRate.usd_to_uyu);
+      }
+    }, 0);
+  };
+
   // Cargar imágenes de los productos del carrito
   useEffect(() => {
     const loadProductImages = async () => {
@@ -63,29 +79,45 @@ export default function CarritoPage() {
     }
   }, [cart.items]);
 
-  const formatPrice = (priceInUSD: number) => {
+  const formatPrice = (price: number, currency: "USD" | "UYU" = "USD") => {
+    // Si ya está en pesos, devolver directamente
+    if (currency === "UYU") {
+      return formatUYU(price);
+    }
+
+    // Si está en dólares y no hay tasa de cambio, mostrar en USD
     if (!exchangeRate) {
-      // Fallback: mostrar en USD si no hay cotización
       return new Intl.NumberFormat("en-US", {
         style: "currency",
         currency: "USD",
-      }).format(priceInUSD);
+      }).format(price);
     }
 
-    const priceInUYU = convertUSDToUYU(priceInUSD, exchangeRate.usd_to_uyu);
+    // Convertir de USD a UYU
+    const priceInUYU = convertUSDToUYU(price, exchangeRate.usd_to_uyu);
     return formatUYU(priceInUYU);
   };
 
-  const formatPriceWithIVA = (priceInUSD: number) => {
+  const formatPriceWithIVA = (
+    price: number,
+    currency: "USD" | "UYU" = "USD"
+  ) => {
+    // Si ya está en pesos, aplicar IVA directamente
+    if (currency === "UYU") {
+      const priceWithIVA = price * 1.22; // 22% IVA
+      return formatUYU(priceWithIVA);
+    }
+
+    // Si está en dólares y no hay tasa de cambio, mostrar en USD
     if (!exchangeRate) {
-      // Fallback: mostrar en USD si no hay cotización
       return new Intl.NumberFormat("en-US", {
         style: "currency",
         currency: "USD",
-      }).format(priceInUSD * 1.22);
+      }).format(price * 1.22);
     }
 
-    const priceInUYU = convertUSDToUYU(priceInUSD, exchangeRate.usd_to_uyu);
+    // Convertir de USD a UYU y aplicar IVA
+    const priceInUYU = convertUSDToUYU(price, exchangeRate.usd_to_uyu);
     const priceWithIVA = priceInUYU * 1.22; // 22% IVA
     return formatUYU(priceWithIVA);
   };
@@ -197,8 +229,8 @@ export default function CarritoPage() {
   const isShippingFree = () => {
     if (!exchangeRate) return false;
 
-    const totalWithIVAInUYU =
-      convertUSDToUYU(cart.total, exchangeRate.usd_to_uyu) * 1.22;
+    const totalInUYU = calculateCartTotalInUYU();
+    const totalWithIVAInUYU = totalInUYU * 1.22;
     return totalWithIVAInUYU >= 50000;
   };
 
@@ -428,7 +460,8 @@ export default function CarritoPage() {
                       <div className="text-right">
                         <div className="text-base sm:text-lg font-semibold text-gray-900">
                           {formatPriceWithIVA(
-                            item.product.price * item.quantity
+                            item.product.price * item.quantity,
+                            item.product.price_group?.currency || "USD"
                           )}
                         </div>
                         <div className="text-xs text-gray-500">
@@ -463,19 +496,23 @@ export default function CarritoPage() {
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Subtotal (sin IVA):</span>
                   <span className="text-gray-900">
-                    {formatPrice(cart.total)}
+                    {exchangeRate ? formatUYU(calculateCartTotalInUYU()) : "-"}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">IVA (22%):</span>
                   <span className="text-gray-900">
-                    {formatPrice(cart.total * 0.22)}
+                    {exchangeRate
+                      ? formatUYU(calculateCartTotalInUYU() * 0.22)
+                      : "-"}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Subtotal con IVA:</span>
                   <span className="text-gray-900">
-                    {formatPriceWithIVA(cart.total)}
+                    {exchangeRate
+                      ? formatUYU(calculateCartTotalInUYU() * 1.22)
+                      : "-"}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
@@ -488,9 +525,13 @@ export default function CarritoPage() {
                   <div className="flex justify-between text-lg font-semibold">
                     <span>Total:</span>
                     <span className="text-orange-600">
-                      {isShippingFree()
-                        ? formatPriceWithIVA(cart.total)
-                        : formatPriceWithIVA(cart.total + getShippingCostUSD())}
+                      {exchangeRate
+                        ? isShippingFree()
+                          ? formatUYU(calculateCartTotalInUYU() * 1.22)
+                          : formatUYU(
+                              calculateCartTotalInUYU() * 1.22 + 700 * 1.22
+                            )
+                        : "-"}
                     </span>
                   </div>
                   <div className="text-xs text-gray-500 text-right mt-1">

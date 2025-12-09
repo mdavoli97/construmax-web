@@ -44,6 +44,8 @@ export default function ProductFamilyPage() {
   const preselectedProductId = searchParams.get("productId");
   const preselectedThickness = searchParams.get("thickness");
   const preselectedSize = searchParams.get("size");
+  const preselectedPresentation = searchParams.get("presentation");
+  const preselectedLength = searchParams.get("length");
 
   // Estados principales del producto
   const [product, setProduct] = useState<Product | null>(null); // Producto seleccionado por dimensiones
@@ -64,6 +66,12 @@ export default function ProductFamilyPage() {
   const [selectedThickness, setSelectedThickness] = useState<string>(
     preselectedThickness || ""
   );
+  const [selectedPresentation, setSelectedPresentation] = useState<string>(
+    preselectedPresentation || ""
+  );
+  const [selectedLength, setSelectedLength] = useState<string>(
+    preselectedLength || ""
+  );
 
   // Estados para carrito (copiados de la vista original)
   const [quantity, setQuantity] = useState<string | number>(1);
@@ -83,7 +91,9 @@ export default function ProductFamilyPage() {
   const updateURL = (
     productId: string | null,
     thickness: string | null,
-    size: string | null
+    size: string | null,
+    presentation: string | null,
+    length: string | null
   ) => {
     // No actualizar URL si estamos aplicando preselección desde search params
     if (isApplyingPreselected) return;
@@ -102,13 +112,21 @@ export default function ProductFamilyPage() {
       params.set("size", size);
     }
 
+    if (presentation) {
+      params.set("presentation", presentation);
+    }
+
+    if (length) {
+      params.set("length", length);
+    }
+
     const queryString = params.toString();
     const newURL = queryString
       ? `${window.location.pathname}?${queryString}`
       : window.location.pathname;
 
-    // Usar replace para no agregar al historial del navegador
-    router.replace(newURL);
+    // Usar window.history.replaceState para actualizar URL sin recargar la página
+    window.history.replaceState(null, "", newURL);
   };
 
   // Cargar datos al montar el componente
@@ -207,6 +225,8 @@ export default function ProductFamilyPage() {
     products,
     preselectedThickness,
     preselectedSize,
+    preselectedPresentation,
+    preselectedLength,
     hasValidatedPreselected,
   ]);
 
@@ -216,15 +236,17 @@ export default function ProductFamilyPage() {
 
     const needsThickness = hasThickness();
     const needsSize = hasSize();
+    const needsPresentation = hasPresentation();
+    const needsLength = hasLength();
 
     // Si no hay dimensiones, seleccionar el primer producto
-    if (!needsThickness && !needsSize) {
+    if (!needsThickness && !needsSize && !needsPresentation && !needsLength) {
       const firstProduct = products[0];
       setProduct(firstProduct);
       if (firstProduct) {
         loadProductImages(firstProduct.id);
         // Actualizar URL con el producto seleccionado
-        updateURL(firstProduct.id, null, null);
+        updateURL(firstProduct.id, null, null, null, null);
       }
       return;
     }
@@ -232,26 +254,40 @@ export default function ProductFamilyPage() {
     // Buscar producto basado en las dimensiones disponibles
     let selectedProduct = null;
 
-    if (needsThickness && needsSize) {
-      // Ambas dimensiones requeridas
-      if (selectedThickness && selectedSize) {
-        selectedProduct = products.find(
-          (p) => p.size === selectedSize && p.thickness === selectedThickness
-        );
+    // Construir criterios de búsqueda dinámicamente
+    selectedProduct = products.find((p) => {
+      let matches = true;
+
+      if (
+        needsThickness &&
+        (!selectedThickness || p.thickness !== selectedThickness)
+      ) {
+        matches = false;
       }
-    } else if (needsThickness && !needsSize) {
-      // Solo espesor requerido
-      if (selectedThickness) {
-        selectedProduct = products.find(
-          (p) => p.thickness === selectedThickness
-        );
+
+      if (needsSize && (!selectedSize || p.size !== selectedSize)) {
+        matches = false;
       }
-    } else if (!needsThickness && needsSize) {
-      // Solo tamaño requerido
-      if (selectedSize) {
-        selectedProduct = products.find((p) => p.size === selectedSize);
+
+      if (
+        needsPresentation &&
+        (!selectedPresentation || p.presentation !== selectedPresentation)
+      ) {
+        matches = false;
       }
-    }
+
+      if (needsLength && (!selectedLength || p.length !== selectedLength)) {
+        matches = false;
+      }
+
+      return (
+        matches &&
+        (!needsThickness || selectedThickness) &&
+        (!needsSize || selectedSize) &&
+        (!needsPresentation || selectedPresentation) &&
+        (!needsLength || selectedLength)
+      );
+    });
 
     setProduct(selectedProduct || null);
 
@@ -259,14 +295,37 @@ export default function ProductFamilyPage() {
     if (selectedProduct) {
       loadProductImages(selectedProduct.id);
       // Actualizar URL con el producto y dimensiones seleccionadas
-      updateURL(selectedProduct.id, selectedThickness, selectedSize);
+      updateURL(
+        selectedProduct.id,
+        selectedThickness,
+        selectedSize,
+        selectedPresentation,
+        selectedLength
+      );
     } else {
       // Si no hay producto seleccionado pero hay dimensiones, limpiar productId de la URL
-      if (selectedThickness || selectedSize) {
-        updateURL(null, selectedThickness, selectedSize);
+      if (
+        selectedThickness ||
+        selectedSize ||
+        selectedPresentation ||
+        selectedLength
+      ) {
+        updateURL(
+          null,
+          selectedThickness,
+          selectedSize,
+          selectedPresentation,
+          selectedLength
+        );
       }
     }
-  }, [selectedSize, selectedThickness, products]);
+  }, [
+    selectedSize,
+    selectedThickness,
+    selectedPresentation,
+    selectedLength,
+    products,
+  ]);
 
   // Limpiar selección de tamaño cuando cambia el espesor (pero no durante preselección)
   useEffect(() => {
@@ -484,38 +543,96 @@ export default function ProductFamilyPage() {
     });
   };
 
+  const getPresentationOptions = (forThickness?: string, forSize?: string) => {
+    let filteredProducts = products;
+
+    // Filtrar por espesor si se especifica
+    if (forThickness) {
+      filteredProducts = filteredProducts.filter(
+        (p) => p.thickness === forThickness
+      );
+    }
+
+    // Filtrar por tamaño si se especifica
+    if (forSize) {
+      filteredProducts = filteredProducts.filter((p) => p.size === forSize);
+    }
+
+    const presentations = filteredProducts
+      .map((p) => p.presentation)
+      .filter(
+        (presentation): presentation is string =>
+          Boolean(presentation) && presentation?.trim() !== ""
+      );
+
+    return [...new Set(presentations)].sort();
+  };
+
+  const getLengthOptions = (
+    forThickness?: string,
+    forSize?: string,
+    forPresentation?: string
+  ) => {
+    let filteredProducts = products;
+
+    // Filtrar por espesor si se especifica
+    if (forThickness) {
+      filteredProducts = filteredProducts.filter(
+        (p) => p.thickness === forThickness
+      );
+    }
+
+    // Filtrar por tamaño si se especifica
+    if (forSize) {
+      filteredProducts = filteredProducts.filter((p) => p.size === forSize);
+    }
+
+    // Filtrar por presentación si se especifica
+    if (forPresentation) {
+      filteredProducts = filteredProducts.filter(
+        (p) => p.presentation === forPresentation
+      );
+    }
+
+    const lengths = filteredProducts
+      .map((p) => p.length)
+      .filter(
+        (length): length is string => Boolean(length) && length?.trim() !== ""
+      );
+
+    return [...new Set(lengths)].sort();
+  };
+
   // Funciones para determinar qué dimensiones están disponibles
   const hasThickness = () => priceGroup?.thickness === true;
   const hasSize = () => priceGroup?.size === true;
+  const hasPresentation = () => priceGroup?.presentation === true;
+  const hasLength = () => priceGroup?.length === true;
 
   // Función para determinar si es necesario seleccionar dimensiones
   const needsDimensionSelection = () => {
-    return hasThickness() || hasSize();
+    return hasThickness() || hasSize() || hasPresentation() || hasLength();
   };
 
   // Función para determinar si todas las dimensiones requeridas están seleccionadas
   const areRequiredDimensionsSelected = () => {
     const needsThickness = hasThickness();
     const needsSize = hasSize();
+    const needsPresentation = hasPresentation();
+    const needsLength = hasLength();
 
-    if (!needsThickness && !needsSize) {
+    if (!needsThickness && !needsSize && !needsPresentation && !needsLength) {
       // Si no hay dimensiones, seleccionar el primer producto disponible
       return products.length > 0;
     }
 
-    if (needsThickness && needsSize) {
-      return selectedThickness && selectedSize;
-    }
+    // Verificar que todas las dimensiones requeridas estén seleccionadas
+    if (needsThickness && !selectedThickness) return false;
+    if (needsSize && !selectedSize) return false;
+    if (needsPresentation && !selectedPresentation) return false;
+    if (needsLength && !selectedLength) return false;
 
-    if (needsThickness && !needsSize) {
-      return selectedThickness;
-    }
-
-    if (!needsThickness && needsSize) {
-      return selectedSize;
-    }
-
-    return false;
+    return true;
   };
 
   // Funciones copiadas de ProductDetailPage
@@ -789,15 +906,25 @@ export default function ProductFamilyPage() {
               </div>
               {!product && needsDimensionSelection() && (
                 <div className="text-sm text-gray-500 mt-1">
-                  {hasThickness() &&
-                    hasSize() &&
-                    "Selecciona el espesor y tamaño para ver el precio exacto"}
-                  {hasThickness() &&
-                    !hasSize() &&
-                    "Selecciona el espesor para ver el precio exacto"}
-                  {!hasThickness() &&
-                    hasSize() &&
-                    "Selecciona el tamaño para ver el precio exacto"}
+                  {(() => {
+                    const requiredDimensions = [];
+                    if (hasThickness()) requiredDimensions.push("espesor");
+                    if (hasSize()) requiredDimensions.push("tamaño");
+                    if (hasPresentation())
+                      requiredDimensions.push("presentación");
+                    if (hasLength()) requiredDimensions.push("largo");
+
+                    if (requiredDimensions.length === 1) {
+                      return `Selecciona el ${requiredDimensions[0]} para ver el precio exacto`;
+                    } else if (requiredDimensions.length === 2) {
+                      return `Selecciona el ${requiredDimensions[0]} y ${requiredDimensions[1]} para ver el precio exacto`;
+                    } else if (requiredDimensions.length === 3) {
+                      return `Selecciona el ${requiredDimensions[0]}, ${requiredDimensions[1]} y ${requiredDimensions[2]} para ver el precio exacto`;
+                    } else if (requiredDimensions.length === 4) {
+                      return `Selecciona el ${requiredDimensions[0]}, ${requiredDimensions[1]}, ${requiredDimensions[2]} y ${requiredDimensions[3]} para ver el precio exacto`;
+                    }
+                    return "Selecciona las opciones para ver el precio exacto";
+                  })()}
                 </div>
               )}
             </div>
@@ -900,6 +1027,108 @@ export default function ProductFamilyPage() {
                       </Select>
                     </div>
                   )}
+
+                  {/* Presentation Selector - Solo mostrar si está habilitado */}
+                  {hasPresentation() && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Presentación
+                        {((hasThickness() && !selectedThickness) ||
+                          (hasSize() && !selectedSize)) && (
+                          <span className="text-xs text-gray-500 ml-2">
+                            (Selecciona primero otras opciones)
+                          </span>
+                        )}
+                      </label>
+                      <div className="flex flex-wrap gap-2">
+                        {getPresentationOptions(
+                          hasThickness() ? selectedThickness : undefined,
+                          hasSize() ? selectedSize : undefined
+                        ).map((presentation) => (
+                          <Badge
+                            key={presentation}
+                            variant={
+                              selectedPresentation === presentation
+                                ? "default"
+                                : "outline"
+                            }
+                            className={`cursor-pointer hover:bg-primary/90 text-base font-bold px-4 py-1.5 ${
+                              selectedPresentation === presentation
+                                ? "bg-primary text-primary-foreground"
+                                : "hover:bg-accent hover:text-accent-foreground"
+                            } ${
+                              (hasThickness() && !selectedThickness) ||
+                              (hasSize() && !selectedSize)
+                                ? "opacity-50 cursor-not-allowed pointer-events-none"
+                                : ""
+                            }`}
+                            onClick={() => {
+                              if (
+                                (!hasThickness() || selectedThickness) &&
+                                (!hasSize() || selectedSize)
+                              ) {
+                                setSelectedPresentation(presentation);
+                              }
+                            }}
+                          >
+                            {presentation}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Length Selector - Solo mostrar si está habilitado */}
+                  {hasLength() && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Largo
+                        {((hasThickness() && !selectedThickness) ||
+                          (hasSize() && !selectedSize) ||
+                          (hasPresentation() && !selectedPresentation)) && (
+                          <span className="text-xs text-gray-500 ml-2">
+                            (Selecciona primero otras opciones)
+                          </span>
+                        )}
+                      </label>
+                      <div className="flex flex-wrap gap-2">
+                        {getLengthOptions(
+                          hasThickness() ? selectedThickness : undefined,
+                          hasSize() ? selectedSize : undefined,
+                          hasPresentation() ? selectedPresentation : undefined
+                        ).map((length) => (
+                          <Badge
+                            key={length}
+                            variant={
+                              selectedLength === length ? "default" : "outline"
+                            }
+                            className={`cursor-pointer hover:bg-primary/90 text-base font-bold px-4 py-1.5 ${
+                              selectedLength === length
+                                ? "bg-primary text-primary-foreground"
+                                : "hover:bg-accent hover:text-accent-foreground"
+                            } ${
+                              (hasThickness() && !selectedThickness) ||
+                              (hasSize() && !selectedSize) ||
+                              (hasPresentation() && !selectedPresentation)
+                                ? "opacity-50 cursor-not-allowed pointer-events-none"
+                                : ""
+                            }`}
+                            onClick={() => {
+                              if (
+                                (!hasThickness() || selectedThickness) &&
+                                (!hasSize() || selectedSize) &&
+                                (!hasPresentation() || selectedPresentation)
+                              ) {
+                                setSelectedLength(length);
+                              }
+                            }}
+                          >
+                            {length}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -936,6 +1165,22 @@ export default function ProductFamilyPage() {
                       hasSize() &&
                       !selectedSize &&
                       "• Elige un tamaño"}
+                    {hasThickness() &&
+                      selectedThickness &&
+                      hasSize() &&
+                      selectedSize &&
+                      hasPresentation() &&
+                      !selectedPresentation &&
+                      "• Elige una presentación"}
+                    {hasThickness() &&
+                      selectedThickness &&
+                      hasSize() &&
+                      selectedSize &&
+                      hasPresentation() &&
+                      selectedPresentation &&
+                      hasLength() &&
+                      !selectedLength &&
+                      "• Elige un largo"}
                   </p>
                 </div>
               )}

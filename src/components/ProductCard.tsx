@@ -1,28 +1,21 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { EyeIcon } from "@heroicons/react/24/outline";
 import { Product } from "@/types";
 import { useItemQuantity } from "@/hooks/useItemQuantity";
 import ProductImage from "./ProductImage";
-import { getUSDToUYURate, formatPriceWithCurrency } from "@/lib/currency";
+import { formatPriceWithCurrency } from "@/lib/currency";
+import { useExchangeRate } from "@/contexts/ExchangeRateContext";
 
 interface ProductCardProps {
   product: Product;
 }
 
 export default function ProductCard({ product }: ProductCardProps) {
-  const [exchangeRate, setExchangeRate] = useState<number | null>(null);
+  const { exchangeRate } = useExchangeRate();
   const router = useRouter();
   const currentQuantity = useItemQuantity(product.id);
-
-  // Obtener cotización del dólar al cargar el componente
-  useEffect(() => {
-    getUSDToUYURate()
-      .then((data) => setExchangeRate(data.usd_to_uyu))
-      .catch(console.error);
-  }, []);
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation(); // Prevenir navegación cuando se hace click en agregar al carrito

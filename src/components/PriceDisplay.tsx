@@ -1,5 +1,8 @@
-import React, { useState, useEffect } from "react";
-import { getUSDToUYURate, formatPriceWithCurrency } from "@/lib/currency";
+"use client";
+
+import React from "react";
+import { formatPriceWithCurrency } from "@/lib/currency";
+import { useExchangeRate } from "@/contexts/ExchangeRateContext";
 
 interface PriceDisplayProps {
   price: number;
@@ -16,25 +19,7 @@ export default function PriceDisplay({
   showOriginalPrice = false,
   size = "md",
 }: PriceDisplayProps) {
-  const [exchangeRate, setExchangeRate] = useState<number | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    // Solo obtener tasa de cambio si el precio está en USD
-    if (currency === "USD") {
-      getUSDToUYURate()
-        .then((data) => {
-          setExchangeRate(data.usd_to_uyu);
-          setLoading(false);
-        })
-        .catch((error) => {
-          console.error("Error fetching exchange rate:", error);
-          setLoading(false);
-        });
-    } else {
-      setLoading(false);
-    }
-  }, [currency]);
+  const { exchangeRate, loading } = useExchangeRate();
 
   const getSizeClasses = () => {
     switch (size) {

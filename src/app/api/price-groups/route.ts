@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
     let query = supabase
       .from("price_groups")
       .select(
-        "id, name, price_per_kg, currency, category, description, thickness, size"
+        "id, name, price_per_kg, currency, category, description, thickness, size, presentation, length"
       )
       .eq("is_active", true);
 

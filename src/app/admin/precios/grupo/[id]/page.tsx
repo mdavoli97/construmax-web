@@ -42,6 +42,8 @@ interface PriceGroup {
   is_active: boolean;
   thickness?: boolean;
   size?: boolean;
+  presentation?: boolean;
+  length?: boolean;
   created_at: string;
   updated_at: string;
   products: Product[];
@@ -86,6 +88,8 @@ export default function EditarGrupoPrecioPage() {
   const [isActive, setIsActive] = useState(true);
   const [thickness, setThickness] = useState(false);
   const [size, setSize] = useState(false);
+  const [presentation, setPresentation] = useState(false);
+  const [length, setLength] = useState(false);
 
   // Form states for new price
   const [showAddPriceForm, setShowAddPriceForm] = useState(false);
@@ -150,6 +154,9 @@ export default function EditarGrupoPrecioPage() {
         setIsActive(group.is_active);
         setThickness(group.thickness || false);
         setSize(group.size || false);
+        setPresentation(group.presentation || false);
+        setLength(group.length || false);
+        setLength(group.length || false);
       } catch (error) {
         console.error("Error fetching price group:", error);
         addNotification("error", "Error al cargar el grupo de precios");
@@ -186,6 +193,8 @@ export default function EditarGrupoPrecioPage() {
           is_active: isActive,
           thickness,
           size,
+          presentation,
+          length,
         }),
       });
 
@@ -577,6 +586,40 @@ export default function EditarGrupoPrecioPage() {
                     className="text-sm font-medium text-gray-700"
                   >
                     Requiere tamaño
+                  </label>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="presentation"
+                    checked={presentation}
+                    onChange={(e) => setPresentation(e.target.checked)}
+                    disabled={saving}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                  <label
+                    htmlFor="presentation"
+                    className="text-sm font-medium text-gray-700"
+                  >
+                    Requiere presentación
+                  </label>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="length"
+                    checked={length}
+                    onChange={(e) => setLength(e.target.checked)}
+                    disabled={saving}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                  <label
+                    htmlFor="length"
+                    className="text-sm font-medium text-gray-700"
+                  >
+                    Requiere largo
                   </label>
                 </div>
               </div>

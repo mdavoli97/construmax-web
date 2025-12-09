@@ -42,6 +42,8 @@ export default function NewProductPage() {
       category: string;
       thickness?: boolean;
       size?: boolean;
+      presentation?: boolean;
+      length?: boolean;
       price_group_prices?: Array<{
         id: string;
         name: string;
@@ -121,6 +123,8 @@ export default function NewProductPage() {
     // Campos adicionales basados en configuración del grupo de precios
     thickness: "",
     size: "",
+    presentation: "",
+    length: "",
   });
 
   // Categorías se cargan dinámicamente del API
@@ -376,6 +380,8 @@ export default function NewProductPage() {
           price_group_id: formData.price_group_id || null,
           thickness: formData.thickness || null,
           size: formData.size || null,
+          presentation: formData.presentation || null,
+          length: formData.length || null,
         };
       } else if (formData.product_type === "chapas_conformadas") {
         productData = {
@@ -391,6 +397,8 @@ export default function NewProductPage() {
           price_group_id: formData.price_group_id || null,
           thickness: formData.thickness || null,
           size: formData.size || null,
+          presentation: formData.presentation || null,
+          length: formData.length || null,
         };
       } else {
         // Para productos estándar
@@ -1014,8 +1022,21 @@ export default function NewProductPage() {
                       const selectedGroup = priceGroups.find(
                         (g) => g.id === formData.price_group_id
                       );
+                      console.log(
+                        "🐛 DEBUG PERFILES - selectedGroup:",
+                        selectedGroup
+                      );
+                      console.log("🐛 DEBUG PERFILES - conditions:", {
+                        thickness: selectedGroup?.thickness,
+                        size: selectedGroup?.size,
+                        presentation: selectedGroup?.presentation,
+                        length: selectedGroup?.length,
+                      });
                       return selectedGroup &&
-                        (selectedGroup.thickness || selectedGroup.size) ? (
+                        (selectedGroup.thickness ||
+                          selectedGroup.size ||
+                          selectedGroup.presentation ||
+                          selectedGroup.length) ? (
                         <div className="mt-4 bg-white p-4 rounded-lg border border-blue-300">
                           <h4 className="text-sm font-medium text-blue-900 mb-3">
                             Información Adicional
@@ -1056,6 +1077,44 @@ export default function NewProductPage() {
                                   value={formData.size}
                                   onChange={handleInputChange}
                                   placeholder='Ej: 50x50mm, 2"x2", etc.'
+                                />
+                              </div>
+                            )}
+                            {selectedGroup.presentation && (
+                              <div>
+                                <label
+                                  htmlFor="presentation"
+                                  className="block text-sm font-medium text-gray-800 mb-2"
+                                >
+                                  Presentación
+                                </label>
+                                <Input
+                                  type="text"
+                                  id="presentation"
+                                  name="presentation"
+                                  disabled={productCreated}
+                                  value={formData.presentation}
+                                  onChange={handleInputChange}
+                                  placeholder="Ej: 6m, rollo, paquete, etc."
+                                />
+                              </div>
+                            )}
+                            {selectedGroup.length && (
+                              <div>
+                                <label
+                                  htmlFor="length"
+                                  className="block text-sm font-medium text-gray-800 mb-2"
+                                >
+                                  Largo
+                                </label>
+                                <Input
+                                  type="text"
+                                  id="length"
+                                  name="length"
+                                  disabled={productCreated}
+                                  value={formData.length}
+                                  onChange={handleInputChange}
+                                  placeholder="Ej: 6m, 12m, etc."
                                 />
                               </div>
                             )}
@@ -1190,8 +1249,21 @@ export default function NewProductPage() {
                       const selectedGroup = priceGroups.find(
                         (g) => g.id === formData.price_group_id
                       );
+                      console.log(
+                        "🐛 DEBUG CHAPAS - selectedGroup:",
+                        selectedGroup
+                      );
+                      console.log("🐛 DEBUG CHAPAS - conditions:", {
+                        thickness: selectedGroup?.thickness,
+                        size: selectedGroup?.size,
+                        presentation: selectedGroup?.presentation,
+                        length: selectedGroup?.length,
+                      });
                       return selectedGroup &&
-                        (selectedGroup.thickness || selectedGroup.size) ? (
+                        (selectedGroup.thickness ||
+                          selectedGroup.size ||
+                          selectedGroup.presentation ||
+                          selectedGroup.length) ? (
                         <div className="mt-4 bg-white p-4 rounded-lg border border-green-300">
                           <h4 className="text-sm font-medium text-green-900 mb-3">
                             Información Adicional
@@ -1232,6 +1304,44 @@ export default function NewProductPage() {
                                   value={formData.size}
                                   onChange={handleInputChange}
                                   placeholder='Ej: 50x50mm, 2"x2", etc.'
+                                />
+                              </div>
+                            )}
+                            {selectedGroup.presentation && (
+                              <div>
+                                <label
+                                  htmlFor="presentation"
+                                  className="block text-sm font-medium text-gray-800 mb-2"
+                                >
+                                  Presentación
+                                </label>
+                                <Input
+                                  type="text"
+                                  id="presentation"
+                                  name="presentation"
+                                  disabled={productCreated}
+                                  value={formData.presentation}
+                                  onChange={handleInputChange}
+                                  placeholder="Ej: 6m, rollo, paquete, etc."
+                                />
+                              </div>
+                            )}
+                            {selectedGroup.length && (
+                              <div>
+                                <label
+                                  htmlFor="length"
+                                  className="block text-sm font-medium text-gray-800 mb-2"
+                                >
+                                  Largo
+                                </label>
+                                <Input
+                                  type="text"
+                                  id="length"
+                                  name="length"
+                                  disabled={productCreated}
+                                  value={formData.length}
+                                  onChange={handleInputChange}
+                                  placeholder="Ej: 6m, 12m, etc."
                                 />
                               </div>
                             )}

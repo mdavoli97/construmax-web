@@ -24,6 +24,8 @@ export async function GET(request: NextRequest) {
         is_active,
         thickness,
         size,
+        presentation,
+        length,
         created_at,
         updated_at
       `);
@@ -120,6 +122,8 @@ export async function POST(request: NextRequest) {
       category = "metalurgica", // Default category
       thickness = false,
       size = false,
+      presentation = false,
+      length = false,
       prices = [], // Array of prices to create with the group
       // Legacy support
       price_per_kg,
@@ -221,6 +225,8 @@ export async function POST(request: NextRequest) {
           is_active: true,
           thickness,
           size,
+          presentation,
+          length,
         })
         .select()
         .single();
@@ -256,6 +262,8 @@ export async function POST(request: NextRequest) {
         is_active: true,
         thickness,
         size,
+        presentation,
+        length,
       })
       .select()
       .single();

@@ -227,6 +227,8 @@ export const productService = {
     is_available?: boolean;
     thickness?: string | null;
     size?: string | null;
+    presentation?: string | null;
+    length?: string | null;
   }): Promise<Product> {
     // Obtener token de autenticación si está disponible
     const token =
@@ -279,6 +281,8 @@ export const productService = {
       is_available?: boolean;
       thickness?: string | null;
       size?: string | null;
+      presentation?: string | null;
+      length?: string | null;
     }
   ): Promise<Product> {
     // Obtener token de autenticación si está disponible

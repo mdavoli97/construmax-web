@@ -25,6 +25,8 @@ export async function GET(
         is_active,
         thickness,
         size,
+        presentation,
+        length,
         created_at,
         updated_at,
         products:products(
@@ -118,7 +120,16 @@ export async function PUT(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { name, description, category, is_active, thickness, size } = body;
+    const {
+      name,
+      description,
+      category,
+      is_active,
+      thickness,
+      size,
+      presentation,
+      length,
+    } = body;
 
     // Verificar que el grupo existe
     const { data: existingGroup, error: fetchError } = await supabase
@@ -165,6 +176,8 @@ export async function PUT(
       is_active?: boolean;
       thickness?: boolean;
       size?: boolean;
+      presentation?: boolean;
+      length?: boolean;
     } = { updated_at: new Date().toISOString() };
     if (name !== undefined) updateData.name = name;
     if (description !== undefined) updateData.description = description;
@@ -172,6 +185,8 @@ export async function PUT(
     if (is_active !== undefined) updateData.is_active = is_active;
     if (thickness !== undefined) updateData.thickness = thickness;
     if (size !== undefined) updateData.size = size;
+    if (presentation !== undefined) updateData.presentation = presentation;
+    if (length !== undefined) updateData.length = length;
 
     const { data: updatedGroup, error: updateError } = await supabase
       .from("price_groups")
