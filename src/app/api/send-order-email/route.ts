@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { Resend } from "resend";
 import OrderConfirmationEmail from "../../../../emails/OrderConfirmation";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Inicializar Resend solo si existe la API key
+const resend = process.env.RESEND_API_KEY
+  ? new Resend(process.env.RESEND_API_KEY)
+  : null;
 
 interface OrderItem {
   name: string;
@@ -27,6 +30,18 @@ interface SendOrderEmailRequest {
 
 export async function POST(request: NextRequest) {
   try {
+    // Verificar si Resend está configurado
+    if (!resend) {
+      console.warn("Resend API key no configurada - email desactivado");
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Email service not configured",
+        },
+        { status: 503 }
+      );
+    }
+
     const body: SendOrderEmailRequest = await request.json();
 
     const {
