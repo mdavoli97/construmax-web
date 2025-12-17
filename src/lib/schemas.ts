@@ -13,7 +13,7 @@ export const organizationSchema = {
   url: "https://www.construmax.com.uy/",
   logo: "https://www.construmax.com.uy/logo.png",
   description:
-    "Materiales de construcción, barraca de hierro, portland. Encontrá los mejores precios del mercado en ConstruMax.",
+    "Materiales de construcción, barraca de hierros, portland. Encontrá los mejores precios del mercado en ConstruMax.",
   foundingDate: "2025",
   address: {
     "@type": "PostalAddress",
@@ -194,7 +194,7 @@ export const websiteSchema = {
   alternateName: "ConstruMax Uruguay",
   url: "https://www.construmax.com.uy/",
   description:
-    "Materiales de construcción, barraca de hierro, portland. Encontrá los mejores precios del mercado en ConstruMax.",
+    "Materiales de construcción, barraca de hierros, portland. Encontrá los mejores precios del mercado en ConstruMax.",
   publisher: {
     "@type": "Organization",
     name: "ConstruMax",

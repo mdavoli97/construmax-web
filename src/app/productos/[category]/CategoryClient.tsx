@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import ProductCard from "@/components/ProductCard";
 import SubcategoryCard from "@/components/SubcategoryCard";
 import { Product, Category, PriceGroup, ProductGroup } from "@/types";
+import { LoaderFive } from "@/components/ui/loader";
 
 interface CategoryClientProps {
   category: string;
@@ -169,8 +170,7 @@ export default function CategoryClient({
         {/* Loading message */}
         {loading && (
           <div className="text-center py-12">
-            <div className="text-2xl mb-4">⏳</div>
-            <p className="text-gray-600">Cargando subcategorías...</p>
+            <LoaderFive text="Cargando subcategorías..." />
           </div>
         )}
 

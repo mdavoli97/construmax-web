@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { LoaderFive } from "@/components/ui/loader";
 import Link from "next/link";
 import { productService } from "@/lib/services";
 import { Product } from "@/types";
@@ -8,12 +9,9 @@ import {
   PlusIcon,
   BoxIcon,
   TagIcon,
-  ShoppingCartIcon,
   DollarSignIcon,
-  AlertTriangleIcon,
   TrendingUpIcon,
   DatabaseIcon,
-  SettingsIcon,
   ImageIcon,
   PackageIcon,
   BarChart3Icon,
@@ -121,7 +119,7 @@ export default function AdminDashboard() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+        <LoaderFive text="Cargando dashboard..." />
       </div>
     );
   }
@@ -160,12 +158,9 @@ export default function AdminDashboard() {
                     )}
                   </>
                 ) : (
-                  <>
-                    <p className="text-base sm:text-lg font-bold text-gray-700">
-                      Cargando...
-                    </p>
-                    <p className="text-xs text-gray-500">Conectando con BCU</p>
-                  </>
+                  <div className="flex flex-col items-center">
+                    <LoaderFive text="Conectando con BCU..." />
+                  </div>
                 )}
               </div>
             </div>

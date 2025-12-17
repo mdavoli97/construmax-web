@@ -11,6 +11,7 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { MagnifyingGlassIcon } from "@heroicons/react/24/outline";
+import { LoaderFive } from "@/components/ui/loader";
 import { Product, PriceGroup } from "@/types";
 import ProductImage from "@/components/ProductImage";
 
@@ -102,7 +103,7 @@ export default function SearchDialog({ open, setOpen }: SearchDialogProps) {
         <CommandEmpty>
           {loading ? (
             <div className="flex items-center justify-center py-6">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
+              <LoaderFive text="Buscando..." />
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center py-6">

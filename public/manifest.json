@@ -1,7 +1,7 @@
 {
   "name": "ConstruMax - Materiales de Construcción Uruguay",
   "short_name": "ConstruMax",
-  "description": "Materiales de construcción, barraca de hierro, portland. Encontrá los mejores precios del mercado en ConstruMax.",
+  "description": "Materiales de construcción, barraca de hierros, portland. Encontrá los mejores precios del mercado en ConstruMax.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",

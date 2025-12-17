@@ -43,13 +43,12 @@ export default async function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 lg:py-24">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
             {/* Content Column */}
-            <div className="text-center lg:text-left">
+            <div className="text-center lg:text-left md:min-h-[7rem]">
               <TypingText
                 text={[
                   "ConstruMax",
                   "Materiales de Construcción",
-                  "Barraca de Hierro",
-                  "ConstruMax",
+                  "Barraca de Hierros",
                 ]}
                 as="h1"
                 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-4 sm:mb-6 text-orange-600"
@@ -62,8 +61,7 @@ export default async function HomePage() {
                 cursorClassName="text-orange-600"
               />
               <p className="text-lg sm:text-xl md:text-2xl mb-6 sm:mb-8 text-gray-600 max-w-3xl lg:max-w-none mx-auto lg:mx-0 px-4 lg:px-0">
-                Barraca de hierro, portland. Encontrá los mejores precios del
-                mercado.
+                Encontrá los mejores precios del mercado.
               </p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start items-center px-4 lg:px-0 mt-6">
                 <Link
@@ -109,13 +107,13 @@ export default async function HomePage() {
       </section>
 
       {/* Featured Subcategories Section */}
-      <section className="py-16 sm:py-20 bg-gradient-to-br from-gray-50 via-white to-orange-50">
+      <section className="py-16 px-2 sm:px-0 sm:py-20 bg-gradient-to-br from-gray-50 via-white to-orange-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12 sm:mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+            <h2 className="text-2xl sm:text-4xl font-bold text-gray-900 mb-4">
               Especialidades en Construcción y Metalúrgica
             </h2>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+            <p className="sm:text-lg text-gray-600 max-w-2xl mx-auto">
               Descubre nuestra amplia gama de productos especializados para
               todos tus proyectos
             </p>
@@ -292,7 +290,7 @@ export default async function HomePage() {
               </h2>
               <p className="text-gray-600 mb-6 text-lg leading-relaxed">
                 Somos tu aliado de confianza en materiales de construcción,
-                barraca de hierro y portland.
+                barraca de hierros y portland.
               </p>
               <p className="text-gray-600 mb-8 text-base leading-relaxed">
                 Desde herramientas especializadas hasta materiales a granel,

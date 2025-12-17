@@ -2,6 +2,7 @@
 
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import { LoaderFive } from "@/components/ui/loader";
 import { Spinner } from "@/components/ui/spinner";
 
 function CheckoutReturnContent() {
@@ -159,10 +160,7 @@ export default function CheckoutReturnPage() {
       fallback={
         <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
           <div className="text-center max-w-md mx-auto bg-white p-8 rounded-lg shadow-md">
-            <Spinner className="mx-auto mb-4" />
-            <h1 className="text-2xl font-bold text-gray-900 mb-4">
-              Cargando...
-            </h1>
+            <LoaderFive text="Procesando pago..." />
           </div>
         </div>
       }

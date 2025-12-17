@@ -9,7 +9,7 @@ export const metadata: Metadata = {
     template: "%s | ConstruMax",
   },
   description:
-    "Materiales de construcción, barraca de hierro, portland. Encontrá los mejores precios del mercado en ConstruMax.",
+    "Materiales de construcción, barraca de hierros, portland. Encontrá los mejores precios del mercado en ConstruMax.",
   keywords: [
     "materiales construcción Uruguay",
     "ConstruMax",
@@ -42,7 +42,7 @@ export const metadata: Metadata = {
     siteName: "ConstruMax",
     title: "ConstruMax - Tienda Online ¡Todo lo que necesitas para construir!",
     description:
-      "Materiales de construcción, barraca de hierro, portland. Encontrá los mejores precios del mercado en ConstruMax.",
+      "Materiales de construcción, barraca de hierros, portland. Encontrá los mejores precios del mercado en ConstruMax.",
     images: [
       {
         url: "/og-image.jpg",
@@ -58,7 +58,7 @@ export const metadata: Metadata = {
     creator: "@ConstruMax",
     title: "ConstruMax - Materiales de Construcción Uruguay",
     description:
-      "Materiales de construcción, barraca de hierro, portland. Encontra los mejores precios del mercado en ConstruMax.",
+      "Materiales de construcción, barraca de hierros, portland. Encontra los mejores precios del mercado en ConstruMax.",
     images: ["/twitter-image.jpg"],
   },
   alternates: {

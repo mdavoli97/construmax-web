@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Edit2, Trash2, Save, X, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
+import { LoaderFive } from "@/components/ui/loader";
 
 interface Category {
   id: number;
@@ -181,7 +182,9 @@ export default function CategoriesPage() {
     return (
       <div className="space-y-4">
         <h1 className="text-2xl font-bold">Gestión de Categorías</h1>
-        <div className="text-center py-8">Cargando categorías...</div>
+        <div className="text-center py-8">
+          <LoaderFive text="Cargando categorías..." />
+        </div>
       </div>
     );
   }

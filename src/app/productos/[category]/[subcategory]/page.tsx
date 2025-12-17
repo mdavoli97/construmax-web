@@ -31,6 +31,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { LoaderFive } from "@/components/ui/loader";
 
 export default function ProductFamilyPage() {
   const params = useParams();
@@ -364,9 +365,8 @@ export default function ProductFamilyPage() {
 
       // Cargar productos de la categoría usando el servicio con dimensiones
       const { productService } = await import("@/lib/services");
-      const productsData = await productService.getByCategoryWithDimensions(
-        category
-      );
+      const productsData =
+        await productService.getByCategoryWithDimensions(category);
 
       // Cargar grupos de precios
       const priceGroupsResponse = await fetch(
@@ -768,8 +768,7 @@ export default function ProductFamilyPage() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="text-4xl mb-4">⏳</div>
-          <p className="text-gray-600">Cargando producto...</p>
+          <LoaderFive text="Cargando producto..." />
         </div>
       </div>
     );
@@ -798,16 +797,12 @@ export default function ProductFamilyPage() {
     );
   }
 
-  const displayProduct = product || products[0]; // Usar el primer producto para mostrar info general
+  const displayProduct = product || products[0];
 
-  // Prevenir flash de imagen durante carga inicial
   if (loading || !displayProduct || !priceGroup) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-4xl mb-4">⏳</div>
-          <p className="text-gray-600">Cargando producto...</p>
-        </div>
+      <div className="h-screen bg-gray-50 flex items-center justify-center">
+        <LoaderFive text="Cargando producto..." />
       </div>
     );
   }
@@ -816,10 +811,10 @@ export default function ProductFamilyPage() {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
         {/* Breadcrumb Navigation */}
-        <nav className="flex items-center space-x-2 text-sm text-gray-500 mb-6">
+        <nav className="flex flex-wrap space-x-2 text-sm text-gray-500 mb-6">
           <Link
             href="/"
-            className="hover:text-orange-600 transition-colors flex items-center"
+            className="hover:text-orange-600 transition-colors flex items-center -translate-y-3 sm:-translate-0"
           >
             <HomeIcon className="h-4 w-4 mr-1" />
             Inicio

@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { LoaderFive } from "@/components/ui/loader";
 
 export default function EditProductPage() {
   const params = useParams();
@@ -181,8 +182,8 @@ export default function EditProductPage() {
               productData.is_available !== undefined
                 ? productData.is_available
                 : metadata?.is_available !== undefined
-                ? metadata.is_available
-                : true,
+                  ? metadata.is_available
+                  : true,
             price_group_id: currentPriceGroupId || "",
             // Campos adicionales directos de la base de datos
             thickness: productData.thickness || "",
@@ -523,8 +524,7 @@ export default function EditProductPage() {
     return (
       <div className="bg-gray-50 flex items-center justify-center py-20">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-orange-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Cargando producto...</p>
+          <LoaderFive text="Cargando producto..." />
         </div>
       </div>
     );
@@ -827,10 +827,10 @@ export default function EditProductPage() {
                               group.price_group_prices.length > 0
                                 ? ` (${group.price_group_prices.length} precios disponibles)`
                                 : group.price_per_kg
-                                ? ` - ${group.currency === "USD" ? "$" : "$U"}${
-                                    group.price_per_kg
-                                  }/kg`
-                                : " (sin precios)"}
+                                  ? ` - ${group.currency === "USD" ? "$" : "$U"}${
+                                      group.price_per_kg
+                                    }/kg`
+                                  : " (sin precios)"}
                             </SelectItem>
                           ))}
                       </SelectContent>

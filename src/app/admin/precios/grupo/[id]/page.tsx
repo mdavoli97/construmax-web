@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { LoaderFive } from "@/components/ui/loader";
 import {
   ArrowLeftIcon,
   SaveIcon,
@@ -422,7 +423,7 @@ export default function EditarGrupoPrecioPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+        <LoaderFive text="Cargando grupo de precio..." />
       </div>
     );
   }

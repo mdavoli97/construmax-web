@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { LoaderFive } from "@/components/ui/loader";
 import { toast } from "sonner";
 
 interface OrderItem {
@@ -124,7 +125,7 @@ export default function OrdersPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
+        <LoaderFive text="Cargando órdenes..." />
       </div>
     );
   }

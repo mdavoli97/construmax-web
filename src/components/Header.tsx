@@ -6,19 +6,10 @@ import { ShoppingCartIcon, MenuIcon } from "lucide-react";
 import { MagnifyingGlassIcon } from "@heroicons/react/24/outline";
 import { useCartCount } from "@/hooks/useCartCount";
 import SearchDialog from "@/components/SearchDialog";
-import {
-  NavigationMenu,
-  NavigationMenuContent,
-  NavigationMenuItem,
-  NavigationMenuLink,
-  NavigationMenuList,
-  NavigationMenuTrigger,
-  navigationMenuTriggerStyle,
-} from "@/components/ui/navigation-menu";
+import { NavigationMenuLink } from "@/components/ui/navigation-menu";
 import {
   Sheet,
   SheetContent,
-  SheetDescription,
   SheetHeader,
   SheetTitle,
   SheetTrigger,
@@ -140,9 +131,6 @@ const MobileNav = ({
               </span>
             </Link>
           </SheetTitle>
-          <SheetDescription className="text-sm text-muted-foreground mt-1">
-            Navegación del sitio
-          </SheetDescription>
         </SheetHeader>
 
         {/* Contenido scrolleable */}

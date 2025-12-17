@@ -6,6 +6,7 @@ import { productService } from "@/lib/services";
 import { Product } from "@/types";
 import { PlusIcon, PencilIcon, TrashIcon, SearchIcon } from "lucide-react";
 import { useNotifications } from "@/components/admin/NotificationProvider";
+import { LoaderFive } from "@/components/ui/loader";
 import {
   Select,
   SelectContent,
@@ -228,7 +229,7 @@ export default function ProductsAdminPage() {
   if (loading) {
     return (
       <div className="bg-gray-50 flex items-center justify-center py-20">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+        <LoaderFive text="Cargando productos..." />
       </div>
     );
   }

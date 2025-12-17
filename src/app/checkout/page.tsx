@@ -598,7 +598,7 @@ export default function CheckoutPage() {
                 1
               </div>
               <span
-                className={`ml-2 text-sm font-medium ${
+                className={`ml-2 text-sm font-medium hidden sm:flex ${
                   currentStep >= 1 ? "text-orange-600" : "text-gray-500"
                 }`}
               >
@@ -621,7 +621,7 @@ export default function CheckoutPage() {
                 2
               </div>
               <span
-                className={`ml-2 text-sm font-medium ${
+                className={`ml-2 text-sm font-medium hidden sm:flex ${
                   currentStep >= 2 ? "text-orange-600" : "text-gray-500"
                 }`}
               >
@@ -644,7 +644,7 @@ export default function CheckoutPage() {
                 3
               </div>
               <span
-                className={`ml-2 text-sm font-medium ${
+                className={`ml-2 text-sm font-medium hidden sm:flex ${
                   currentStep >= 3 ? "text-orange-600" : "text-gray-500"
                 }`}
               >
@@ -667,7 +667,7 @@ export default function CheckoutPage() {
                 4
               </div>
               <span
-                className={`ml-2 text-sm font-medium ${
+                className={`ml-2 text-sm font-medium hidden sm:flex ${
                   currentStep >= 4 ? "text-orange-600" : "text-gray-500"
                 }`}
               >
@@ -679,7 +679,7 @@ export default function CheckoutPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 h-full">
           {/* Left Side - Steps */}
-          <div className="h-full">
+          <div className="h-full order-2 lg:order-1">
             {currentStep === 1 && (
               <div className="bg-white rounded-lg shadow-md p-6 h-full">
                 <h2 className="text-xl font-semibold text-gray-900 mb-6">
@@ -1338,7 +1338,7 @@ export default function CheckoutPage() {
           </div>
 
           {/* Right Side - Order Summary */}
-          <div className="h-full">
+          <div className="h-full order-1 lg:order-2">
             <div className="bg-white rounded-lg shadow-md p-6 sticky top-8 h-fit">
               <h2 className="text-xl font-semibold text-gray-900 mb-6">
                 Resumen del Pedido

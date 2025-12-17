@@ -58,7 +58,7 @@ export default function ClientLayout({
               url: "https://www.construmax.com.uy/",
               logo: "https://www.construmax.com.uy/logo.png",
               description:
-                "Materiales de construcción, barraca de hierro, portland. Encontrá los mejores precios del mercado en ConstruMax.",
+                "Materiales de construcción, barraca de hierros, portland. Encontrá los mejores precios del mercado en ConstruMax.",
               foundingDate: "2025",
               address: {
                 "@type": "PostalAddress",

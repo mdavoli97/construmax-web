@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { LoaderFive } from "@/components/ui/loader";
 
 interface PriceGroup {
   id: string;
@@ -464,7 +465,7 @@ export default function PreciosAdminPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+        <LoaderFive text="Cargando grupos de precio..." />
       </div>
     );
   }
@@ -1202,10 +1203,10 @@ export default function PreciosAdminPage() {
                                 group.price_count !== 1 ? "s" : ""
                               }`
                             : group.price_per_kg
-                            ? `${group.price_per_kg.toFixed(2)} ${
-                                group.currency
-                              }/kg`
-                            : "Sin precios"}
+                              ? `${group.price_per_kg.toFixed(2)} ${
+                                  group.currency
+                                }/kg`
+                              : "Sin precios"}
                         </span>
                         <span className="text-xs text-gray-500">
                           {new Date(group.updated_at).toLocaleDateString(

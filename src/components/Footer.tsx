@@ -21,7 +21,7 @@ export default function Footer() {
               </span>
             </div>
             <p className="text-gray-300 mb-4 text-sm sm:text-base">
-              Materiales de construcción, barraca de hierro, portland. Encontrá
+              Materiales de construcción, barraca de hierros, portland. Encontrá
               los mejores precios del mercado en ConstruMax.
             </p>
             <div className="space-y-2">
