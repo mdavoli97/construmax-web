@@ -71,7 +71,7 @@ export interface Order {
     phone: string;
     address: string;
   };
-  paymentMethod: "mercadopago";
+  paymentMethod: "transferencia" | "efectivo" | "tarjeta";
   paymentId?: string;
   createdAt: Date;
   updatedAt: Date;
@@ -104,4 +104,77 @@ export interface PriceGroup {
 export interface ProductGroup {
   priceGroup: PriceGroup;
   products: Product[];
+}
+
+// PlaceToPay Types
+export interface PlaceToPayAuth {
+  login: string;
+  tranKey: string;
+  nonce: string;
+  seed: string;
+}
+
+export interface PlaceToPayAmount {
+  currency: "USD" | "UYU";
+  total: number;
+}
+
+export interface PlaceToPayPayment {
+  reference: string;
+  description: string;
+  amount: PlaceToPayAmount;
+}
+
+export interface PlaceToPayBuyer {
+  name: string;
+  surname: string;
+  email: string;
+  mobile?: string;
+}
+
+export interface PlaceToPayCreateSessionRequest {
+  auth: PlaceToPayAuth;
+  payment: PlaceToPayPayment;
+  expiration: string; // ISO 8601 format
+  returnUrl: string;
+  ipAddress: string;
+  userAgent: string;
+  buyer?: PlaceToPayBuyer;
+}
+
+export interface PlaceToPayStatus {
+  status: string;
+  reason: string;
+  message: string;
+  date: string;
+}
+
+export interface PlaceToPayCreateSessionResponse {
+  status: PlaceToPayStatus;
+  requestId: number;
+  processUrl: string;
+}
+
+export interface PlaceToPayTransaction {
+  status: PlaceToPayStatus;
+  internalReference: number;
+  paymentMethod: string;
+  paymentMethodName: string;
+  authorization: string;
+  receipt: string;
+  franchise: string;
+  franchiseName: string;
+  issuerName: string;
+  amount: PlaceToPayAmount;
+  refunded: boolean;
+}
+
+export interface PlaceToPaySessionInfo {
+  requestId: number;
+  status: PlaceToPayStatus;
+  request: {
+    payment: PlaceToPayPayment;
+  };
+  payment?: PlaceToPayTransaction[];
+  subscription?: any;
 }

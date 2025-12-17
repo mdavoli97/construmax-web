@@ -90,7 +90,7 @@ export default async function HomePage() {
             </div>
 
             {/* Image Column */}
-            <div className="relative order-first lg:order-last">
+            <div className="relative order-first lg:order-last hidden lg:flex">
               <div className="relative z-10">
                 <Image
                   src="/hero-section.png"

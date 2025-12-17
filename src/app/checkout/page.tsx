@@ -360,7 +360,74 @@ export default function CheckoutPage() {
         })),
       };
 
-      // Crear la orden en la base de datos
+      // Si el método de pago es tarjeta, usar PlaceToPay
+      if (selectedPaymentMethod === "card") {
+        // Crear sesión de pago en PlaceToPay
+        const totalInUYU = exchangeRate
+          ? shippingCost === 0
+            ? calculateCartTotalInUYU() * 1.22
+            : calculateCartTotalInUYU() * 1.22 + 700 * 1.22
+          : total;
+
+        const nameParts = customerData.name.trim().split(" ");
+        const surname =
+          nameParts.length > 1 ? nameParts.slice(1).join(" ") : nameParts[0];
+        const name = nameParts[0];
+
+        const sessionResponse = await fetch("/api/placetopay/create-session", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            reference: `ORDER_${Date.now()}`,
+            description: `Compra en Construmax - ${cart.items.length} productos`,
+            amount: Math.round(totalInUYU), // PlaceToPay no acepta decimales
+            currency: "UYU",
+            buyer: {
+              name: name,
+              surname: surname,
+              email: customerData.email,
+              mobile: customerData.phone,
+            },
+          }),
+        });
+
+        if (!sessionResponse.ok) {
+          throw new Error("Error al crear la sesión de pago");
+        }
+
+        const sessionData = await sessionResponse.json();
+
+        // Guardar la orden en la base de datos antes de redirigir
+        const response = await fetch("/api/admin/orders", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            ...orderData,
+            placetopay_request_id: sessionData.requestId,
+            status: "pending_payment",
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error("Error al crear la orden");
+        }
+
+        // Guardar el requestId en sessionStorage para recuperarlo al volver
+        sessionStorage.setItem(
+          "placetopay_request_id",
+          sessionData.requestId.toString()
+        );
+
+        // Redirigir a PlaceToPay
+        window.location.href = sessionData.processUrl;
+        return;
+      }
+
+      // Para otros métodos de pago (efectivo, transferencia)
       const response = await fetch("/api/admin/orders", {
         method: "POST",
         headers: {
@@ -381,6 +448,51 @@ export default function CheckoutPage() {
         ...order,
         items: orderData.items,
       };
+
+      // ENVÍO DE EMAIL TEMPORALMENTE DESACTIVADO
+      /* try {
+        const emailResponse = await fetch("/api/send-order-email", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            orderNumber: order.id,
+            orderDate: new Date().toLocaleDateString("es-UY"),
+            customerName: customerData.name,
+            customerEmail: customerData.email,
+            customerPhone: customerData.phone,
+            items: orderData.items.map((item: any) => ({
+              name: item.product_name,
+              quantity: item.quantity,
+              price: item.unit_price,
+              total: item.total_price,
+            })),
+            subtotal: orderData.subtotal,
+            total: orderData.total,
+            paymentMethod:
+              selectedPaymentMethod === "cash"
+                ? "Efectivo"
+                : selectedPaymentMethod === "transfer"
+                  ? "Transferencia Bancaria"
+                  : "Tarjeta de Crédito/Débito",
+            paymentStatus: "Pendiente",
+            deliveryAddress:
+              shippingData.deliveryMethod === "delivery"
+                ? shippingData.deliveryAddress
+                : "Retiro en local",
+          }),
+        });
+
+        if (!emailResponse.ok) {
+          console.error("Error al enviar email de confirmación");
+        } else {
+          console.log("Email de confirmación enviado exitosamente");
+        }
+      } catch (emailError) {
+        console.error("Error enviando email:", emailError);
+        // No bloqueamos el flujo si falla el email
+      } */
 
       // Importar servicio de WhatsApp
       const { whatsappService } = await import("@/lib/whatsapp");
@@ -421,16 +533,6 @@ export default function CheckoutPage() {
         alert(
           "Te enviaremos los datos para la transferencia bancaria por email."
         );
-      } else {
-        const sendWhatsApp = confirm(
-          "¡Pago procesado exitosamente! ¿Quieres enviar un mensaje de WhatsApp para confirmar tu pedido?"
-        );
-        console.log("Usuario acepta WhatsApp:", sendWhatsApp);
-        if (sendWhatsApp) {
-          console.log("Abriendo WhatsApp...", customerWhatsAppURL);
-          window.open(customerWhatsAppURL, "_blank");
-        }
-        alert("¡Pago procesado exitosamente!");
       }
 
       clearCart();
@@ -643,27 +745,35 @@ export default function CheckoutPage() {
                     </div>
                   </div>
 
-                  {/* Débito/Crédito - Deshabilitado */}
-                  <div className="border-2 rounded-lg p-4 opacity-50 cursor-not-allowed border-gray-200 bg-gray-50">
+                  {/* Débito/Crédito - TEMPORALMENTE DESACTIVADO */}
+                  {/* <div
+                    className={`border-2 rounded-lg p-4 cursor-pointer transition-colors ${
+                      selectedPaymentMethod === "card"
+                        ? "border-orange-500 bg-orange-50"
+                        : "border-gray-200 hover:border-gray-300"
+                    }`}
+                    onClick={() => handlePaymentMethodChange("card")}
+                  >
                     <div className="flex items-center">
                       <input
                         type="radio"
                         name="paymentMethod"
                         value="card"
-                        disabled
-                        className="mr-3 text-gray-400"
+                        checked={selectedPaymentMethod === "card"}
+                        onChange={() => handlePaymentMethodChange("card")}
+                        className="mr-3 text-orange-600 focus:ring-orange-500"
                       />
-                      <CreditCardIcon className="h-6 w-6 mr-3 text-gray-400" />
+                      <CreditCardIcon className="h-6 w-6 mr-3 text-gray-600" />
                       <div>
-                        <h3 className="font-medium text-gray-400">
+                        <h3 className="font-medium text-gray-900">
                           Débito / Crédito
                         </h3>
-                        <p className="text-sm text-gray-400">
-                          Próximamente disponible
+                        <p className="text-sm text-gray-500">
+                          Pago seguro con tarjeta de débito o crédito
                         </p>
                       </div>
                     </div>
-                  </div>
+                  </div> */}
                 </div>
 
                 {/* Continue Button */}
@@ -702,11 +812,16 @@ export default function CheckoutPage() {
                     {selectedPaymentMethod === "transfer" && (
                       <BuildingLibraryIcon className="h-5 w-5 mr-2 text-orange-600" />
                     )}
+                    {selectedPaymentMethod === "card" && (
+                      <CreditCardIcon className="h-5 w-5 mr-2 text-orange-600" />
+                    )}
                     <span className="text-sm font-medium text-orange-800">
                       Método seleccionado:{" "}
                       {selectedPaymentMethod === "cash"
                         ? "Efectivo"
-                        : "Transferencia Bancaria"}
+                        : selectedPaymentMethod === "transfer"
+                          ? "Transferencia Bancaria"
+                          : "Débito / Crédito"}
                     </span>
                   </div>
                 </div>
@@ -848,59 +963,6 @@ export default function CheckoutPage() {
                         />
                       </div>
                     </>
-                  )}
-
-                  {/* Card Details Section - Only show if card is selected */}
-                  {selectedPaymentMethod === "card" && (
-                    <div className="mt-6 p-4 border border-gray-200 rounded-lg bg-gray-50">
-                      <h3 className="text-lg font-medium text-gray-900 mb-4">
-                        Datos de la Tarjeta
-                      </h3>
-                      <div className="space-y-4">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Número de Tarjeta *
-                          </label>
-                          <input
-                            type="text"
-                            placeholder="1234 5678 9012 3456"
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                          />
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Fecha de Vencimiento *
-                            </label>
-                            <input
-                              type="text"
-                              placeholder="MM/AA"
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              CVV *
-                            </label>
-                            <input
-                              type="text"
-                              placeholder="123"
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                            />
-                          </div>
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Nombre en la Tarjeta *
-                          </label>
-                          <input
-                            type="text"
-                            placeholder="Juan Pérez"
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                          />
-                        </div>
-                      </div>
-                    </div>
                   )}
 
                   <button
@@ -1154,6 +1216,12 @@ export default function CheckoutPage() {
                           <span>Transferencia Bancaria</span>
                         </>
                       )}
+                      {selectedPaymentMethod === "card" && (
+                        <>
+                          <CreditCardIcon className="h-5 w-5 mr-2 text-orange-600" />
+                          <span>Débito / Crédito</span>
+                        </>
+                      )}
                     </div>
                   </div>
 
@@ -1234,8 +1302,8 @@ export default function CheckoutPage() {
                             {shippingData.preferredTime === "8-12"
                               ? "8:00 a 12:00"
                               : shippingData.preferredTime === "12-18"
-                              ? "12:00 a 18:00"
-                              : "Después de las 18:00"}
+                                ? "12:00 a 18:00"
+                                : "Después de las 18:00"}
                           </div>
                           {shippingData.observations && (
                             <div>
@@ -1257,7 +1325,11 @@ export default function CheckoutPage() {
                       disabled={isProcessing}
                       className="w-full bg-orange-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-orange-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
                     >
-                      {isProcessing ? "PROCESANDO..." : "CONFIRMAR PEDIDO"}
+                      {isProcessing
+                        ? "PROCESANDO..."
+                        : selectedPaymentMethod === "card"
+                          ? "PROCEDER AL PAGO"
+                          : "CONFIRMAR PEDIDO"}
                     </button>
                   </form>
                 </div>

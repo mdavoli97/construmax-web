@@ -46,8 +46,6 @@ export default function ClientLayout({
         />
 
         {/* DNS Prefetch para dominios externos */}
-        <link rel="dns-prefetch" href="//api.mercadopago.com" />
-        <link rel="dns-prefetch" href="//secure.mlstatic.com" />
 
         {/* Schema.org Organization markup */}
         <script

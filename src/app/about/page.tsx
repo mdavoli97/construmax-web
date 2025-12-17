@@ -57,9 +57,6 @@ export default function AboutPage() {
                   <span className="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm">
                     Tailwind CSS
                   </span>
-                  <span className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm">
-                    MercadoPago API
-                  </span>
                   <span className="bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm">
                     Cloudinary
                   </span>
@@ -72,7 +69,7 @@ export default function AboutPage() {
                 </h2>
                 <ul className="list-disc list-inside text-gray-600 space-y-2">
                   <li>Sistema completo de gestión de productos</li>
-                  <li>Integración con metodo de pago para pagos seguros</li>
+                  <li>Múltiples métodos de pago disponibles</li>
                   <li>Panel de administración intuitivo</li>
                   <li>Carrito de compras</li>
                   <li>Búsqueda avanzada de productos</li>

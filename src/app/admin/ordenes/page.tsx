@@ -174,7 +174,28 @@ export default function OrdersPage() {
                       #{order.id.toString().padStart(8, "0")}
                     </div>
                     <div className="text-sm text-gray-500">
-                      {new Date(order.created_at).toLocaleDateString("es-UY")}
+                      {(() => {
+                        const date = new Date(order.created_at);
+                        // Ajustar UTC a hora de Uruguay (UTC-3)
+                        date.setHours(date.getHours() - 3);
+                        return date.toLocaleDateString("es-UY", {
+                          day: "2-digit",
+                          month: "2-digit",
+                          year: "numeric",
+                        });
+                      })()}
+                    </div>
+                    <div className="text-sm text-gray-500">
+                      {(() => {
+                        const date = new Date(order.created_at);
+                        // Ajustar UTC a hora de Uruguay (UTC-3)
+                        date.setHours(date.getHours() - 3);
+                        return date.toLocaleTimeString("es-UY", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                          hour12: false,
+                        });
+                      })()}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -192,8 +213,8 @@ export default function OrdersPage() {
                     {order.payment_method === "cash"
                       ? "Efectivo"
                       : order.payment_method === "transfer"
-                      ? "Transferencia"
-                      : order.payment_method}
+                        ? "Transferencia"
+                        : order.payment_method}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-900">
