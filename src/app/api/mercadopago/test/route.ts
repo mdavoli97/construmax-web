@@ -11,13 +11,13 @@ export async function GET() {
           error: "MERCADOPAGO_ACCESS_TOKEN no está configurado",
           configured: false,
         },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
     console.log(
       "🔑 Access Token (primeros 20 chars):",
-      accessToken.substring(0, 20) + "..."
+      accessToken.substring(0, 20) + "...",
     );
 
     const client = new MercadoPagoConfig({
@@ -44,7 +44,7 @@ export async function GET() {
 
     console.log(
       "📤 Enviando preferencia de prueba:",
-      JSON.stringify(testPreference, null, 2)
+      JSON.stringify(testPreference, null, 2),
     );
 
     const response = await preferenceClient.create({ body: testPreference });
@@ -72,7 +72,7 @@ export async function GET() {
       errorStack = error.stack || "";
 
       // Intentar extraer más info si existe
-      const anyError = error as Record<string, unknown>;
+      const anyError = error as unknown as Record<string, unknown>;
       if (anyError.cause) {
         console.error("Cause:", anyError.cause);
       }
@@ -90,10 +90,10 @@ export async function GET() {
         fullError: JSON.stringify(
           error,
           Object.getOwnPropertyNames(error as object),
-          2
+          2,
         ),
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -83,7 +83,7 @@ export interface PreferenceResponse {
  * Crea una preferencia de pago en MercadoPago
  */
 export async function createPreference(
-  params: CreatePreferenceParams
+  params: CreatePreferenceParams,
 ): Promise<PreferenceResponse> {
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
   const isLocalhost =
@@ -146,12 +146,12 @@ export async function createPreference(
   try {
     console.log(
       "📤 Enviando preferencia a MercadoPago:",
-      JSON.stringify(preferenceData, null, 2)
+      JSON.stringify(preferenceData, null, 2),
     );
     const response = await preferenceClient.create({ body: preferenceData });
     console.log(
       "📥 Respuesta de MercadoPago:",
-      JSON.stringify(response, null, 2)
+      JSON.stringify(response, null, 2),
     );
 
     if (!response.id || !response.init_point) {
@@ -208,7 +208,7 @@ export function isPaymentRejected(payment: any): boolean {
  * Mapea el status de MercadoPago a un status interno
  */
 export function mapPaymentStatus(
-  mpStatus: string
+  mpStatus: string,
 ): "approved" | "pending" | "rejected" {
   switch (mpStatus) {
     case "approved":
