@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
     if (!items || items.length === 0) {
       return NextResponse.json(
         { error: "Se requiere al menos un item" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -32,21 +32,21 @@ export async function POST(request: NextRequest) {
       if (!item.title || !item.quantity || !item.unit_price) {
         return NextResponse.json(
           { error: "Cada item debe tener title, quantity y unit_price" },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
       if (item.quantity <= 0) {
         return NextResponse.json(
           { error: "La cantidad debe ser mayor a 0" },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
       if (item.unit_price <= 0) {
         return NextResponse.json(
           { error: "El precio unitario debe ser mayor a 0" },
-          { status: 400 }
+          { status: 400 },
         );
       }
     }
@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
     console.error("Error creating MercadoPago preference:", error);
 
     // Extraer más detalles del error si es posible
-    let errorMessage = "Error al crear la preferencia de pago";
+    const errorMessage = "Error al crear la preferencia de pago";
     let errorDetails = "Unknown error";
 
     if (error instanceof Error) {
@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
     // Log completo del error para debug
     console.error(
       "Full error object:",
-      JSON.stringify(error, Object.getOwnPropertyNames(error), 2)
+      JSON.stringify(error, Object.getOwnPropertyNames(error), 2),
     );
 
     return NextResponse.json(
@@ -111,7 +111,7 @@ export async function POST(request: NextRequest) {
         error: errorMessage,
         details: errorDetails,
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
