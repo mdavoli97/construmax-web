@@ -47,28 +47,31 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // Verificar estructura de la tabla orders
+  // Verificar estructura de la tabla orders y mostrar últimas órdenes
   try {
     const supabaseAdmin = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL || "",
       process.env.SUPABASE_SERVICE_ROLE_KEY || "",
     );
 
-    // Obtener una orden reciente para ver las columnas disponibles
-    const { data: recentOrder, error } = await supabaseAdmin
+    // Obtener las últimas 5 órdenes
+    const { data: recentOrders, error } = await supabaseAdmin
       .from("orders")
-      .select("*")
+      .select(
+        "id, status, external_reference, payment_id, payment_status, payment_method, created_at, mercadopago_preference_id",
+      )
       .order("created_at", { ascending: false })
-      .limit(1)
-      .single();
+      .limit(5);
 
-    if (recentOrder) {
-      diagnostics.tableColumns = Object.keys(recentOrder);
+    if (recentOrders && recentOrders.length > 0) {
+      diagnostics.recentOrders = recentOrders;
+      diagnostics.tableColumns = Object.keys(recentOrders[0]);
       diagnostics.hasMercadoPagoColumns = {
-        external_reference: "external_reference" in recentOrder,
-        payment_id: "payment_id" in recentOrder,
-        payment_status: "payment_status" in recentOrder,
-        mercadopago_preference_id: "mercadopago_preference_id" in recentOrder,
+        external_reference: "external_reference" in recentOrders[0],
+        payment_id: "payment_id" in recentOrders[0],
+        payment_status: "payment_status" in recentOrders[0],
+        mercadopago_preference_id:
+          "mercadopago_preference_id" in recentOrders[0],
       };
     }
 
