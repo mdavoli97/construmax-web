@@ -360,9 +360,9 @@ export default function CheckoutPage() {
         })),
       };
 
-      // Si el método de pago es tarjeta, usar PlaceToPay
+      // Si el método de pago es tarjeta, usar MercadoPago Checkout Pro
       if (selectedPaymentMethod === "card") {
-        // Crear sesión de pago en PlaceToPay
+        // Calcular el total en UYU
         const totalInUYU = exchangeRate
           ? shippingCost === 0
             ? calculateCartTotalInUYU() * 1.22
@@ -374,30 +374,94 @@ export default function CheckoutPage() {
           nameParts.length > 1 ? nameParts.slice(1).join(" ") : nameParts[0];
         const name = nameParts[0];
 
-        const sessionResponse = await fetch("/api/placetopay/create-session", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            reference: `ORDER_${Date.now()}`,
-            description: `Compra en Construmax - ${cart.items.length} productos`,
-            amount: Math.round(totalInUYU), // PlaceToPay no acepta decimales
-            currency: "UYU",
-            buyer: {
-              name: name,
-              surname: surname,
-              email: customerData.email,
-              mobile: customerData.phone,
-            },
-          }),
-        });
+        // Generar referencia externa única
+        const externalReference = `ORDER_${Date.now()}`;
 
-        if (!sessionResponse.ok) {
-          throw new Error("Error al crear la sesión de pago");
+        // Preparar items para MercadoPago
+        const mercadoPagoItems: Array<{
+          id: string;
+          title: string;
+          description: string;
+          picture_url: string;
+          category_id: string;
+          quantity: number;
+          currency_id: string;
+          unit_price: number;
+        }> = cart.items.map((item) => ({
+          id: item.product.id,
+          title: item.product.name,
+          description: getProductDescription(item.product).substring(0, 256),
+          picture_url: item.product.primary_image || "",
+          category_id: item.product.category || "others",
+          quantity: item.quantity,
+          currency_id: "UYU",
+          unit_price: Math.round(
+            (item.product.price_group?.currency === "UYU"
+              ? item.product.price
+              : convertUSDToUYU(
+                  item.product.price,
+                  exchangeRate?.usd_to_uyu || 1
+                )) * 1.22
+          ),
+        }));
+
+        // Si hay costo de envío, agregarlo como item
+        if (shippingCost > 0) {
+          mercadoPagoItems.push({
+            id: "shipping",
+            title: "Costo de envío",
+            description: "Envío a domicilio",
+            picture_url: "",
+            category_id: "services",
+            quantity: 1,
+            currency_id: "UYU",
+            unit_price: Math.round(700 * 1.22), // $700 + IVA
+          });
         }
 
-        const sessionData = await sessionResponse.json();
+        // Crear preferencia de pago en MercadoPago
+        const preferenceResponse = await fetch(
+          "/api/mercadopago/create-preference",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              items: mercadoPagoItems,
+              payer: {
+                name: name,
+                surname: surname,
+                email: customerData.email,
+                phone: {
+                  area_code: "598",
+                  number: customerData.phone.replace(/\D/g, ""),
+                },
+                identification: isDocumentRequired()
+                  ? {
+                      type:
+                        customerData.documentType === "cedula"
+                          ? "CI"
+                          : customerData.documentType === "rut"
+                            ? "RUT"
+                            : "DNI",
+                      number: customerData.documentNumber,
+                    }
+                  : undefined,
+              },
+              external_reference: externalReference,
+            }),
+          }
+        );
+
+        if (!preferenceResponse.ok) {
+          const errorData = await preferenceResponse.json();
+          throw new Error(
+            errorData.error || "Error al crear la preferencia de pago"
+          );
+        }
+
+        const preferenceData = await preferenceResponse.json();
 
         // Guardar la orden en la base de datos antes de redirigir
         const response = await fetch("/api/admin/orders", {
@@ -407,7 +471,8 @@ export default function CheckoutPage() {
           },
           body: JSON.stringify({
             ...orderData,
-            placetopay_request_id: sessionData.requestId,
+            mercadopago_preference_id: preferenceData.preferenceId,
+            external_reference: externalReference,
             status: "pending_payment",
           }),
         });
@@ -416,14 +481,24 @@ export default function CheckoutPage() {
           throw new Error("Error al crear la orden");
         }
 
-        // Guardar el requestId en sessionStorage para recuperarlo al volver
+        // Guardar datos en sessionStorage para recuperarlos al volver
         sessionStorage.setItem(
-          "placetopay_request_id",
-          sessionData.requestId.toString()
+          "mercadopago_preference_id",
+          preferenceData.preferenceId
+        );
+        sessionStorage.setItem(
+          "mercadopago_external_reference",
+          externalReference
         );
 
-        // Redirigir a PlaceToPay
-        window.location.href = sessionData.processUrl;
+        // Redirigir a MercadoPago Checkout Pro
+        // En producción usar initPoint, en desarrollo usar sandboxInitPoint
+        const checkoutUrl =
+          process.env.NODE_ENV === "production"
+            ? preferenceData.initPoint
+            : preferenceData.sandboxInitPoint || preferenceData.initPoint;
+
+        window.location.href = checkoutUrl;
         return;
       }
 
@@ -745,8 +820,8 @@ export default function CheckoutPage() {
                     </div>
                   </div>
 
-                  {/* Débito/Crédito - TEMPORALMENTE DESACTIVADO */}
-                  {/* <div
+                  {/* Débito/Crédito - MercadoPago Checkout Pro */}
+                  <div
                     className={`border-2 rounded-lg p-4 cursor-pointer transition-colors ${
                       selectedPaymentMethod === "card"
                         ? "border-orange-500 bg-orange-50"
@@ -769,11 +844,11 @@ export default function CheckoutPage() {
                           Débito / Crédito
                         </h3>
                         <p className="text-sm text-gray-500">
-                          Pago seguro con tarjeta de débito o crédito
+                          Pago seguro con MercadoPago
                         </p>
                       </div>
                     </div>
-                  </div> */}
+                  </div>
                 </div>
 
                 {/* Continue Button */}

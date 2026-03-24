@@ -178,3 +178,79 @@ export interface PlaceToPaySessionInfo {
   payment?: PlaceToPayTransaction[];
   subscription?: any;
 }
+
+// MercadoPago Types
+export interface MercadoPagoItem {
+  id: string;
+  title: string;
+  description?: string;
+  picture_url?: string;
+  category_id?: string;
+  quantity: number;
+  currency_id: string;
+  unit_price: number;
+}
+
+export interface MercadoPagoPayer {
+  name: string;
+  surname: string;
+  email: string;
+  phone?: {
+    area_code: string;
+    number: string;
+  };
+  identification?: {
+    type: string;
+    number: string;
+  };
+  address?: {
+    street_name: string;
+    street_number: number;
+    zip_code: string;
+  };
+}
+
+export interface MercadoPagoPreference {
+  id: string;
+  init_point: string;
+  sandbox_init_point: string;
+  external_reference?: string;
+}
+
+export interface MercadoPagoPayment {
+  id: number;
+  status: MercadoPagoPaymentStatus;
+  status_detail: string;
+  external_reference?: string;
+  transaction_amount: number;
+  currency_id: string;
+  payment_method_id: string;
+  payment_type_id: string;
+  date_created: string;
+  date_approved?: string;
+  payer?: {
+    id?: string;
+    email?: string;
+    first_name?: string;
+    last_name?: string;
+  };
+}
+
+export type MercadoPagoPaymentStatus =
+  | "pending"
+  | "approved"
+  | "authorized"
+  | "in_process"
+  | "in_mediation"
+  | "rejected"
+  | "cancelled"
+  | "refunded"
+  | "charged_back";
+
+export interface MercadoPagoWebhookPayload {
+  type: "payment" | "merchant_order" | "chargebacks";
+  action: string;
+  data: {
+    id: string | number;
+  };
+}

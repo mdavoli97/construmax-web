@@ -11,55 +11,60 @@ function CheckoutReturnContent() {
   const [status, setStatus] = useState<
     "loading" | "approved" | "rejected" | "pending"
   >("loading");
-  const [paymentInfo, setPaymentInfo] = useState<any>(null);
+  const [, setPaymentInfo] = useState<unknown>(null);
 
   useEffect(() => {
-    // PlaceToPay puede enviar el requestId de diferentes formas
-    let requestId = searchParams.get("requestId");
+    // MercadoPago envía estos parámetros en la URL de retorno:
+    // - collection_id: ID del pago
+    // - collection_status: Estado del pago (approved, rejected, pending)
+    // - payment_id: ID del pago (alternativo)
+    // - status: Estado del pago (alternativo)
+    // - external_reference: Referencia externa (ORDER_xxx)
+    // - preference_id: ID de la preferencia
 
-    // Si no viene como requestId, buscar otras variantes
-    if (!requestId) {
-      requestId = searchParams.get("reference");
-    }
+    const collectionStatus = searchParams.get("collection_status");
+    const paymentStatus = searchParams.get("status");
+    const paymentId =
+      searchParams.get("payment_id") || searchParams.get("collection_id");
+    const externalReference = searchParams.get("external_reference");
+    const preferenceId = searchParams.get("preference_id");
 
-    // También puede venir en el path como /checkout/return/{requestId}
-    if (!requestId) {
-      const pathParts = window.location.pathname.split("/");
-      const lastPart = pathParts[pathParts.length - 1];
-      if (lastPart && lastPart !== "return" && !isNaN(Number(lastPart))) {
-        requestId = lastPart;
+    // También verificar el parámetro status que enviamos nosotros en back_urls
+    const ourStatus = searchParams.get("status");
+
+    console.log("MercadoPago params:", {
+      collectionStatus,
+      paymentStatus,
+      paymentId,
+      externalReference,
+      preferenceId,
+      ourStatus,
+    });
+
+    // Determinar el estado del pago
+    const determineStatus = () => {
+      // Si viene collection_status de MercadoPago, usarlo
+      if (collectionStatus) {
+        return collectionStatus;
       }
-    }
-
-    // Si no viene en la URL, buscar en sessionStorage
-    if (!requestId) {
-      const storedRequestId = sessionStorage.getItem("placetopay_request_id");
-      if (storedRequestId) {
-        requestId = storedRequestId;
-        console.log("RequestId recuperado de sessionStorage:", requestId);
+      // Si viene status de MercadoPago
+      if (paymentStatus) {
+        return paymentStatus;
       }
-    }
+      // Si viene nuestro parámetro status
+      if (ourStatus) {
+        return ourStatus;
+      }
+      return null;
+    };
 
-    console.log("Search params:", Object.fromEntries(searchParams.entries()));
-    console.log("RequestId encontrado:", requestId);
+    const mpStatus = determineStatus();
 
-    if (!requestId) {
-      console.error("No requestId found");
-      console.error("URL completa:", window.location.href);
-      console.error(
-        "Params disponibles:",
-        Object.fromEntries(searchParams.entries())
-      );
-      router.push("/failure");
-      return;
-    }
-
-    // Limpiar el sessionStorage después de recuperar el requestId
-    sessionStorage.removeItem("placetopay_request_id");
-
-    // Consultar el estado del pago
-    const checkPaymentStatus = async () => {
+    // Función para manejar PlaceToPay (legado)
+    const checkPlaceToPayStatus = async (requestId: string) => {
       try {
+        sessionStorage.removeItem("placetopay_request_id");
+
         const response = await fetch(`/api/placetopay/session/${requestId}`);
 
         if (!response.ok) {
@@ -71,7 +76,6 @@ function CheckoutReturnContent() {
 
         if (data.status.status === "APPROVED" && data.approved) {
           setStatus("approved");
-          // Esperar 2 segundos y redirigir a success
           setTimeout(() => {
             router.push(
               `/success?payment=${data.paymentReference || requestId}`
@@ -94,7 +98,7 @@ function CheckoutReturnContent() {
           }, 2000);
         }
       } catch (error) {
-        console.error("Error checking payment:", error);
+        console.error("Error checking PlaceToPay payment:", error);
         setStatus("rejected");
         setTimeout(() => {
           router.push("/failure");
@@ -102,7 +106,73 @@ function CheckoutReturnContent() {
       }
     };
 
-    checkPaymentStatus();
+    // Función para obtener detalles del pago de MercadoPago
+    const fetchPaymentDetails = async (paymentId: string) => {
+      try {
+        const response = await fetch(`/api/mercadopago/payment/${paymentId}`);
+        if (response.ok) {
+          const data = await response.json();
+          setPaymentInfo(data.payment);
+          console.log("Payment details:", data.payment);
+        }
+      } catch (error) {
+        console.error("Error fetching payment details:", error);
+      }
+    };
+
+    if (!mpStatus && !paymentId) {
+      // Si no hay información de MercadoPago, verificar PlaceToPay (legado)
+      let requestId =
+        searchParams.get("requestId") || searchParams.get("reference");
+
+      if (!requestId) {
+        const storedRequestId = sessionStorage.getItem("placetopay_request_id");
+        if (storedRequestId) {
+          requestId = storedRequestId;
+        }
+      }
+
+      if (requestId) {
+        // Procesar con PlaceToPay (legado)
+        checkPlaceToPayStatus(requestId);
+        return;
+      }
+
+      // No hay información de pago
+      console.error("No payment information found");
+      router.push("/failure");
+      return;
+    }
+
+    // Procesar estado de MercadoPago
+    if (mpStatus === "approved") {
+      setStatus("approved");
+
+      // Limpiar sessionStorage
+      sessionStorage.removeItem("mercadopago_preference_id");
+      sessionStorage.removeItem("mercadopago_external_reference");
+
+      // Redirigir a success
+      setTimeout(() => {
+        router.push(`/success?payment=${paymentId || externalReference || ""}`);
+      }, 2000);
+    } else if (mpStatus === "pending" || mpStatus === "in_process") {
+      setStatus("pending");
+      setTimeout(() => {
+        router.push("/pending");
+      }, 2000);
+    } else {
+      // rejected, cancelled, etc.
+      setStatus("rejected");
+      setTimeout(() => {
+        router.push("/failure");
+      }, 2000);
+    }
+
+    // Si tenemos un payment_id, podemos obtener más detalles (opcional)
+    if (paymentId) {
+      fetchPaymentDetails(paymentId);
+    }
   }, [searchParams, router]);
 
   return (

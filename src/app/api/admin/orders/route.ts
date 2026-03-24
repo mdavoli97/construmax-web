@@ -11,7 +11,7 @@ interface OrderItem {
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
 );
 
 export async function GET() {
@@ -29,7 +29,7 @@ export async function GET() {
           unit_price,
           total_price
         )
-      `
+      `,
       )
       .order("created_at", { ascending: false });
 
@@ -37,7 +37,7 @@ export async function GET() {
       console.error("Error fetching orders:", error);
       return NextResponse.json(
         { error: "Error al obtener las órdenes" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -52,7 +52,7 @@ export async function GET() {
     console.error("Error:", error);
     return NextResponse.json(
       { error: "Error interno del servidor" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -81,10 +81,14 @@ export async function POST(request: NextRequest) {
       shipping_cost,
       total,
       items,
+      // Campos de MercadoPago
+      mercadopago_preference_id,
+      external_reference,
+      status: requestStatus,
     } = body;
 
     // Crear la orden
-    const orderData = {
+    const orderData: Record<string, unknown> = {
       customer_name,
       customer_email,
       customer_phone,
@@ -103,8 +107,16 @@ export async function POST(request: NextRequest) {
       tax,
       shipping_cost,
       total,
-      status: "pending",
+      status: requestStatus || "pending",
     };
+
+    // Agregar campos de MercadoPago si existen
+    if (mercadopago_preference_id) {
+      orderData.mercadopago_preference_id = mercadopago_preference_id;
+    }
+    if (external_reference) {
+      orderData.external_reference = external_reference;
+    }
 
     const { data: order, error: orderError } = await supabase
       .from("orders")
@@ -116,7 +128,7 @@ export async function POST(request: NextRequest) {
       console.error("Error creating order:", orderError);
       return NextResponse.json(
         { error: "Error al crear la orden", details: orderError },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -143,7 +155,7 @@ export async function POST(request: NextRequest) {
             error: "Error al crear los items de la orden",
             details: itemsError,
           },
-          { status: 500 }
+          { status: 500 },
         );
       }
     }
@@ -152,7 +164,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     return NextResponse.json(
       { error: "Error interno del servidor" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

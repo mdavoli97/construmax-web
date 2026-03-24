@@ -1,0 +1,163 @@
+import { NextRequest, NextResponse } from "next/server";
+import {
+  getPaymentInfo,
+  mapPaymentStatus,
+  getPaymentStatusDescription,
+} from "@/lib/mercadopago";
+import { createClient } from "@supabase/supabase-js";
+
+// Cliente de Supabase con service role para operaciones admin
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL || "",
+  process.env.SUPABASE_SERVICE_ROLE_KEY || ""
+);
+
+/**
+ * Webhook para recibir notificaciones de MercadoPago
+ *
+ * MercadoPago envía notificaciones cuando:
+ * - Se crea un pago
+ * - Se actualiza el estado de un pago
+ * - Se realiza un reembolso
+ * - Etc.
+ *
+ * Documentación: https://www.mercadopago.com.ar/developers/es/docs/checkout-pro/additional-content/notifications/webhooks
+ */
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+
+    console.log(
+      "📩 Webhook de MercadoPago recibido:",
+      JSON.stringify(body, null, 2)
+    );
+
+    // MercadoPago envía diferentes tipos de notificaciones
+    const { type, data, action } = body;
+
+    // Verificar que sea una notificación de pago
+    if (type === "payment" && data?.id) {
+      const paymentId = data.id;
+
+      console.log(`💳 Procesando pago ID: ${paymentId}`);
+
+      try {
+        // Obtener información del pago desde MercadoPago
+        const paymentInfo = await getPaymentInfo(paymentId);
+
+        console.log(
+          "📄 Información del pago:",
+          JSON.stringify(paymentInfo, null, 2)
+        );
+
+        const status = mapPaymentStatus(paymentInfo.status || "");
+        const statusDescription = getPaymentStatusDescription(
+          paymentInfo.status || ""
+        );
+        const externalReference = paymentInfo.external_reference;
+
+        console.log(`📊 Status: ${status} (${statusDescription})`);
+        console.log(`🔗 External Reference: ${externalReference}`);
+
+        // Actualizar el estado de la orden en la base de datos
+        if (externalReference) {
+          const orderStatus =
+            status === "approved"
+              ? "paid"
+              : status === "pending"
+                ? "pending_payment"
+                : "payment_failed";
+
+          const { error: updateError } = await supabaseAdmin
+            .from("orders")
+            .update({
+              status: orderStatus,
+              payment_id: String(paymentId),
+              payment_status: paymentInfo.status,
+              payment_method_id: paymentInfo.payment_method_id,
+              payment_type: paymentInfo.payment_type_id,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("external_reference", externalReference);
+
+          if (updateError) {
+            console.error("Error actualizando orden:", updateError);
+          } else {
+            console.log(
+              `✅ Orden ${externalReference} actualizada a: ${orderStatus}`
+            );
+          }
+
+          // Si el pago fue aprobado, ejecutar acciones adicionales
+          if (status === "approved") {
+            console.log("✅ Pago aprobado - Ejecutando acciones post-pago");
+
+            // TODO: Aquí puedes agregar más acciones:
+            // - Enviar email de confirmación
+            // - Actualizar stock
+            // - Notificar al admin
+          }
+        }
+
+        return NextResponse.json({
+          received: true,
+          paymentId,
+          status,
+          externalReference,
+        });
+      } catch (paymentError) {
+        console.error("Error al obtener información del pago:", paymentError);
+        // Aún así devolvemos 200 para que MercadoPago no reintente
+        return NextResponse.json({
+          received: true,
+          error: "Error al procesar el pago, pero se recibió la notificación",
+        });
+      }
+    }
+
+    // Para notificaciones de tipo "merchant_order"
+    if (type === "merchant_order") {
+      console.log(`📦 Orden de comercio recibida: ${data?.id}`);
+      // TODO: Procesar orden de comercio si es necesario
+    }
+
+    // Para notificaciones de tipo "chargebacks"
+    if (type === "chargebacks") {
+      console.log(`⚠️ Contracargo recibido: ${data?.id}`);
+      // TODO: Procesar contracargo - esto es importante para gestión de fraudes
+    }
+
+    // Responder con 200 OK para confirmar recepción
+    return NextResponse.json({ received: true, type, action });
+  } catch (error) {
+    console.error("Error en webhook de MercadoPago:", error);
+
+    // Importante: Siempre devolver 200 para evitar reintentos infinitos
+    // Los errores se logean pero se confirma la recepción
+    return NextResponse.json({
+      received: true,
+      error: error instanceof Error ? error.message : "Error desconocido",
+    });
+  }
+}
+
+// GET para verificación del endpoint (MercadoPago puede hacer GET para verificar)
+export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+
+  // MercadoPago puede enviar un challenge para verificar el endpoint
+  const challenge = searchParams.get("hub.challenge");
+
+  if (challenge) {
+    return new NextResponse(challenge, {
+      status: 200,
+      headers: { "Content-Type": "text/plain" },
+    });
+  }
+
+  return NextResponse.json({
+    status: "ok",
+    message: "Webhook de MercadoPago activo",
+    timestamp: new Date().toISOString(),
+  });
+}
