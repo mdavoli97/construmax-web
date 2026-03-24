@@ -5,12 +5,73 @@ import {
   getPaymentStatusDescription,
 } from "@/lib/mercadopago";
 import { createClient } from "@supabase/supabase-js";
+import crypto from "crypto";
 
 // Cliente de Supabase con service role para operaciones admin
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL || "",
-  process.env.SUPABASE_SERVICE_ROLE_KEY || ""
+  process.env.SUPABASE_SERVICE_ROLE_KEY || "",
 );
+
+/**
+ * Verifica la firma del webhook de MercadoPago
+ * Documentación: https://www.mercadopago.com.ar/developers/es/docs/your-integrations/notifications/webhooks#verificarsufirma
+ */
+function verifyWebhookSignature(
+  xSignature: string | null,
+  xRequestId: string | null,
+  dataId: string,
+): boolean {
+  const secret = process.env.MERCADOPAGO_WEBHOOK_SECRET;
+
+  // Si no hay secret configurado, permitir (con warning en logs)
+  if (!secret) {
+    console.warn(
+      "⚠️ MERCADOPAGO_WEBHOOK_SECRET no configurado - se omite verificación de firma",
+    );
+    return true;
+  }
+
+  if (!xSignature || !xRequestId) {
+    console.error("❌ Faltan headers x-signature o x-request-id");
+    return false;
+  }
+
+  // Parsear x-signature: "ts=xxx,v1=xxx"
+  const parts = xSignature.split(",");
+  let ts = "";
+  let hash = "";
+
+  for (const part of parts) {
+    const [key, value] = part.split("=");
+    if (key === "ts") ts = value;
+    if (key === "v1") hash = value;
+  }
+
+  if (!ts || !hash) {
+    console.error("❌ Formato de x-signature inválido");
+    return false;
+  }
+
+  // Construir el manifest para verificar
+  // Formato: id:[data.id];request-id:[x-request-id];ts:[ts];
+  const manifest = `id:${dataId};request-id:${xRequestId};ts:${ts};`;
+
+  // Calcular HMAC-SHA256
+  const hmac = crypto.createHmac("sha256", secret);
+  hmac.update(manifest);
+  const calculatedHash = hmac.digest("hex");
+
+  const isValid = calculatedHash === hash;
+
+  if (!isValid) {
+    console.error("❌ Firma del webhook inválida");
+    console.error("  Expected:", hash);
+    console.error("  Calculated:", calculatedHash);
+  }
+
+  return isValid;
+}
 
 /**
  * Webhook para recibir notificaciones de MercadoPago
@@ -25,15 +86,39 @@ const supabaseAdmin = createClient(
  */
 export async function POST(request: NextRequest) {
   try {
+    // Obtener headers para verificación
+    const xSignature = request.headers.get("x-signature");
+    const xRequestId = request.headers.get("x-request-id");
+
     const body = await request.json();
 
     console.log(
       "📩 Webhook de MercadoPago recibido:",
-      JSON.stringify(body, null, 2)
+      JSON.stringify(body, null, 2),
     );
+    console.log("Headers - x-signature:", xSignature);
+    console.log("Headers - x-request-id:", xRequestId);
 
     // MercadoPago envía diferentes tipos de notificaciones
     const { type, data, action } = body;
+
+    // Verificar firma del webhook
+    if (data?.id) {
+      const isValidSignature = verifyWebhookSignature(
+        xSignature,
+        xRequestId,
+        String(data.id),
+      );
+
+      if (!isValidSignature) {
+        console.error("❌ Webhook rechazado: firma inválida");
+        return NextResponse.json(
+          { error: "Invalid signature" },
+          { status: 401 },
+        );
+      }
+      console.log("✅ Firma del webhook verificada correctamente");
+    }
 
     // Verificar que sea una notificación de pago
     if (type === "payment" && data?.id) {
@@ -47,12 +132,12 @@ export async function POST(request: NextRequest) {
 
         console.log(
           "📄 Información del pago:",
-          JSON.stringify(paymentInfo, null, 2)
+          JSON.stringify(paymentInfo, null, 2),
         );
 
         const status = mapPaymentStatus(paymentInfo.status || "");
         const statusDescription = getPaymentStatusDescription(
-          paymentInfo.status || ""
+          paymentInfo.status || "",
         );
         const externalReference = paymentInfo.external_reference;
 
@@ -84,7 +169,7 @@ export async function POST(request: NextRequest) {
             console.error("Error actualizando orden:", updateError);
           } else {
             console.log(
-              `✅ Orden ${externalReference} actualizada a: ${orderStatus}`
+              `✅ Orden ${externalReference} actualizada a: ${orderStatus}`,
             );
           }
 
