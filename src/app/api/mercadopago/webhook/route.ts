@@ -112,10 +112,27 @@ export async function POST(request: NextRequest) {
 
       if (!isValidSignature) {
         // Solo loguear, no rechazar (para facilitar debugging)
-        console.warn("⚠️ Firma del webhook inválida - procesando de todas formas");
+        console.warn(
+          "⚠️ Firma del webhook inválida - procesando de todas formas",
+        );
       } else {
         console.log("✅ Firma del webhook verificada correctamente");
       }
+    }
+
+    // Detectar si es una notificación de prueba (IDs falsos de MercadoPago)
+    const isTestNotification =
+      body.live_mode === false ||
+      String(data?.id).startsWith("123456") ||
+      body.id === "123456";
+
+    if (isTestNotification) {
+      console.log("🧪 Notificación de PRUEBA detectada - respondiendo OK");
+      return NextResponse.json({
+        received: true,
+        test: true,
+        message: "Notificación de prueba recibida correctamente",
+      });
     }
 
     // Verificar que sea una notificación de pago
