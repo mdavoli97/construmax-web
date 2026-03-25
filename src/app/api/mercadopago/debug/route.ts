@@ -89,3 +89,55 @@ export async function GET(request: NextRequest) {
     },
   });
 }
+
+// POST: Simular webhook para probar que el endpoint funciona
+// Uso: POST /api/mercadopago/debug con body { "external_reference": "ORDER_xxx", "simulate_payment_id": "12345" }
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { external_reference, simulate_payment_id } = body;
+
+    if (!external_reference) {
+      return NextResponse.json(
+        { error: "Se requiere external_reference" },
+        { status: 400 },
+      );
+    }
+
+    const supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL || "",
+      process.env.SUPABASE_SERVICE_ROLE_KEY || "",
+    );
+
+    // Actualizar la orden directamente (simula lo que haría el webhook)
+    const { data, error } = await supabaseAdmin
+      .from("orders")
+      .update({
+        status: "paid",
+        payment_id: simulate_payment_id || "SIMULATED_" + Date.now(),
+        payment_status: "approved",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("external_reference", external_reference)
+      .select()
+      .single();
+
+    if (error) {
+      return NextResponse.json(
+        { error: "Error actualizando orden", details: error.message },
+        { status: 500 },
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: "Orden actualizada (simulación de webhook)",
+      order: data,
+    });
+  } catch (err) {
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : "Unknown error" },
+      { status: 500 },
+    );
+  }
+}
