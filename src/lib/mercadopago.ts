@@ -1,4 +1,5 @@
 import { MercadoPagoConfig, Preference, Payment } from "mercadopago";
+import { getMercadoPagoBaseUrl } from "@/lib/mercadopago-base-url";
 
 // Configuración del cliente de MercadoPago
 // Usa las credenciales de prueba para desarrollo
@@ -85,12 +86,7 @@ export interface PreferenceResponse {
 export async function createPreference(
   params: CreatePreferenceParams,
 ): Promise<PreferenceResponse> {
-  // En producción (Vercel) usar VERCEL_URL si NEXT_PUBLIC_BASE_URL no está configurado
-  const vercelUrl = process.env.VERCEL_URL
-    ? `https://${process.env.VERCEL_URL}`
-    : null;
-  const baseUrl =
-    process.env.NEXT_PUBLIC_BASE_URL || vercelUrl || "http://localhost:3000";
+  const baseUrl = getMercadoPagoBaseUrl();
 
   const isLocalhost =
     baseUrl.includes("localhost") || baseUrl.includes("127.0.0.1");
@@ -123,12 +119,15 @@ export async function createPreference(
     pending: `${baseUrl}/checkout/return?status=pending`,
   };
 
+  // Siempre enviar notification_url para que MercadoPago sepa a dónde notificar
+  const notificationUrl = params.notification_url || `${baseUrl}/api/mercadopago/webhook`;
+  preferenceData.notification_url = notificationUrl;
+  console.log("🔔 notification_url:", notificationUrl);
+
   // auto_return solo funciona con URLs públicas (no localhost)
   // Usar "all" para redirigir automáticamente en todos los casos
   if (!isLocalhost) {
     preferenceData.auto_return = params.auto_return || "all";
-    preferenceData.notification_url =
-      params.notification_url || `${baseUrl}/api/mercadopago/webhook`;
   }
 
   // Agregar payer solo si está definido

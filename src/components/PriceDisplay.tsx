@@ -19,7 +19,7 @@ export default function PriceDisplay({
   showOriginalPrice = false,
   size = "md",
 }: PriceDisplayProps) {
-  const { exchangeRate, loading } = useExchangeRate();
+  const { exchangeRate, loading, displayCurrency } = useExchangeRate();
 
   const getSizeClasses = () => {
     switch (size) {
@@ -36,7 +36,9 @@ export default function PriceDisplay({
     }
   };
 
-  if (loading && currency === "USD") {
+  const needsRate = currency !== displayCurrency;
+
+  if (loading && needsRate) {
     return (
       <div className={`${getSizeClasses()} ${className}`}>
         <span className="text-gray-500">Cargando precio...</span>
@@ -44,7 +46,7 @@ export default function PriceDisplay({
     );
   }
 
-  if (!exchangeRate && currency === "USD") {
+  if (!exchangeRate && needsRate) {
     return (
       <div className={`${getSizeClasses()} ${className}`}>
         <span className="text-red-500">Error al cargar precio</span>
@@ -56,7 +58,8 @@ export default function PriceDisplay({
     price,
     currency,
     exchangeRate || undefined,
-    showOriginalPrice
+    showOriginalPrice,
+    displayCurrency
   );
 
   return (

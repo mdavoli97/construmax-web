@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCartStore } from "@/store/cartStore";
 import {
   TrashIcon,
@@ -9,25 +10,42 @@ import {
   MinusIcon,
   ArrowLeftIcon,
 } from "@heroicons/react/24/outline";
-import { useExchangeRate, formatUYU, convertUSDToUYU } from "@/lib/currency";
+import {
+  formatPriceWithCurrency,
+  convertUSDToUYU,
+} from "@/lib/currency";
+import { useExchangeRate } from "@/contexts/ExchangeRateContext";
+import { useCustomerAuth } from "@/contexts/CustomerAuthContext";
 import {
   Product,
   ProductImage as ProductImageType,
   CalculationDetail,
 } from "@/types";
 import ProductImage from "@/components/ProductImage";
+import CheckoutAuthModal from "@/components/CheckoutAuthModal";
 
 export default function CarritoPage() {
+  const router = useRouter();
   const { cart, removeItem, updateQuantity, clearCart } = useCartStore();
+  const { user } = useCustomerAuth();
   const [isUpdating, setIsUpdating] = useState<string | null>(null);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
   const [productImages, setProductImages] = useState<{
     [key: string]: ProductImageType[];
   }>({});
 
-  // Hook para cotización de dólar
-  const { exchangeRate } = useExchangeRate();
+  const { exchangeRate, displayCurrency } = useExchangeRate();
 
-  // Función para calcular el total del carrito en UYU considerando diferentes monedas
+  const goToCheckout = () => router.push("/checkout");
+
+  const handleProceedToPayment = () => {
+    if (user) {
+      goToCheckout();
+      return;
+    }
+    setAuthModalOpen(true);
+  };
+
   const calculateCartTotalInUYU = () => {
     if (!exchangeRate) return 0;
 
@@ -37,11 +55,19 @@ export default function CarritoPage() {
 
       if (currency === "UYU") {
         return total + itemTotal;
-      } else {
-        return total + convertUSDToUYU(itemTotal, exchangeRate.usd_to_uyu);
       }
+      return total + convertUSDToUYU(itemTotal, exchangeRate);
     }, 0);
   };
+
+  const formatAmountFromUYU = (amountUYU: number) =>
+    formatPriceWithCurrency(
+      amountUYU,
+      "UYU",
+      exchangeRate || undefined,
+      false,
+      displayCurrency
+    );
 
   // Cargar imágenes de los productos del carrito
   useEffect(() => {
@@ -79,48 +105,26 @@ export default function CarritoPage() {
     }
   }, [cart.items]);
 
-  const formatPrice = (price: number, currency: "USD" | "UYU" = "USD") => {
-    // Si ya está en pesos, devolver directamente
-    if (currency === "UYU") {
-      return formatUYU(price);
-    }
-
-    // Si está en dólares y no hay tasa de cambio, mostrar en USD
-    if (!exchangeRate) {
-      return new Intl.NumberFormat("en-US", {
-        style: "currency",
-        currency: "USD",
-      }).format(price);
-    }
-
-    // Convertir de USD a UYU
-    const priceInUYU = convertUSDToUYU(price, exchangeRate.usd_to_uyu);
-    return formatUYU(priceInUYU);
-  };
+  const formatPrice = (price: number, currency: "USD" | "UYU" = "USD") =>
+    formatPriceWithCurrency(
+      price,
+      currency,
+      exchangeRate || undefined,
+      false,
+      displayCurrency
+    );
 
   const formatPriceWithIVA = (
     price: number,
     currency: "USD" | "UYU" = "USD"
-  ) => {
-    // Si ya está en pesos, aplicar IVA directamente
-    if (currency === "UYU") {
-      const priceWithIVA = price * 1.22; // 22% IVA
-      return formatUYU(priceWithIVA);
-    }
-
-    // Si está en dólares y no hay tasa de cambio, mostrar en USD
-    if (!exchangeRate) {
-      return new Intl.NumberFormat("en-US", {
-        style: "currency",
-        currency: "USD",
-      }).format(price * 1.22);
-    }
-
-    // Convertir de USD a UYU y aplicar IVA
-    const priceInUYU = convertUSDToUYU(price, exchangeRate.usd_to_uyu);
-    const priceWithIVA = priceInUYU * 1.22; // 22% IVA
-    return formatUYU(priceWithIVA);
-  };
+  ) =>
+    formatPriceWithCurrency(
+      price * 1.22,
+      currency,
+      exchangeRate || undefined,
+      false,
+      displayCurrency
+    );
 
   // Función para extraer la descripción real del producto
   const getProductDescription = (product: Product) => {
@@ -239,7 +243,7 @@ export default function CarritoPage() {
     if (!exchangeRate) return 0.7; // Fallback aproximado
 
     const shippingCostUYU = 700 * 1.22; // $700 + 22% IVA = $854
-    return shippingCostUYU / exchangeRate.usd_to_uyu;
+    return shippingCostUYU / exchangeRate;
   };
 
   const handleQuantityChange = (productId: string, newQuantity: number) => {
@@ -496,14 +500,16 @@ export default function CarritoPage() {
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Subtotal (sin IVA):</span>
                   <span className="text-gray-900">
-                    {exchangeRate ? formatUYU(calculateCartTotalInUYU()) : "-"}
+                    {exchangeRate
+                      ? formatAmountFromUYU(calculateCartTotalInUYU())
+                      : "-"}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">IVA (22%):</span>
                   <span className="text-gray-900">
                     {exchangeRate
-                      ? formatUYU(calculateCartTotalInUYU() * 0.22)
+                      ? formatAmountFromUYU(calculateCartTotalInUYU() * 0.22)
                       : "-"}
                   </span>
                 </div>
@@ -511,14 +517,16 @@ export default function CarritoPage() {
                   <span className="text-gray-600">Subtotal con IVA:</span>
                   <span className="text-gray-900">
                     {exchangeRate
-                      ? formatUYU(calculateCartTotalInUYU() * 1.22)
+                      ? formatAmountFromUYU(calculateCartTotalInUYU() * 1.22)
                       : "-"}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Envío:</span>
                   <span className="text-green-600">
-                    {isShippingFree() ? "Gratis" : formatUYU(700 * 1.22)}
+                    {isShippingFree()
+                      ? "Gratis"
+                      : formatAmountFromUYU(700 * 1.22)}
                   </span>
                 </div>
                 <div className="border-t border-gray-200 pt-4">
@@ -527,8 +535,8 @@ export default function CarritoPage() {
                     <span className="text-orange-600">
                       {exchangeRate
                         ? isShippingFree()
-                          ? formatUYU(calculateCartTotalInUYU() * 1.22)
-                          : formatUYU(
+                          ? formatAmountFromUYU(calculateCartTotalInUYU() * 1.22)
+                          : formatAmountFromUYU(
                               calculateCartTotalInUYU() * 1.22 + 700 * 1.22
                             )
                         : "-"}
@@ -541,12 +549,13 @@ export default function CarritoPage() {
               </div>
 
               <div className="mt-6 space-y-3">
-                <Link
-                  href="/checkout"
+                <button
+                  type="button"
+                  onClick={handleProceedToPayment}
                   className="w-full bg-orange-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-orange-700 transition-colors text-center block"
                 >
                   Proceder al Pago
-                </Link>
+                </button>
 
                 <Link
                   href="/productos"
@@ -555,6 +564,12 @@ export default function CarritoPage() {
                   Continuar Comprando
                 </Link>
               </div>
+
+              <CheckoutAuthModal
+                open={authModalOpen}
+                onOpenChange={setAuthModalOpen}
+                onContinue={goToCheckout}
+              />
 
               {/* Shipping Info */}
               <div className="mt-6 p-4 bg-green-50 rounded-lg">

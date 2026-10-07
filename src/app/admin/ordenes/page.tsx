@@ -35,6 +35,10 @@ interface Order {
   status: string;
   created_at: string;
   items: OrderItem[];
+  external_reference?: string | null;
+  payment_id?: string | null;
+  payment_status?: string | null;
+  mercadopago_preference_id?: string | null;
 }
 
 export default function OrdersPage() {
@@ -88,6 +92,12 @@ export default function OrdersPage() {
     switch (status) {
       case "pending":
         return "bg-yellow-100 text-yellow-800";
+      case "pending_payment":
+        return "bg-amber-100 text-amber-800";
+      case "paid":
+        return "bg-emerald-100 text-emerald-800";
+      case "payment_failed":
+        return "bg-red-100 text-red-800";
       case "confirmed":
         return "bg-blue-100 text-blue-800";
       case "preparing":
@@ -107,6 +117,12 @@ export default function OrdersPage() {
     switch (status) {
       case "pending":
         return "Pendiente";
+      case "pending_payment":
+        return "Pago pendiente";
+      case "paid":
+        return "Pagado";
+      case "payment_failed":
+        return "Pago fallido";
       case "confirmed":
         return "Confirmado";
       case "preparing":
@@ -120,6 +136,19 @@ export default function OrdersPage() {
       default:
         return status;
     }
+  };
+
+  const getPaymentMethodLabel = (order: Order) => {
+    if (order.payment_method === "cash") return "Efectivo";
+    if (order.payment_method === "transfer") return "Transferencia";
+    if (
+      order.payment_method === "card" ||
+      order.mercadopago_preference_id ||
+      order.payment_id
+    ) {
+      return "Tarjeta (Mercado Pago)";
+    }
+    return order.payment_method;
   };
 
   if (loading) {
@@ -198,6 +227,11 @@ export default function OrdersPage() {
                         });
                       })()}
                     </div>
+                    {order.external_reference && (
+                      <div className="text-xs text-gray-400 mt-1 truncate max-w-[160px]" title={order.external_reference}>
+                        Ref: {order.external_reference}
+                      </div>
+                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900">
@@ -211,11 +245,20 @@ export default function OrdersPage() {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {order.payment_method === "cash"
-                      ? "Efectivo"
-                      : order.payment_method === "transfer"
-                        ? "Transferencia"
-                        : order.payment_method}
+                    <div>{getPaymentMethodLabel(order)}</div>
+                    {order.payment_id && (
+                      <div
+                        className="text-xs text-gray-400 mt-1 truncate max-w-[140px]"
+                        title={order.payment_id}
+                      >
+                        MP: {order.payment_id}
+                      </div>
+                    )}
+                    {order.payment_status && (
+                      <div className="text-xs text-gray-400">
+                        {order.payment_status}
+                      </div>
+                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-900">
@@ -250,6 +293,9 @@ export default function OrdersPage() {
                       className="rounded border-gray-300 text-sm"
                     >
                       <option value="pending">Pendiente</option>
+                      <option value="pending_payment">Pago pendiente</option>
+                      <option value="paid">Pagado</option>
+                      <option value="payment_failed">Pago fallido</option>
                       <option value="confirmed">Confirmado</option>
                       <option value="preparing">Preparando</option>
                       <option value="ready">Listo</option>

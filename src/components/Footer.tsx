@@ -64,18 +64,18 @@ export default function Footer() {
               </li>
               <li>
                 <Link
-                  href="/productos/construccion"
+                  href="/contacto"
                   className="text-gray-300 hover:text-orange-500 transition-colors text-sm sm:text-base"
                 >
-                  Construcción
+                  Contáctanos
                 </Link>
               </li>
               <li>
                 <Link
-                  href="/productos/metalurgica"
+                  href="/cuenta/registro"
                   className="text-gray-300 hover:text-orange-500 transition-colors text-sm sm:text-base"
                 >
-                  Metalúrgica
+                  Crear cuenta
                 </Link>
               </li>
             </ul>

@@ -100,42 +100,60 @@ export async function getUSDToUYURate(): Promise<ExchangeRateData> {
   }
 }
 
+export type DisplayCurrency = "USD" | "UYU";
+
 /**
- * Formatea un precio teniendo en cuenta la moneda original
+ * Formatea un precio según moneda de origen y moneda de visualización
  * @param price - El precio a formatear
  * @param currency - La moneda original del precio ('USD' | 'UYU')
- * @param exchangeRate - La tasa de cambio USD a UYU (opcional si currency es UYU)
+ * @param exchangeRate - La tasa de cambio USD a UYU
  * @param showOriginal - Si mostrar la moneda original entre paréntesis cuando se convierte
+ * @param displayCurrency - Moneda en la que el usuario quiere ver precios
  */
 export function formatPriceWithCurrency(
   price: number,
   currency: "USD" | "UYU" = "USD",
   exchangeRate?: number,
-  showOriginal: boolean = true
+  showOriginal: boolean = true,
+  displayCurrency: DisplayCurrency = "UYU"
 ): string {
-  // Si el precio ya está en UYU, mostrarlo directamente
-  if (currency === "UYU") {
-    return formatUYU(price);
+  const converted = convertPrice(
+    price,
+    currency,
+    displayCurrency,
+    exchangeRate
+  );
+
+  const formatted =
+    displayCurrency === "UYU" ? formatUYU(converted) : formatUSD(converted);
+
+  if (showOriginal && currency !== displayCurrency && exchangeRate) {
+    const original = currency === "UYU" ? formatUYU(price) : formatUSD(price);
+    return `${formatted} (${original})`;
   }
 
-  // Si está en USD y no tenemos tasa de cambio, mostrar en USD
-  if (currency === "USD" && !exchangeRate) {
-    return formatUSD(price);
+  return formatted;
+}
+
+/**
+ * Convierte un monto entre USD y UYU
+ */
+export function convertPrice(
+  amount: number,
+  from: DisplayCurrency,
+  to: DisplayCurrency,
+  exchangeRate?: number
+): number {
+  if (from === to) return amount;
+  if (!exchangeRate) return amount;
+
+  if (from === "USD" && to === "UYU") {
+    return convertUSDToUYU(amount, exchangeRate);
   }
-
-  // Si está en USD y tenemos tasa de cambio, convertir a UYU
-  if (currency === "USD" && exchangeRate) {
-    const priceInUYU = convertUSDToUYU(price, exchangeRate);
-
-    if (showOriginal) {
-      return `${formatUYU(priceInUYU)} (${formatUSD(price)})`;
-    } else {
-      return formatUYU(priceInUYU);
-    }
+  if (from === "UYU" && to === "USD") {
+    return convertUYUToUSD(amount, exchangeRate);
   }
-
-  // Fallback
-  return formatUSD(price);
+  return amount;
 }
 
 /**
@@ -146,6 +164,17 @@ export function convertUSDToUYU(
   exchangeRate: number
 ): number {
   return Math.round(usdAmount * exchangeRate);
+}
+
+/**
+ * Convierte un precio de UYU a USD
+ */
+export function convertUYUToUSD(
+  uyuAmount: number,
+  exchangeRate: number
+): number {
+  if (!exchangeRate) return uyuAmount;
+  return Math.round((uyuAmount / exchangeRate) * 100) / 100;
 }
 
 /**
@@ -161,15 +190,14 @@ export function formatUYU(amount: number): string {
 }
 
 /**
- * Formatea un precio en dólares
+ * Formatea un precio en dólares (US$ para distinguirlo del $ uruguayo)
  */
 export function formatUSD(amount: number): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
+  const formatted = new Intl.NumberFormat("en-US", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(amount);
+  return `US$ ${formatted}`;
 }
 
 /**

@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import { MercadoPagoConfig, Preference } from "mercadopago";
+import { blockMercadoPagoDevRoutesInProduction } from "@/lib/mercadopago-dev-routes";
 
 export async function GET() {
+  const blocked = blockMercadoPagoDevRoutesInProduction();
+  if (blocked) return blocked;
+
   try {
     const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN;
 

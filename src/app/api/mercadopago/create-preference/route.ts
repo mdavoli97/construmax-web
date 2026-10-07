@@ -4,6 +4,7 @@ import {
   MercadoPagoItem,
   MercadoPagoPayer,
 } from "@/lib/mercadopago";
+import { getMercadoPagoBaseUrl } from "@/lib/mercadopago-base-url";
 
 export async function POST(request: NextRequest) {
   try {
@@ -51,7 +52,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
+    const baseUrl = getMercadoPagoBaseUrl();
 
     // Crear la preferencia de pago
     const preference = await createPreference({

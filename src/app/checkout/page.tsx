@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useCartStore } from "@/store/cartStore";
 import {
@@ -10,7 +10,12 @@ import {
   BuildingLibraryIcon,
 } from "@heroicons/react/24/outline";
 import Link from "next/link";
-import { useExchangeRate, formatUYU, convertUSDToUYU } from "@/lib/currency";
+import {
+  formatPriceWithCurrency,
+  convertUSDToUYU,
+} from "@/lib/currency";
+import { useExchangeRate } from "@/contexts/ExchangeRateContext";
+import { useCustomerAuth } from "@/contexts/CustomerAuthContext";
 import { Product } from "@/types";
 import {
   Select,
@@ -65,11 +70,25 @@ export default function CheckoutPage() {
     observations: "",
   });
   const [isProcessing, setIsProcessing] = useState(false);
+  const prefilledFromAuth = useRef(false);
 
-  // Hook para cotización de dólar
-  const { exchangeRate } = useExchangeRate();
+  const { exchangeRate, displayCurrency } = useExchangeRate();
+  const { user } = useCustomerAuth();
 
-  // Función para calcular el total del carrito en UYU considerando diferentes monedas
+  useEffect(() => {
+    if (!user || prefilledFromAuth.current) return;
+    prefilledFromAuth.current = true;
+    const name =
+      user.user_metadata?.full_name ||
+      user.user_metadata?.name ||
+      "";
+    setCustomerData((prev) => ({
+      ...prev,
+      name: prev.name || name,
+      email: prev.email || user.email || "",
+    }));
+  }, [user]);
+
   const calculateCartTotalInUYU = () => {
     if (!exchangeRate) return 0;
 
@@ -79,54 +98,40 @@ export default function CheckoutPage() {
 
       if (currency === "UYU") {
         return total + itemTotal;
-      } else {
-        return total + convertUSDToUYU(itemTotal, exchangeRate.usd_to_uyu);
       }
+      return total + convertUSDToUYU(itemTotal, exchangeRate);
     }, 0);
   };
 
-  const formatPrice = (price: number, currency: "USD" | "UYU" = "USD") => {
-    // Si ya está en pesos, devolver directamente
-    if (currency === "UYU") {
-      return formatUYU(price);
-    }
+  const formatAmountFromUYU = (amountUYU: number) =>
+    formatPriceWithCurrency(
+      amountUYU,
+      "UYU",
+      exchangeRate || undefined,
+      false,
+      displayCurrency
+    );
 
-    // Si está en dólares y no hay tasa de cambio, mostrar en USD
-    if (!exchangeRate) {
-      return new Intl.NumberFormat("en-US", {
-        style: "currency",
-        currency: "USD",
-      }).format(price);
-    }
-
-    // Convertir de USD a UYU
-    const priceInUYU = convertUSDToUYU(price, exchangeRate.usd_to_uyu);
-    return formatUYU(priceInUYU);
-  };
+  const formatPrice = (price: number, currency: "USD" | "UYU" = "USD") =>
+    formatPriceWithCurrency(
+      price,
+      currency,
+      exchangeRate || undefined,
+      false,
+      displayCurrency
+    );
 
   const formatPriceWithIVA = (
     price: number,
     currency: "USD" | "UYU" = "USD"
-  ) => {
-    // Si ya está en pesos, aplicar IVA directamente
-    if (currency === "UYU") {
-      const priceWithIVA = price * 1.22; // 22% IVA
-      return formatUYU(priceWithIVA);
-    }
-
-    // Si está en dólares y no hay tasa de cambio, mostrar en USD
-    if (!exchangeRate) {
-      return new Intl.NumberFormat("en-US", {
-        style: "currency",
-        currency: "USD",
-      }).format(price * 1.22);
-    }
-
-    // Convertir de USD a UYU y aplicar IVA
-    const priceInUYU = convertUSDToUYU(price, exchangeRate.usd_to_uyu);
-    const priceWithIVA = priceInUYU * 1.22; // 22% IVA
-    return formatUYU(priceWithIVA);
-  };
+  ) =>
+    formatPriceWithCurrency(
+      price * 1.22,
+      currency,
+      exchangeRate || undefined,
+      false,
+      displayCurrency
+    );
 
   // Función para extraer la descripción real del producto
   const getProductDescription = (product: Product) => {
@@ -172,7 +177,7 @@ export default function CheckoutPage() {
     if (!exchangeRate) return 0.7; // Fallback aproximado
 
     const shippingCostUYU = 700 * 1.22; // $700 + 22% IVA = $854
-    return shippingCostUYU / exchangeRate.usd_to_uyu;
+    return shippingCostUYU / exchangeRate;
   };
 
   // Función para verificar si el documento es requerido (total con IVA >= $30.000 UYU)
@@ -400,7 +405,7 @@ export default function CheckoutPage() {
               ? item.product.price
               : convertUSDToUYU(
                   item.product.price,
-                  exchangeRate?.usd_to_uyu || 1
+                  exchangeRate || 1
                 )) * 1.22
           ),
         }));
@@ -1455,14 +1460,16 @@ export default function CheckoutPage() {
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Subtotal (sin IVA):</span>
                   <span className="text-gray-900">
-                    {exchangeRate ? formatUYU(calculateCartTotalInUYU()) : "-"}
+                    {exchangeRate
+                      ? formatAmountFromUYU(calculateCartTotalInUYU())
+                      : "-"}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">IVA (22%):</span>
                   <span className="text-gray-900">
                     {exchangeRate
-                      ? formatUYU(calculateCartTotalInUYU() * 0.22)
+                      ? formatAmountFromUYU(calculateCartTotalInUYU() * 0.22)
                       : "-"}
                   </span>
                 </div>
@@ -1470,7 +1477,7 @@ export default function CheckoutPage() {
                   <span className="text-gray-600">Subtotal con IVA:</span>
                   <span className="text-gray-900">
                     {exchangeRate
-                      ? formatUYU(calculateCartTotalInUYU() * 1.22)
+                      ? formatAmountFromUYU(calculateCartTotalInUYU() * 1.22)
                       : "-"}
                   </span>
                 </div>
@@ -1481,7 +1488,9 @@ export default function CheckoutPage() {
                       shippingCost === 0 ? "text-green-600" : "text-gray-900"
                     }
                   >
-                    {shippingCost === 0 ? "Gratis" : formatUYU(700 * 1.22)}
+                    {shippingCost === 0
+                      ? "Gratis"
+                      : formatAmountFromUYU(700 * 1.22)}
                   </span>
                 </div>
                 <div className="border-t border-gray-200 pt-2">
@@ -1490,8 +1499,8 @@ export default function CheckoutPage() {
                     <span className="text-orange-600">
                       {exchangeRate
                         ? shippingCost === 0
-                          ? formatUYU(calculateCartTotalInUYU() * 1.22)
-                          : formatUYU(
+                          ? formatAmountFromUYU(calculateCartTotalInUYU() * 1.22)
+                          : formatAmountFromUYU(
                               calculateCartTotalInUYU() * 1.22 + 700 * 1.22
                             )
                         : "-"}

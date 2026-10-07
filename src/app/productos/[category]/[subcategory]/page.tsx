@@ -21,7 +21,11 @@ import { useCartStore } from "@/store/cartStore";
 import ProductCard from "@/components/ProductCard";
 import ProductImageGallery from "@/components/ProductImageGallery";
 import ChapasCalculator from "@/components/ChapasCalculator";
-import { useExchangeRate, formatUYU, convertUSDToUYU } from "@/lib/currency";
+import {
+  formatPriceWithCurrency,
+  convertPrice,
+} from "@/lib/currency";
+import { useExchangeRate } from "@/contexts/ExchangeRateContext";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -83,8 +87,7 @@ export default function ProductFamilyPage() {
 
   const { addItem, getItemQuantity } = useCartStore();
 
-  // Hook para cotización de dólar
-  const { exchangeRate } = useExchangeRate();
+  const { exchangeRate, displayCurrency } = useExchangeRate();
 
   const currentQuantity = product ? getItemQuantity(product.id) : 0;
 
@@ -716,15 +719,17 @@ export default function ProductFamilyPage() {
   };
 
   const formatPrice = (price: number, currency: "USD" | "UYU" = "USD") => {
-    if (!exchangeRate && currency === "USD") {
+    if (!exchangeRate && currency !== displayCurrency) {
       return "Cargando...";
     }
 
-    if (currency === "UYU") {
-      return formatUYU(price);
-    }
-
-    return formatUYU(convertUSDToUYU(price, exchangeRate!.usd_to_uyu));
+    return formatPriceWithCurrency(
+      price,
+      currency,
+      exchangeRate || undefined,
+      false,
+      displayCurrency
+    );
   };
 
   const formatPriceWithIVA = (
@@ -735,20 +740,18 @@ export default function ProductFamilyPage() {
     return formatPrice(priceWithIVA, currency);
   };
 
-  // Calcular rango de precios
   const getPriceRange = () => {
     if (products.length === 0) return "Consultar precio";
 
     const prices = products
       .map((p) => {
-        const currency = p.price_group?.currency || "USD";
-        let priceUYU = p.price;
-
-        if (currency === "USD" && exchangeRate) {
-          priceUYU = convertUSDToUYU(p.price, exchangeRate.usd_to_uyu);
-        }
-
-        return priceUYU * 1.22; // Con IVA
+        const currency = (p.price_group?.currency || "USD") as "USD" | "UYU";
+        return convertPrice(
+          p.price * 1.22,
+          currency,
+          displayCurrency,
+          exchangeRate || undefined
+        );
       })
       .filter((price) => price > 0);
 
@@ -757,11 +760,20 @@ export default function ProductFamilyPage() {
     const minPrice = Math.min(...prices);
     const maxPrice = Math.max(...prices);
 
+    const format = (amount: number) =>
+      formatPriceWithCurrency(
+        amount,
+        displayCurrency,
+        exchangeRate || undefined,
+        false,
+        displayCurrency
+      );
+
     if (minPrice === maxPrice) {
-      return formatUYU(minPrice);
+      return format(minPrice);
     }
 
-    return `${formatUYU(minPrice)} - ${formatUYU(maxPrice)}`;
+    return `${format(minPrice)} - ${format(maxPrice)}`;
   };
 
   if (loading) {

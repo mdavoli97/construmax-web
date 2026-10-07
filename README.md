@@ -78,6 +78,11 @@ Una plataforma de e-commerce completa para una barraca de materiales de construc
 
    # App
    NEXT_PUBLIC_BASE_URL=http://localhost:3000
+
+   # Mercado Pago (Checkout Pro) — ver MERCADOPAGO_SETUP.md
+   MERCADOPAGO_ACCESS_TOKEN=APP_USR-...
+   MERCADOPAGO_WEBHOOK_SECRET=
+   NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY=
    ```
 
 4. **Ejecutar en desarrollo**
@@ -112,6 +117,12 @@ Una plataforma de e-commerce completa para una barraca de materiales de construc
 1. Crear cuenta en [Cloudinary](https://cloudinary.com)
 2. Obtener credenciales del dashboard
 3. Configurar upload presets
+
+### Mercado Pago (tarjetas)
+
+1. Crear aplicación en [Mercado Pago Developers](https://www.mercadopago.com.uy/developers)
+2. Configurar variables y webhook según `MERCADOPAGO_SETUP.md`
+3. Probar con credenciales de sandbox y tarjetas de prueba
 
 ## 📁 Estructura del Proyecto
 

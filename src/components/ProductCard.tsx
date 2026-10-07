@@ -13,7 +13,7 @@ interface ProductCardProps {
 }
 
 export default function ProductCard({ product }: ProductCardProps) {
-  const { exchangeRate } = useExchangeRate();
+  const { exchangeRate, displayCurrency } = useExchangeRate();
   const router = useRouter();
   const currentQuantity = useItemQuantity(product.id);
 
@@ -54,7 +54,7 @@ export default function ProductCard({ product }: ProductCardProps) {
     // Determinar la moneda del producto
     const currency = product.price_group?.currency || "USD";
 
-    if (!exchangeRate && currency === "USD") {
+    if (!exchangeRate && currency !== displayCurrency) {
       return "Cargando...";
     }
 
@@ -62,7 +62,8 @@ export default function ProductCard({ product }: ProductCardProps) {
       price,
       currency,
       exchangeRate || undefined,
-      false
+      false,
+      displayCurrency
     );
   };
 
@@ -70,38 +71,17 @@ export default function ProductCard({ product }: ProductCardProps) {
     // Determinar la moneda del producto
     const currency = product.price_group?.currency || "USD";
 
-    if (!exchangeRate && currency === "USD") {
+    if (!exchangeRate && currency !== displayCurrency) {
       return "Cargando...";
     }
 
-    // Si está en UYU, aplicar IVA directamente
-    if (currency === "UYU") {
-      const priceWithIVA = price * 1.22; // 22% IVA
-      return formatPriceWithCurrency(
-        priceWithIVA,
-        currency,
-        exchangeRate || undefined,
-        false
-      );
-    }
-
-    // Si está en USD, convertir primero y luego aplicar IVA
-    if (currency === "USD" && exchangeRate) {
-      const priceWithIVA = price * 1.22; // 22% IVA
-      return formatPriceWithCurrency(
-        priceWithIVA,
-        currency,
-        exchangeRate || undefined,
-        false
-      );
-    }
-
-    // Fallback
+    const priceWithIVA = price * 1.22; // 22% IVA
     return formatPriceWithCurrency(
-      price * 1.22,
+      priceWithIVA,
       currency,
       exchangeRate || undefined,
-      false
+      false,
+      displayCurrency
     );
   };
 
