@@ -19,11 +19,15 @@ export function resolveMercadoPagoCheckoutUrl(preference: {
 }): string {
   const useSandbox = shouldUseMercadoPagoSandbox();
   if (useSandbox) {
-    return (
-      preference.sandbox_init_point ||
-      preference.init_point ||
-      ""
-    );
+    const url = preference.sandbox_init_point || preference.init_point || "";
+    // Defensa: si por algún motivo vino el init_point de producción, forzar host sandbox
+    if (url.includes("www.mercadopago.") && !url.includes("sandbox.")) {
+      return url.replace(
+        "://www.mercadopago.",
+        "://sandbox.mercadopago."
+      );
+    }
+    return url;
   }
   return preference.init_point || preference.sandbox_init_point || "";
 }

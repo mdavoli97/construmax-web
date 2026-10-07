@@ -57,6 +57,18 @@ export async function POST(request: NextRequest) {
     }
 
     const baseUrl = getMercadoPagoBaseUrl();
+    const useSandbox = shouldUseMercadoPagoSandbox();
+
+    // En sandbox no enviar email real del comprador: MP lo asocia a un
+    // usuario de producción y dispara "una de las partes es de prueba".
+    const sandboxSafePayer = payer
+      ? {
+          name: payer.name,
+          surname: payer.surname,
+          phone: payer.phone,
+          // sin email ni identification en sandbox
+        }
+      : undefined;
 
     // Crear la preferencia de pago
     const preference = await createPreference({
@@ -70,7 +82,7 @@ export async function POST(request: NextRequest) {
         currency_id: item.currency_id || "UYU",
         unit_price: item.unit_price,
       })),
-      payer: payer,
+      payer: useSandbox ? sandboxSafePayer : payer,
       external_reference: external_reference || `ORDER_${Date.now()}`,
       back_urls: {
         success: `${baseUrl}/checkout/return?status=approved`,
@@ -82,7 +94,6 @@ export async function POST(request: NextRequest) {
       statement_descriptor: "CONSTRUMAX",
     });
 
-    const useSandbox = shouldUseMercadoPagoSandbox();
     const checkoutUrl = resolveMercadoPagoCheckoutUrl(preference);
 
     console.log(
