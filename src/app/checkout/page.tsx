@@ -24,6 +24,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  FieldErrors,
+  inputClassName,
+  validateCustomerCheckout,
+  validateShippingCheckout,
+} from "@/lib/checkout-validation";
 
 interface CustomerData {
   name: string;
@@ -42,6 +48,11 @@ interface ShippingData {
   contactPhone: string;
   preferredTime: "8-12" | "12-18" | "after-18";
   observations: string;
+}
+
+function FieldError({ message }: { message?: string }) {
+  if (!message) return null;
+  return <p className="mt-1 text-sm text-red-600">{message}</p>;
 }
 
 type PaymentMethod = "cash" | "transfer" | "card";
@@ -70,6 +81,9 @@ export default function CheckoutPage() {
     observations: "",
   });
   const [isProcessing, setIsProcessing] = useState(false);
+  const [customerErrors, setCustomerErrors] = useState<FieldErrors>({});
+  const [shippingErrors, setShippingErrors] = useState<FieldErrors>({});
+  const [paymentError, setPaymentError] = useState<string | null>(null);
   const prefilledFromAuth = useRef(false);
 
   const { exchangeRate, displayCurrency } = useExchangeRate();
@@ -234,8 +248,50 @@ export default function CheckoutPage() {
   const shippingCost = isShippingFree() ? 0 : getShippingCostUSD();
   const total = cart.total + shippingCost;
 
+  const clearCustomerError = (field: string) => {
+    setCustomerErrors((prev) => {
+      if (!prev[field]) return prev;
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
+  };
+
+  const clearShippingError = (field: string) => {
+    setShippingErrors((prev) => {
+      if (!prev[field]) return prev;
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
+  };
+
+  const runCustomerValidation = () => {
+    const result = validateCustomerCheckout({
+      ...customerData,
+      documentRequired: isDocumentRequired(),
+    });
+    if (!result.ok) {
+      setCustomerErrors(result.errors);
+      return false;
+    }
+    setCustomerErrors({});
+    return true;
+  };
+
+  const runShippingValidation = () => {
+    const result = validateShippingCheckout(shippingData);
+    if (!result.ok) {
+      setShippingErrors(result.errors);
+      return false;
+    }
+    setShippingErrors({});
+    return true;
+  };
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
+    clearCustomerError(name);
     setCustomerData((prev) => ({
       ...prev,
       [name]: value,
@@ -246,6 +302,7 @@ export default function CheckoutPage() {
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
+    clearShippingError(name);
     setShippingData((prev) => ({
       ...prev,
       [name]: value,
@@ -253,6 +310,9 @@ export default function CheckoutPage() {
   };
 
   const handleDeliveryMethodChange = (value: string) => {
+    clearShippingError("deliveryMethod");
+    clearShippingError("deliveryAddress");
+    clearShippingError("contactPhone");
     setShippingData((prev) => ({
       ...prev,
       deliveryMethod: value as "pickup" | "delivery",
@@ -260,6 +320,7 @@ export default function CheckoutPage() {
   };
 
   const handlePreferredTimeChange = (value: string) => {
+    clearShippingError("preferredTime");
     setShippingData((prev) => ({
       ...prev,
       preferredTime: value as "8-12" | "12-18" | "after-18",
@@ -267,6 +328,7 @@ export default function CheckoutPage() {
   };
 
   const handleDeliveryDateChange = (value: string) => {
+    clearShippingError("deliveryDate");
     setShippingData((prev) => ({
       ...prev,
       deliveryDate: value,
@@ -274,6 +336,10 @@ export default function CheckoutPage() {
   };
 
   const handleDocumentTypeChange = (value: string) => {
+    clearCustomerError("documentType");
+    clearCustomerError("documentNumber");
+    clearCustomerError("address");
+    clearCustomerError("city");
     setCustomerData((prev) => ({
       ...prev,
       documentType: value as "cedula" | "dni" | "rut",
@@ -281,20 +347,26 @@ export default function CheckoutPage() {
   };
 
   const handlePaymentMethodChange = (method: PaymentMethod) => {
+    setPaymentError(null);
     setSelectedPaymentMethod(method);
   };
 
   const handleContinueToContactInfo = () => {
-    if (selectedPaymentMethod) {
-      setCurrentStep(2);
+    if (!selectedPaymentMethod) {
+      setPaymentError("Seleccioná un método de pago");
+      return;
     }
+    setPaymentError(null);
+    setCurrentStep(2);
   };
 
   const handleContinueToShipping = () => {
+    if (!runCustomerValidation()) return;
     setCurrentStep(3);
   };
 
   const handleContinueToConfirmation = () => {
+    if (!runShippingValidation()) return;
     setCurrentStep(4);
   };
 
@@ -312,6 +384,25 @@ export default function CheckoutPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!selectedPaymentMethod) {
+      setPaymentError("Seleccioná un método de pago");
+      setCurrentStep(1);
+      return;
+    }
+
+    const customerOk = runCustomerValidation();
+    if (!customerOk) {
+      setCurrentStep(2);
+      return;
+    }
+
+    const shippingOk = runShippingValidation();
+    if (!shippingOk) {
+      setCurrentStep(3);
+      return;
+    }
+
     setIsProcessing(true);
 
     try {
@@ -861,6 +952,7 @@ export default function CheckoutPage() {
 
                 {/* Continue Button */}
                 <div className="mt-8">
+                  <FieldError message={paymentError || undefined} />
                   <button
                     onClick={handleContinueToContactInfo}
                     disabled={!selectedPaymentMethod}
@@ -909,7 +1001,14 @@ export default function CheckoutPage() {
                   </div>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-4">
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    handleContinueToShipping();
+                  }}
+                  className="space-y-4"
+                  noValidate
+                >
                   <div>
                     <label
                       htmlFor="name"
@@ -921,11 +1020,13 @@ export default function CheckoutPage() {
                       type="text"
                       id="name"
                       name="name"
-                      required
+                      autoComplete="name"
                       value={customerData.name}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      aria-invalid={!!customerErrors.name}
+                      className={inputClassName(!!customerErrors.name)}
                     />
+                    <FieldError message={customerErrors.name} />
                   </div>
 
                   {/* Documento */}
@@ -938,15 +1039,17 @@ export default function CheckoutPage() {
                         Requerido para compras mayores a $30.000 UYU
                       </p>
                     )}
-                    <div className="grid grid-cols-2 gap-3 items-center">
+                    <div className="grid grid-cols-2 gap-3 items-start">
                       <div>
                         <Select
                           value={customerData.documentType}
                           onValueChange={handleDocumentTypeChange}
                         >
                           <SelectTrigger
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent flex items-center"
-                            style={{ height: "40px", minHeight: "40px" }}
+                            className={inputClassName(
+                              !!customerErrors.documentType,
+                              "flex items-center h-10 min-h-10"
+                            )}
                           >
                             <SelectValue placeholder="Tipo" />
                           </SelectTrigger>
@@ -962,11 +1065,16 @@ export default function CheckoutPage() {
                           type="text"
                           name="documentNumber"
                           placeholder="Número de documento"
-                          required={isDocumentRequired()}
+                          inputMode="numeric"
                           value={customerData.documentNumber}
                           onChange={handleInputChange}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent h-10"
+                          aria-invalid={!!customerErrors.documentNumber}
+                          className={inputClassName(
+                            !!customerErrors.documentNumber,
+                            "h-10"
+                          )}
                         />
+                        <FieldError message={customerErrors.documentNumber} />
                       </div>
                     </div>
                   </div>
@@ -982,11 +1090,13 @@ export default function CheckoutPage() {
                       type="email"
                       id="email"
                       name="email"
-                      required
+                      autoComplete="email"
                       value={customerData.email}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      aria-invalid={!!customerErrors.email}
+                      className={inputClassName(!!customerErrors.email)}
                     />
+                    <FieldError message={customerErrors.email} />
                   </div>
 
                   <div>
@@ -1000,11 +1110,14 @@ export default function CheckoutPage() {
                       type="tel"
                       id="phone"
                       name="phone"
-                      required
+                      autoComplete="tel"
+                      placeholder="+598 99 123 456"
                       value={customerData.phone}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      aria-invalid={!!customerErrors.phone}
+                      className={inputClassName(!!customerErrors.phone)}
                     />
+                    <FieldError message={customerErrors.phone} />
                   </div>
 
                   {/* Dirección y Ciudad - Solo para RUT */}
@@ -1021,11 +1134,13 @@ export default function CheckoutPage() {
                           type="text"
                           id="address"
                           name="address"
-                          required
+                          autoComplete="street-address"
                           value={customerData.address}
                           onChange={handleInputChange}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                          aria-invalid={!!customerErrors.address}
+                          className={inputClassName(!!customerErrors.address)}
                         />
+                        <FieldError message={customerErrors.address} />
                       </div>
 
                       <div>
@@ -1039,18 +1154,19 @@ export default function CheckoutPage() {
                           type="text"
                           id="city"
                           name="city"
-                          required
+                          autoComplete="address-level2"
                           value={customerData.city}
                           onChange={handleInputChange}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                          aria-invalid={!!customerErrors.city}
+                          className={inputClassName(!!customerErrors.city)}
                         />
+                        <FieldError message={customerErrors.city} />
                       </div>
                     </>
                   )}
 
                   <button
-                    type="button"
-                    onClick={handleContinueToShipping}
+                    type="submit"
                     className="w-full bg-orange-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-orange-700 transition-colors mt-6"
                   >
                     Continuar
@@ -1073,7 +1189,14 @@ export default function CheckoutPage() {
                   </button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-4">
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    handleContinueToConfirmation();
+                  }}
+                  className="space-y-4"
+                  noValidate
+                >
                   {/* Fecha de entrega */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1084,8 +1207,10 @@ export default function CheckoutPage() {
                       onValueChange={handleDeliveryDateChange}
                     >
                       <SelectTrigger
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent flex items-center"
-                        style={{ height: "40px", minHeight: "40px" }}
+                        className={inputClassName(
+                          !!shippingErrors.deliveryDate,
+                          "flex items-center h-10 min-h-10"
+                        )}
                       >
                         <SelectValue placeholder="Selecciona una fecha" />
                       </SelectTrigger>
@@ -1097,6 +1222,7 @@ export default function CheckoutPage() {
                         ))}
                       </SelectContent>
                     </Select>
+                    <FieldError message={shippingErrors.deliveryDate} />
                   </div>
 
                   {/* Forma de retiro */}
@@ -1181,12 +1307,16 @@ export default function CheckoutPage() {
                           type="text"
                           id="deliveryAddress"
                           name="deliveryAddress"
-                          required
+                          autoComplete="street-address"
                           value={shippingData.deliveryAddress}
                           onChange={handleShippingInputChange}
                           placeholder="Dirección completa donde se realizará la entrega"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                          aria-invalid={!!shippingErrors.deliveryAddress}
+                          className={inputClassName(
+                            !!shippingErrors.deliveryAddress
+                          )}
                         />
+                        <FieldError message={shippingErrors.deliveryAddress} />
                       </div>
 
                       {/* Teléfono de contacto */}
@@ -1201,12 +1331,16 @@ export default function CheckoutPage() {
                           type="tel"
                           id="contactPhone"
                           name="contactPhone"
-                          required
+                          autoComplete="tel"
                           value={shippingData.contactPhone}
                           onChange={handleShippingInputChange}
-                          placeholder="Teléfono de la persona que recibirá el pedido"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                          placeholder="+598 99 123 456"
+                          aria-invalid={!!shippingErrors.contactPhone}
+                          className={inputClassName(
+                            !!shippingErrors.contactPhone
+                          )}
                         />
+                        <FieldError message={shippingErrors.contactPhone} />
                       </div>
 
                       {/* Horario de preferencia */}
@@ -1219,8 +1353,10 @@ export default function CheckoutPage() {
                           onValueChange={handlePreferredTimeChange}
                         >
                           <SelectTrigger
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent flex items-center"
-                            style={{ height: "40px", minHeight: "40px" }}
+                            className={inputClassName(
+                              !!shippingErrors.preferredTime,
+                              "flex items-center h-10 min-h-10"
+                            )}
                           >
                             <SelectValue placeholder="Selecciona un horario" />
                           </SelectTrigger>
@@ -1232,6 +1368,7 @@ export default function CheckoutPage() {
                             </SelectItem>
                           </SelectContent>
                         </Select>
+                        <FieldError message={shippingErrors.preferredTime} />
                       </div>
 
                       {/* Observaciones */}
@@ -1246,18 +1383,22 @@ export default function CheckoutPage() {
                           id="observations"
                           name="observations"
                           rows={3}
+                          maxLength={500}
                           value={shippingData.observations}
                           onChange={handleShippingInputChange}
                           placeholder="Información adicional sobre la entrega (ej: referencias de ubicación, instrucciones especiales)"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                          aria-invalid={!!shippingErrors.observations}
+                          className={inputClassName(
+                            !!shippingErrors.observations
+                          )}
                         />
+                        <FieldError message={shippingErrors.observations} />
                       </div>
                     </>
                   )}
 
                   <button
-                    type="button"
-                    onClick={handleContinueToConfirmation}
+                    type="submit"
                     className="w-full bg-orange-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-orange-700 transition-colors mt-6"
                   >
                     Continuar
@@ -1402,7 +1543,7 @@ export default function CheckoutPage() {
                   </div>
 
                   {/* Botón de confirmación final */}
-                  <form onSubmit={handleSubmit}>
+                  <form onSubmit={handleSubmit} noValidate>
                     <button
                       type="submit"
                       disabled={isProcessing}

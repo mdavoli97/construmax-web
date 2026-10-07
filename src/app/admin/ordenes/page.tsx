@@ -3,6 +3,12 @@
 import { useState, useEffect } from "react";
 import { LoaderFive } from "@/components/ui/loader";
 import { toast } from "sonner";
+import {
+  getAdminStatusOptions,
+  getStatusColorClass,
+  getStatusLabel,
+  normalizeStatus,
+} from "@/lib/order-fulfillment";
 
 interface OrderItem {
   product_id: string;
@@ -78,63 +84,18 @@ export default function OrdersPage() {
 
       if (response.ok) {
         toast.success("Estado de la orden actualizado");
-        fetchOrders(); // Recargar las órdenes
+        fetchOrders();
       } else {
-        throw new Error("Error al actualizar estado");
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || "Error al actualizar estado");
       }
     } catch (error) {
       console.error("Error:", error);
-      toast.error("Error al actualizar el estado de la orden");
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "pending":
-        return "bg-yellow-100 text-yellow-800";
-      case "pending_payment":
-        return "bg-amber-100 text-amber-800";
-      case "paid":
-        return "bg-emerald-100 text-emerald-800";
-      case "payment_failed":
-        return "bg-red-100 text-red-800";
-      case "confirmed":
-        return "bg-blue-100 text-blue-800";
-      case "preparing":
-        return "bg-orange-100 text-orange-800";
-      case "ready":
-        return "bg-green-100 text-green-800";
-      case "delivered":
-        return "bg-gray-100 text-gray-800";
-      case "cancelled":
-        return "bg-red-100 text-red-800";
-      default:
-        return "bg-gray-100 text-gray-800";
-    }
-  };
-
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case "pending":
-        return "Pendiente";
-      case "pending_payment":
-        return "Pago pendiente";
-      case "paid":
-        return "Pagado";
-      case "payment_failed":
-        return "Pago fallido";
-      case "confirmed":
-        return "Confirmado";
-      case "preparing":
-        return "Preparando";
-      case "ready":
-        return "Listo";
-      case "delivered":
-        return "Entregado";
-      case "cancelled":
-        return "Cancelado";
-      default:
-        return status;
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Error al actualizar el estado de la orden"
+      );
     }
   };
 
@@ -277,31 +238,50 @@ export default function OrdersPage() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span
-                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
+                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColorClass(
                         order.status
                       )}`}
                     >
-                      {getStatusLabel(order.status)}
+                      {getStatusLabel(order.status, order.delivery_method)}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    <select
-                      value={order.status}
-                      onChange={(e) =>
-                        updateOrderStatus(order.id, e.target.value)
-                      }
-                      className="rounded border-gray-300 text-sm"
-                    >
-                      <option value="pending">Pendiente</option>
-                      <option value="pending_payment">Pago pendiente</option>
-                      <option value="paid">Pagado</option>
-                      <option value="payment_failed">Pago fallido</option>
-                      <option value="confirmed">Confirmado</option>
-                      <option value="preparing">Preparando</option>
-                      <option value="ready">Listo</option>
-                      <option value="delivered">Entregado</option>
-                      <option value="cancelled">Cancelado</option>
-                    </select>
+                    <div className="space-y-2">
+                      {(order.payment_method === "cash" ||
+                        order.payment_method === "transfer") &&
+                        ["pending", "pending_payment", "payment_failed"].includes(
+                          normalizeStatus(order.status)
+                        ) && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              updateOrderStatus(order.id, "confirmed")
+                            }
+                            className="block w-full text-left text-xs font-medium text-emerald-700 hover:text-emerald-800 underline"
+                          >
+                            Confirmar pago
+                          </button>
+                        )}
+                      <select
+                        value={
+                          normalizeStatus(order.status) === "ready"
+                            ? "ready_for_pickup"
+                            : normalizeStatus(order.status)
+                        }
+                        onChange={(e) =>
+                          updateOrderStatus(order.id, e.target.value)
+                        }
+                        className="rounded border-gray-300 text-sm max-w-[220px]"
+                      >
+                        {getAdminStatusOptions(order.delivery_method).map(
+                          (opt) => (
+                            <option key={opt.value} value={opt.value}>
+                              {opt.label}
+                            </option>
+                          )
+                        )}
+                      </select>
+                    </div>
                   </td>
                 </tr>
               ))}

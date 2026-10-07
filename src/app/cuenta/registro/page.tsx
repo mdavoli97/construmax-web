@@ -11,7 +11,7 @@ import { getSafeNextPath } from "@/lib/safe-next-path";
 function RegistroPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const nextPath = getSafeNextPath(searchParams.get("next"), "/");
+  const nextPath = getSafeNextPath(searchParams.get("next"), "/cuenta");
   const { signUp, user, loading: authLoading } = useCustomerAuth();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -22,7 +22,7 @@ function RegistroPageContent() {
   const [loading, setLoading] = useState(false);
 
   const entrarHref =
-    nextPath !== "/"
+    nextPath !== "/cuenta"
       ? `/cuenta/entrar?next=${encodeURIComponent(nextPath)}`
       : "/cuenta/entrar";
 

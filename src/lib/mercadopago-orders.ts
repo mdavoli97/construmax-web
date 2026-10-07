@@ -1,5 +1,9 @@
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import { mapPaymentStatus } from "@/lib/mercadopago";
+import {
+  isFulfillmentStatus,
+  normalizeStatus,
+} from "@/lib/order-fulfillment";
 
 export type MercadoPagoPaymentLike = {
   id?: string | number | null;
@@ -18,9 +22,10 @@ function getSupabaseAdmin(): SupabaseClient {
 
 export function orderStatusFromMpPayment(
   mpStatus: string
-): "paid" | "pending_payment" | "payment_failed" {
+): "confirmed" | "pending_payment" | "payment_failed" {
   const mapped = mapPaymentStatus(mpStatus);
-  if (mapped === "approved") return "paid";
+  // Pago aprobado → pedido confirmado (inicio del seguimiento)
+  if (mapped === "approved") return "confirmed";
   if (mapped === "pending") return "pending_payment";
   return "payment_failed";
 }
@@ -80,15 +85,25 @@ export async function syncOrderFromMercadoPagoPayment(
     };
   }
 
+  const currentNormalized = normalizeStatus(existing.status);
+  const alreadyInFulfillment =
+    isFulfillmentStatus(existing.status) && currentNormalized !== "confirmed";
+
+  // Si el admin ya avanzó el seguimiento, no pisar el status con confirmed.
+  const nextStatus =
+    orderStatus === "confirmed" && alreadyInFulfillment
+      ? existing.status
+      : orderStatus;
+
   if (
     existing.payment_id === paymentId &&
-    existing.status === orderStatus &&
+    existing.status === nextStatus &&
     existing.payment_status === mpStatus
   ) {
     return {
       updated: false,
       skipped: true,
-      orderStatus,
+      orderStatus: nextStatus,
       externalReference,
     };
   }
@@ -96,7 +111,7 @@ export async function syncOrderFromMercadoPagoPayment(
   const { error: updateError } = await supabaseAdmin
     .from("orders")
     .update({
-      status: orderStatus,
+      status: nextStatus,
       payment_id: paymentId,
       payment_status: mpStatus,
       payment_method_id: payment.payment_method_id ?? null,
@@ -118,7 +133,7 @@ export async function syncOrderFromMercadoPagoPayment(
   return {
     updated: true,
     skipped: false,
-    orderStatus,
+    orderStatus: nextStatus,
     externalReference,
   };
 }

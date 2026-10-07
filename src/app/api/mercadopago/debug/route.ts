@@ -145,7 +145,7 @@ export async function POST(request: NextRequest) {
     const { data, error } = await supabaseAdmin
       .from("orders")
       .update({
-        status: "paid",
+        status: "confirmed",
         payment_id: simulate_payment_id || "SIMULATED_" + Date.now(),
         payment_status: "approved",
         updated_at: new Date().toISOString(),

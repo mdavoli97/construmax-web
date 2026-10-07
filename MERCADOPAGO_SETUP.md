@@ -54,11 +54,28 @@ Eventos: **Pagos** (`payment`).
 3. Return consulta el pago con `?confirm=1` (backup) y vacía el carrito si está aprobado.
 4. Webhook actualiza la orden de forma autoritativa (también funciona en sandbox / `live_mode: false`).
 
+## Error 145 — “Una de las partes… es de prueba”
+
+Causa típica: **Public Key y Access Token de ambientes distintos** (uno prueba, otro producción), o pagar con usuario real en checkout de prueba.
+
+En Checkout Pro **no** entres al TESTUSER a sacar credenciales (esa sección está bloqueada a propósito).
+
+Flujo oficial (2025+):
+
+1. Developers (cuenta real) → tu app → **Credenciales de prueba**.
+2. Copiá **los dos** del mismo bloque (Public Key + Access Token). Deben coincidir (ambos de prueba).
+3. Pegá ambos en Vercel / `.env.local`. No mezcles con Credenciales de producción.
+4. Credenciales nuevas suelen ser `APP_USR-…` también en prueba → el checkout usa `init_point` (no `sandbox_init_point`, deprecado).
+5. Tokens legacy `TEST-…` todavía van a `sandbox.*`.
+6. Pagá en incógnito con el **Comprador** TESTUSER (código 6 dígitos = tabla Cuentas de prueba).
+
+Check rápido: en Vercel, si el Access Token empieza con `TEST-` y la Public Key con `APP_USR-` (o al revés), están desparejos → error 145.
+
 ## Checklist de prueba (sandbox)
 
-1. Configurar **credenciales de prueba** en `.env.local` / Vercel preview.
+1. Credenciales de **prueba** de tu app real en `.env.local` / Vercel (`TEST-…` o Access Token de prueba `APP_USR-…`).
 2. Exponer la app con URL pública (`NEXT_PUBLIC_BASE_URL` = deploy o túnel tipo ngrok). Localhost puro: el usuario vuelve con el botón “Volver al sitio”; el webhook necesita URL pública.
-3. Comprar con **tarjeta de prueba** de Mercado Pago hasta el final.
+3. Comprar logueado como **Comprador** de prueba (dinero disponible o tarjeta de prueba) hasta el final.
 4. Al volver a `/checkout/return`:
    - UI muestra “Pago aprobado”
    - Carrito queda vacío

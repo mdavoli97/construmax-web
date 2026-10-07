@@ -1,5 +1,7 @@
+import { createClient } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import type { Session, User } from "@supabase/supabase-js";
+import type { NextRequest } from "next/server";
 
 export type CustomerAuthResult = {
   user: User | null;
@@ -56,4 +58,35 @@ export async function signOutCustomer(): Promise<{ error: string | null }> {
 export async function getCustomerSession(): Promise<Session | null> {
   const { data } = await supabase.auth.getSession();
   return data.session;
+}
+
+/**
+ * Valida el usuario cliente a partir del header Authorization: Bearer <access_token>.
+ */
+export async function getCustomerUserFromRequest(
+  request: NextRequest
+): Promise<User | null> {
+  const authHeader = request.headers.get("authorization");
+  if (!authHeader?.startsWith("Bearer ")) {
+    return null;
+  }
+
+  const token = authHeader.slice(7).trim();
+  if (!token) return null;
+
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !anonKey) return null;
+
+  const client = createClient(url, anonKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+
+  const {
+    data: { user },
+    error,
+  } = await client.auth.getUser(token);
+
+  if (error || !user?.email) return null;
+  return user;
 }

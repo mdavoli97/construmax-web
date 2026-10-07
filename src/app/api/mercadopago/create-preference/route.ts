@@ -6,8 +6,9 @@ import {
 } from "@/lib/mercadopago";
 import { getMercadoPagoBaseUrl } from "@/lib/mercadopago-base-url";
 import {
+  isMercadoPagoTestMode,
   resolveMercadoPagoCheckoutUrl,
-  shouldUseMercadoPagoSandbox,
+  shouldUseSandboxCheckoutUrl,
 } from "@/lib/mercadopago-sandbox";
 
 export async function POST(request: NextRequest) {
@@ -57,11 +58,11 @@ export async function POST(request: NextRequest) {
     }
 
     const baseUrl = getMercadoPagoBaseUrl();
-    const useSandbox = shouldUseMercadoPagoSandbox();
+    const testMode = isMercadoPagoTestMode();
+    const useSandboxUrl = shouldUseSandboxCheckoutUrl();
 
-    // En sandbox no enviar payer: email/teléfono reales se asocian a
+    // En modo prueba no enviar payer: email/teléfono reales se asocian a
     // usuarios de producción y disparan error 145 (partes prueba/real).
-    // Crear la preferencia de pago
     const preference = await createPreference({
       items: items.map((item) => ({
         id: item.id || `item-${Date.now()}`,
@@ -73,7 +74,7 @@ export async function POST(request: NextRequest) {
         currency_id: item.currency_id || "UYU",
         unit_price: item.unit_price,
       })),
-      payer: useSandbox ? undefined : payer,
+      payer: testMode ? undefined : payer,
       external_reference: external_reference || `ORDER_${Date.now()}`,
       back_urls: {
         success: `${baseUrl}/checkout/return?status=approved`,
@@ -88,7 +89,7 @@ export async function POST(request: NextRequest) {
     const checkoutUrl = resolveMercadoPagoCheckoutUrl(preference);
 
     console.log(
-      `🛒 Checkout URL (${useSandbox ? "sandbox" : "production"}):`,
+      `🛒 Checkout URL (testMode=${testMode}, sandboxUrl=${useSandboxUrl}):`,
       checkoutUrl
     );
 
@@ -98,7 +99,8 @@ export async function POST(request: NextRequest) {
       initPoint: preference.init_point,
       sandboxInitPoint: preference.sandbox_init_point,
       checkoutUrl,
-      useSandbox,
+      useSandbox: useSandboxUrl,
+      testMode,
       externalReference: preference.external_reference,
     });
   } catch (error) {

@@ -96,7 +96,7 @@ export default function UserAccountMenu({
               <p className="text-xs text-gray-500 truncate mb-4">{user.email}</p>
               <div className="space-y-2">
                 <Link
-                  href="/cuenta/entrar"
+                  href="/cuenta"
                   className="block w-full text-center text-sm font-medium text-orange-600 hover:text-orange-700 border border-orange-200 hover:bg-orange-50 py-2 px-3 rounded-lg transition-colors"
                 >
                   Ver cuenta
