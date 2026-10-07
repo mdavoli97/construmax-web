@@ -5,6 +5,10 @@ import {
   MercadoPagoPayer,
 } from "@/lib/mercadopago";
 import { getMercadoPagoBaseUrl } from "@/lib/mercadopago-base-url";
+import {
+  resolveMercadoPagoCheckoutUrl,
+  shouldUseMercadoPagoSandbox,
+} from "@/lib/mercadopago-sandbox";
 
 export async function POST(request: NextRequest) {
   try {
@@ -78,11 +82,21 @@ export async function POST(request: NextRequest) {
       statement_descriptor: "CONSTRUMAX",
     });
 
+    const useSandbox = shouldUseMercadoPagoSandbox();
+    const checkoutUrl = resolveMercadoPagoCheckoutUrl(preference);
+
+    console.log(
+      `🛒 Checkout URL (${useSandbox ? "sandbox" : "production"}):`,
+      checkoutUrl
+    );
+
     return NextResponse.json({
       success: true,
       preferenceId: preference.id,
       initPoint: preference.init_point,
       sandboxInitPoint: preference.sandbox_init_point,
+      checkoutUrl,
+      useSandbox,
       externalReference: preference.external_reference,
     });
   } catch (error) {

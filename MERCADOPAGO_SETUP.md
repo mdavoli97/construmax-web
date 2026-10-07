@@ -13,6 +13,11 @@ MERCADOPAGO_WEBHOOK_SECRET=tu_secret_del_panel_mp
 # Opcional (Checkout Pro redirect no la usa en el front)
 NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY=APP_USR-...
 
+# Obligatorio si usás credenciales de PRUEBA en el sitio de producción
+# (sin esto Vercel redirigía al checkout real y MP muestra
+# "Una de las partes con la que intentas hacer el pago es de prueba")
+MERCADOPAGO_USE_SANDBOX=true
+
 # Solo desarrollo: permitir /api/mercadopago/debug y /test en producción
 # MERCADOPAGO_ALLOW_DEBUG=true
 ```

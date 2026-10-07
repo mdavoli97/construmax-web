@@ -496,12 +496,15 @@ export default function CheckoutPage() {
           externalReference
         );
 
-        // Redirigir a MercadoPago Checkout Pro
-        // En producción usar initPoint, en desarrollo usar sandboxInitPoint
+        // La API elige sandbox vs producción según el token / MERCADOPAGO_USE_SANDBOX
         const checkoutUrl =
-          process.env.NODE_ENV === "production"
-            ? preferenceData.initPoint
-            : preferenceData.sandboxInitPoint || preferenceData.initPoint;
+          preferenceData.checkoutUrl ||
+          preferenceData.sandboxInitPoint ||
+          preferenceData.initPoint;
+
+        if (!checkoutUrl) {
+          throw new Error("No se recibió URL de checkout de Mercado Pago");
+        }
 
         window.location.href = checkoutUrl;
         return;
