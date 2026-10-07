@@ -40,7 +40,8 @@ export interface MercadoPagoItem {
 export interface MercadoPagoPayer {
   name: string;
   surname: string;
-  email: string;
+  /** En sandbox conviene omitirlo: un email real mezcla usuario prod con vendedor TEST. */
+  email?: string;
   phone?: {
     area_code: string;
     number: string;
@@ -135,9 +136,11 @@ export async function createPreference(
     preferenceData.payer = {
       name: params.payer.name,
       surname: params.payer.surname,
-      email: params.payer.email,
       phone: params.payer.phone,
-      identification: params.payer.identification,
+      ...(params.payer.email ? { email: params.payer.email } : {}),
+      ...(params.payer.identification
+        ? { identification: params.payer.identification }
+        : {}),
     };
   }
 
