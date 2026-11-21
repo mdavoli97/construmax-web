@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
 
     const email = user.email.trim().toLowerCase();
 
-    let query = supabaseAdmin
+    const query = supabaseAdmin
       .from("orders")
       .select(
         `
