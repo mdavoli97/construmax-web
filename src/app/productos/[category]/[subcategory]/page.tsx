@@ -22,8 +22,8 @@ import ProductCard from "@/components/ProductCard";
 import ProductImageGallery from "@/components/ProductImageGallery";
 import ChapasCalculator from "@/components/ChapasCalculator";
 import {
-  formatPriceWithCurrency,
-  convertPrice,
+  formatCatalogPrice,
+  formatProductPriceRange,
 } from "@/lib/currency";
 import { useExchangeRate } from "@/contexts/ExchangeRateContext";
 import { Input } from "@/components/ui/input";
@@ -729,63 +729,21 @@ export default function ProductFamilyPage() {
     }
   };
 
-  const formatPrice = (price: number, currency: "USD" | "UYU" = "USD") => {
-    if (!exchangeRate && currency !== displayCurrency) {
-      return "Cargando...";
-    }
-
-    return formatPriceWithCurrency(
+  const formatPriceWithIVA = (price: number) =>
+    formatCatalogPrice(
       price,
-      currency,
+      product,
       exchangeRate || undefined,
-      false,
+      displayCurrency,
+      true
+    );
+
+  const getPriceRange = () =>
+    formatProductPriceRange(
+      products,
+      exchangeRate || undefined,
       displayCurrency
     );
-  };
-
-  const formatPriceWithIVA = (
-    price: number,
-    currency: "USD" | "UYU" = "USD"
-  ) => {
-    const priceWithIVA = price * 1.22; // 22% IVA
-    return formatPrice(priceWithIVA, currency);
-  };
-
-  const getPriceRange = () => {
-    if (products.length === 0) return "Consultar precio";
-
-    const prices = products
-      .map((p) => {
-        const currency = (p.price_group?.currency || "USD") as "USD" | "UYU";
-        return convertPrice(
-          p.price * 1.22,
-          currency,
-          displayCurrency,
-          exchangeRate || undefined
-        );
-      })
-      .filter((price) => price > 0);
-
-    if (prices.length === 0) return "Consultar precio";
-
-    const minPrice = Math.min(...prices);
-    const maxPrice = Math.max(...prices);
-
-    const format = (amount: number) =>
-      formatPriceWithCurrency(
-        amount,
-        displayCurrency,
-        exchangeRate || undefined,
-        false,
-        displayCurrency
-      );
-
-    if (minPrice === maxPrice) {
-      return format(minPrice);
-    }
-
-    return `${format(minPrice)} - ${format(maxPrice)}`;
-  };
 
   if (loading) {
     return (
@@ -915,12 +873,7 @@ export default function ProductFamilyPage() {
                 Precio (IVA incluido)
               </div>
               <div className="text-2xl sm:text-3xl font-bold text-gray-900">
-                {product
-                  ? formatPriceWithIVA(
-                      product.price,
-                      product.price_group?.currency
-                    )
-                  : getPriceRange()}
+                {product ? formatPriceWithIVA(product.price) : getPriceRange()}
               </div>
               {!product && needsDimensionSelection() && (
                 <div className="text-sm text-gray-500 mt-1">
@@ -1307,8 +1260,7 @@ export default function ProductFamilyPage() {
                   <span className="text-xl sm:text-2xl font-bold text-orange-600">
                     {product
                       ? formatPriceWithIVA(
-                          product.price * getQuantityAsNumber(),
-                          product.price_group?.currency
+                          product.price * getQuantityAsNumber()
                         )
                       : getPriceRange()}
                   </span>

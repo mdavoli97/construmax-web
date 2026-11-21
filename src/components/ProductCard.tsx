@@ -5,7 +5,7 @@ import { EyeIcon } from "@heroicons/react/24/outline";
 import { Product } from "@/types";
 import { useItemQuantity } from "@/hooks/useItemQuantity";
 import ProductImage from "./ProductImage";
-import { formatPriceWithCurrency } from "@/lib/currency";
+import { formatCatalogPrice } from "@/lib/currency";
 import { useExchangeRate } from "@/contexts/ExchangeRateContext";
 
 interface ProductCardProps {
@@ -50,40 +50,14 @@ export default function ProductCard({ product }: ProductCardProps) {
     return "standard";
   };
 
-  const formatPrice = (price: number) => {
-    // Determinar la moneda del producto
-    const currency = product.price_group?.currency || "USD";
-
-    if (!exchangeRate && currency !== displayCurrency) {
-      return "Cargando...";
-    }
-
-    return formatPriceWithCurrency(
+  const formatPriceWithIVA = (price: number) =>
+    formatCatalogPrice(
       price,
-      currency,
+      product,
       exchangeRate || undefined,
-      false,
-      displayCurrency
+      displayCurrency,
+      true
     );
-  };
-
-  const formatPriceWithIVA = (price: number) => {
-    // Determinar la moneda del producto
-    const currency = product.price_group?.currency || "USD";
-
-    if (!exchangeRate && currency !== displayCurrency) {
-      return "Cargando...";
-    }
-
-    const priceWithIVA = price * 1.22; // 22% IVA
-    return formatPriceWithCurrency(
-      priceWithIVA,
-      currency,
-      exchangeRate || undefined,
-      false,
-      displayCurrency
-    );
-  };
 
   // Función para obtener descripción limpia del producto
   const getCleanDescription = (product: Product) => {

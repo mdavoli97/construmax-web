@@ -11,12 +11,18 @@ import {
 } from "@heroicons/react/24/outline";
 import Link from "next/link";
 import {
-  formatPriceWithCurrency,
+  addBuckets,
   convertUSDToUYU,
+  formatBuckets,
+  formatCatalogPrice,
+  scaleBuckets,
+  sourceCurrencyOf,
+  sumDisplayed,
 } from "@/lib/currency";
 import { useExchangeRate } from "@/contexts/ExchangeRateContext";
 import { useCustomerAuth } from "@/contexts/CustomerAuthContext";
 import { useSiteSettings } from "@/lib/use-site-settings";
+import { useUyuLocks } from "@/lib/use-uyu-locks";
 import { Product } from "@/types";
 import {
   Select,
@@ -88,6 +94,11 @@ export default function CheckoutPage() {
   const prefilledFromAuth = useRef(false);
 
   const { exchangeRate, displayCurrency } = useExchangeRate();
+  const uyuLocks = useUyuLocks();
+  const pricedProduct = (product: Product) => ({
+    ...product,
+    lock_to_uyu: product.lock_to_uyu === true || uyuLocks.has(product.id),
+  });
   const { user } = useCustomerAuth();
   const settings = useSiteSettings();
   const ivaFactor = 1 + settings.ivaRate;
@@ -110,8 +121,11 @@ export default function CheckoutPage() {
     if (!exchangeRate) return 0;
 
     return cart.items.reduce((total, item) => {
-      const itemTotal = item.product.price * item.quantity;
-      const currency = item.product.price_group?.currency || "USD";
+      const product = pricedProduct(item.product);
+      const itemTotal = product.price * item.quantity;
+      const currency = product.lock_to_uyu
+        ? "UYU"
+        : product.price_group?.currency || "USD";
 
       if (currency === "UYU") {
         return total + itemTotal;
@@ -120,34 +134,34 @@ export default function CheckoutPage() {
     }, 0);
   };
 
-  const formatAmountFromUYU = (amountUYU: number) =>
-    formatPriceWithCurrency(
-      amountUYU,
-      "UYU",
-      exchangeRate || undefined,
-      false,
-      displayCurrency
+  const productBuckets = () =>
+    sumDisplayed(
+      cart.items.map((item) => {
+        const product = pricedProduct(item.product);
+        return {
+          amount: product.price * item.quantity,
+          source: sourceCurrencyOf(product),
+          lockToUyu: product.lock_to_uyu,
+        };
+      }),
+      displayCurrency,
+      exchangeRate || undefined
     );
 
-  const formatPrice = (price: number, currency: "USD" | "UYU" = "USD") =>
-    formatPriceWithCurrency(
-      price,
-      currency,
-      exchangeRate || undefined,
-      false,
-      displayCurrency
-    );
+  const formatBucketsOrDash = (buckets: { usd: number; uyu: number }) =>
+    exchangeRate ? formatBuckets(buckets, displayCurrency) : "-";
 
   const formatPriceWithIVA = (
     price: number,
-    currency: "USD" | "UYU" = "USD"
+    item: (typeof cart.items)[number]
   ) =>
-    formatPriceWithCurrency(
-      price * ivaFactor,
-      currency,
+    formatCatalogPrice(
+      price,
+      pricedProduct(item.product),
       exchangeRate || undefined,
-      false,
-      displayCurrency
+      displayCurrency,
+      true,
+      ivaFactor
     );
 
   // Función para extraer la descripción real del producto
@@ -1573,7 +1587,7 @@ export default function CheckoutPage() {
                       <span className="text-sm font-medium text-gray-900">
                         {formatPriceWithIVA(
                           item.product.price * item.quantity,
-                          item.product.price_group?.currency || "USD"
+                          item
                         )}
                       </span>
                       <p className="text-xs text-gray-500">IVA incluido</p>
@@ -1587,25 +1601,21 @@ export default function CheckoutPage() {
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Subtotal (sin IVA):</span>
                   <span className="text-gray-900">
-                    {exchangeRate
-                      ? formatAmountFromUYU(calculateCartTotalInUYU())
-                      : "-"}
+                    {formatBucketsOrDash(productBuckets())}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">IVA (22%):</span>
                   <span className="text-gray-900">
-                    {exchangeRate
-                      ? formatAmountFromUYU(calculateCartTotalInUYU() * settings.ivaRate)
-                      : "-"}
+                    {formatBucketsOrDash(
+                      scaleBuckets(productBuckets(), settings.ivaRate)
+                    )}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Subtotal con IVA:</span>
                   <span className="text-gray-900">
-                    {exchangeRate
-                      ? formatAmountFromUYU(calculateCartTotalInUYU() * ivaFactor)
-                      : "-"}
+                    {formatBucketsOrDash(scaleBuckets(productBuckets(), ivaFactor))}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
@@ -1617,20 +1627,42 @@ export default function CheckoutPage() {
                   >
                     {shippingCost === 0
                       ? "Gratis"
-                      : formatAmountFromUYU(settings.shippingBaseUyu * ivaFactor)}
+                      : formatBucketsOrDash(
+                          sumDisplayed(
+                            [
+                              {
+                                amount: settings.shippingBaseUyu * ivaFactor,
+                                source: "UYU",
+                              },
+                            ],
+                            displayCurrency,
+                            exchangeRate || undefined
+                          )
+                        )}
                   </span>
                 </div>
                 <div className="border-t border-gray-200 pt-2">
                   <div className="flex justify-between text-lg font-semibold">
                     <span>Total:</span>
                     <span className="text-orange-600">
-                      {exchangeRate
-                        ? shippingCost === 0
-                          ? formatAmountFromUYU(calculateCartTotalInUYU() * ivaFactor)
-                          : formatAmountFromUYU(
-                              calculateCartTotalInUYU() * ivaFactor + settings.shippingBaseUyu * ivaFactor
-                            )
-                        : "-"}
+                      {formatBucketsOrDash(
+                        addBuckets(
+                          scaleBuckets(productBuckets(), ivaFactor),
+                          shippingCost === 0
+                            ? { usd: 0, uyu: 0 }
+                            : sumDisplayed(
+                                [
+                                  {
+                                    amount:
+                                      settings.shippingBaseUyu * ivaFactor,
+                                    source: "UYU",
+                                  },
+                                ],
+                                displayCurrency,
+                                exchangeRate || undefined
+                              )
+                        )
+                      )}
                     </span>
                   </div>
                   <p className="text-xs text-gray-500 text-right mt-1">

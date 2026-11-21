@@ -3,7 +3,7 @@
 import { EyeIcon } from "@heroicons/react/24/outline";
 import { Product, PriceGroup } from "@/types";
 import ProductImage from "./ProductImage";
-import { formatPriceWithCurrency, convertPrice } from "@/lib/currency";
+import { formatProductPriceRange } from "@/lib/currency";
 import { useExchangeRate } from "@/contexts/ExchangeRateContext";
 
 interface SubcategoryCardProps {
@@ -22,42 +22,12 @@ export default function SubcategoryCard({
 
   const firstProduct = products[0];
 
-  const prices = products
-    .map((p) => {
-      const sourceCurrency = (p.price_group?.currency || "USD") as
-        | "USD"
-        | "UYU";
-      return convertPrice(
-        p.price * 1.22,
-        sourceCurrency,
-        displayCurrency,
-        exchangeRate || undefined
-      );
-    })
-    .filter((price) => price > 0);
-
-  const minPrice = prices.length > 0 ? Math.min(...prices) : 0;
-  const maxPrice = prices.length > 0 ? Math.max(...prices) : 0;
-
-  const formatPriceRange = () => {
-    if (prices.length === 0) {
-      return "Consultar precio";
-    }
-
-    const format = (amount: number) =>
-      formatPriceWithCurrency(
-        amount,
-        displayCurrency,
-        exchangeRate || undefined,
-        false,
-        displayCurrency
-      );
-
-    if (minPrice === maxPrice) {
-      return format(minPrice);
-    }
-    return `${format(minPrice)} - ${format(maxPrice)}`;
-  };
+  const formatPriceRange = () =>
+    formatProductPriceRange(
+      products,
+      exchangeRate || undefined,
+      displayCurrency
+    );
 
   return (
     <div

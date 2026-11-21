@@ -106,6 +106,28 @@ export default function ProductsAdminPage() {
     filterProducts();
   }, [products, searchTerm, categoryFilter, stockFilter]);
 
+  const toggleUyuLock = async (product: Product, locked: boolean) => {
+    const previous = product.lock_to_uyu === true;
+    setProducts((current) =>
+      current.map((item) =>
+        item.id === product.id ? { ...item, lock_to_uyu: locked } : item
+      )
+    );
+    try {
+      await productService.update(product.id, { lock_to_uyu: locked });
+    } catch (err) {
+      setProducts((current) =>
+        current.map((item) =>
+          item.id === product.id ? { ...item, lock_to_uyu: previous } : item
+        )
+      );
+      error(
+        "No se pudo guardar",
+        err instanceof Error ? err.message : "Error desconocido"
+      );
+    }
+  };
+
   const loadProducts = async () => {
     try {
       const data = await productService.getAll();
@@ -348,6 +370,9 @@ export default function ProductsAdminPage() {
                     Precio (USD)
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Solo pesos
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Estado
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -395,6 +420,19 @@ export default function ProductsAdminPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       ${product.price.toLocaleString()}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <label className="inline-flex items-center gap-2 text-sm text-gray-700">
+                        <input
+                          type="checkbox"
+                          checked={product.lock_to_uyu === true}
+                          onChange={(event) =>
+                            toggleUyuLock(product, event.target.checked)
+                          }
+                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                        />
+                        $
+                      </label>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span
@@ -500,6 +538,17 @@ export default function ProductsAdminPage() {
                       <span className="text-sm sm:text-base font-semibold text-gray-900">
                         ${product.price.toLocaleString()}
                       </span>
+                      <label className="inline-flex items-center gap-2 text-xs text-gray-700">
+                        <input
+                          type="checkbox"
+                          checked={product.lock_to_uyu === true}
+                          onChange={(event) =>
+                            toggleUyuLock(product, event.target.checked)
+                          }
+                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                        />
+                        Solo pesos
+                      </label>
                     </div>
                   </div>
                 </div>

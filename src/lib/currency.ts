@@ -200,6 +200,133 @@ export function formatUSD(amount: number): string {
   return `US$ ${formatted}`;
 }
 
+export type PriceSource = {
+  lock_to_uyu?: boolean | null;
+  price_group?: { currency?: string | null } | null;
+};
+
+/** Moneda en la que está cargado el precio. Un producto fijo en pesos se toma como UYU. */
+export function sourceCurrencyOf(product?: PriceSource | null): DisplayCurrency {
+  if (product?.lock_to_uyu) return "UYU";
+  return product?.price_group?.currency === "UYU" ? "UYU" : "USD";
+}
+
+/** Moneda que ve el visitante. El switch no mueve los productos marcados como solo pesos. */
+export function viewCurrencyOf(
+  product: PriceSource | null | undefined,
+  displayCurrency: DisplayCurrency
+): DisplayCurrency {
+  return product?.lock_to_uyu ? "UYU" : displayCurrency;
+}
+
+export function formatCatalogPrice(
+  amount: number,
+  product: PriceSource | null | undefined,
+  exchangeRate: number | undefined,
+  displayCurrency: DisplayCurrency,
+  withIva = false,
+  ivaMultiplier = 1.22
+): string {
+  const source = sourceCurrencyOf(product);
+  const view = viewCurrencyOf(product, displayCurrency);
+  if (!exchangeRate && source !== view) return "Cargando...";
+  return formatPriceWithCurrency(
+    withIva ? amount * ivaMultiplier : amount,
+    source,
+    exchangeRate,
+    false,
+    view
+  );
+}
+
+export function formatProductPriceRange(
+  products: Array<PriceSource & { price: number }>,
+  exchangeRate: number | undefined,
+  displayCurrency: DisplayCurrency,
+  ivaMultiplier = 1.22
+): string {
+  const priced = products.filter((product) => product.price > 0);
+  if (priced.length === 0) return "Consultar precio";
+
+  const groups = new Map<DisplayCurrency, number[]>();
+  for (const product of priced) {
+    const source = sourceCurrencyOf(product);
+    const view = viewCurrencyOf(product, displayCurrency);
+    if (!exchangeRate && source !== view) return "Cargando...";
+    const amount = convertPrice(
+      product.price * ivaMultiplier,
+      source,
+      view,
+      exchangeRate
+    );
+    const list = groups.get(view) || [];
+    list.push(amount);
+    groups.set(view, list);
+  }
+
+  const formatGroup = (currency: DisplayCurrency, amounts: number[]) => {
+    const min = Math.min(...amounts);
+    const max = Math.max(...amounts);
+    const format = (value: number) =>
+      formatPriceWithCurrency(value, currency, exchangeRate, false, currency);
+    return min === max ? format(min) : `${format(min)} - ${format(max)}`;
+  };
+
+  const parts: string[] = [];
+  if (groups.has("USD")) parts.push(formatGroup("USD", groups.get("USD")!));
+  if (groups.has("UYU")) parts.push(formatGroup("UYU", groups.get("UYU")!));
+  return parts.join(" · ");
+}
+
+export type MoneyBuckets = { usd: number; uyu: number };
+
+export function sumDisplayed(
+  lines: Array<{
+    amount: number;
+    source: DisplayCurrency;
+    lockToUyu?: boolean | null;
+  }>,
+  displayCurrency: DisplayCurrency,
+  exchangeRate?: number
+): MoneyBuckets {
+  const buckets: MoneyBuckets = { usd: 0, uyu: 0 };
+  for (const line of lines) {
+    if (line.lockToUyu || displayCurrency === "UYU") {
+      buckets.uyu +=
+        line.lockToUyu || line.source === "UYU"
+          ? line.amount
+          : exchangeRate
+            ? convertUSDToUYU(line.amount, exchangeRate)
+            : line.amount;
+      continue;
+    }
+    buckets.usd +=
+      line.source === "USD"
+        ? line.amount
+        : exchangeRate
+          ? convertUYUToUSD(line.amount, exchangeRate)
+          : line.amount;
+  }
+  return buckets;
+}
+
+export function scaleBuckets(buckets: MoneyBuckets, factor: number): MoneyBuckets {
+  return { usd: buckets.usd * factor, uyu: buckets.uyu * factor };
+}
+
+export function addBuckets(left: MoneyBuckets, right: MoneyBuckets): MoneyBuckets {
+  return { usd: left.usd + right.usd, uyu: left.uyu + right.uyu };
+}
+
+export function formatBuckets(
+  buckets: MoneyBuckets,
+  displayCurrency: DisplayCurrency
+): string {
+  if (displayCurrency === "UYU" || buckets.usd === 0) return formatUYU(buckets.uyu);
+  if (buckets.uyu === 0) return formatUSD(buckets.usd);
+  return `${formatUSD(buckets.usd)} + ${formatUYU(buckets.uyu)}`;
+}
+
 /**
  * Hook personalizado para usar en componentes React
  */

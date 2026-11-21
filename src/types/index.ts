@@ -40,6 +40,8 @@ export interface Product {
     currency: "USD" | "UYU";
     price_per_kg: number;
   } | null;
+  /** El precio queda en pesos aunque el visitante elija dólares. */
+  lock_to_uyu?: boolean;
 }
 
 export interface CalculationDetail {

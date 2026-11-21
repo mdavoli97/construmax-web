@@ -1,6 +1,32 @@
 import { supabase } from "./supabase";
 import { Product, Category, Order } from "@/types";
 
+async function attachUyuLocks<T extends { id: string }>(
+  products: T[]
+): Promise<Array<T & { lock_to_uyu: boolean }>> {
+  if (products.length === 0) return [];
+  let ids: string[] = [];
+  try {
+    if (typeof window === "undefined") {
+      const { getUyuLockedIds } = await import("./uyu-lock");
+      ids = await getUyuLockedIds();
+    } else {
+      const response = await fetch("/api/uyu-locks", { cache: "no-store" });
+      if (response.ok) {
+        const body = await response.json();
+        ids = Array.isArray(body.ids) ? body.ids : [];
+      }
+    }
+  } catch {
+    ids = [];
+  }
+  const locked = new Set(ids);
+  return products.map((product) => ({
+    ...product,
+    lock_to_uyu: locked.has(product.id),
+  }));
+}
+
 // Productos
 export const productService = {
   // Obtener todos los productos
@@ -21,7 +47,7 @@ export const productService = {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      return data || [];
+      return attachUyuLocks(data || []);
     } catch (error) {
       console.warn("Error connecting to Supabase, using fallback data:", error);
       // Fallback a datos estáticos si no hay conexión a Supabase
@@ -48,7 +74,7 @@ export const productService = {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      return data || [];
+      return attachUyuLocks(data || []);
     } catch (error) {
       console.warn("Error connecting to Supabase, using fallback data:", error);
       return [];
@@ -119,7 +145,7 @@ export const productService = {
         return copy;
       });
 
-      return normalized;
+      return attachUyuLocks(normalized);
     } catch (error) {
       console.warn("Error connecting to Supabase, using fallback data:", error);
       return [];
@@ -145,7 +171,7 @@ export const productService = {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      return data || [];
+      return attachUyuLocks(data || []);
     } catch (error) {
       console.warn("Error connecting to Supabase, using fallback data:", error);
       return [];
@@ -177,7 +203,8 @@ export const productService = {
         }
         throw error;
       }
-      return data;
+      const [withLock] = await attachUyuLocks([data]);
+      return withLock;
     } catch (error) {
       console.warn("Error fetching product by ID:", error);
       return null;
@@ -193,7 +220,7 @@ export const productService = {
       .order("created_at", { ascending: false });
 
     if (error) throw error;
-    return data || [];
+    return attachUyuLocks(data || []);
   },
 
   // Actualizar stock
@@ -229,6 +256,7 @@ export const productService = {
     size?: string | null;
     presentation?: string | null;
     length?: string | null;
+    lock_to_uyu?: boolean;
   }): Promise<Product> {
     // Obtener token de autenticación si está disponible
     const token =
@@ -283,6 +311,7 @@ export const productService = {
       size?: string | null;
       presentation?: string | null;
       length?: string | null;
+      lock_to_uyu?: boolean;
     }
   ): Promise<Product> {
     // Obtener token de autenticación si está disponible
