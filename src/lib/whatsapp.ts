@@ -19,7 +19,7 @@ interface OrderData {
 // Servicio para generar enlaces de WhatsApp
 export const whatsappService = {
   // Número de WhatsApp del negocio (sin + ni espacios)
-  businessNumber: "59897969106", // Cambia por tu número
+  businessNumber: "59894982703", // Cambia por tu número
 
   // Generar mensaje para el cliente
   generateCustomerMessage: (orderData: OrderData) => {

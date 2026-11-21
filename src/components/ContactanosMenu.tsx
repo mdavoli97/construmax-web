@@ -58,10 +58,10 @@ export default function ContactanosMenu() {
               <Phone className="h-4 w-4 text-orange-500 mt-0.5 shrink-0" />
               <div className="space-y-0.5">
                 <a
-                  href="tel:+59897971111"
+                  href="tel:+59894982703"
                   className="block font-medium hover:text-orange-600"
                 >
-                  +598 97 971 111
+                  +598 94 982 703
                 </a>
                 <a
                   href={whatsappUrl}

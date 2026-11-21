@@ -23,7 +23,7 @@ export const organizationSchema = {
   },
   contactPoint: {
     "@type": "ContactPoint",
-    telephone: "+598-97971111",
+    telephone: "+598-94982703",
     contactType: "customer service",
     availableLanguage: "Spanish",
   },
@@ -147,7 +147,7 @@ export const localBusinessSchema = {
   description:
     "Materiales de construcción y metalúrgica de alta calidad en Uruguay",
   url: "https://www.construmax.com.uy/",
-  telephone: "+598-97971111",
+  telephone: "+598-94982703",
   address: {
     "@type": "PostalAddress",
     streetAddress: "Jose Marmol 615", // Agregar dirección real
