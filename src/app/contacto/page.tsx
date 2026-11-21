@@ -88,13 +88,13 @@ export default function ContactoPage() {
               </h2>
 
               <a
-                href="tel:+59894982703"
+                href="tel:+59897971111"
                 className="flex items-start gap-3 text-gray-700 hover:text-orange-600 transition-colors"
               >
                 <PhoneIcon className="h-5 w-5 text-orange-500 mt-0.5 flex-shrink-0" />
                 <div>
                   <p className="font-medium">Teléfono</p>
-                  <p className="text-sm">+598 94 982 703</p>
+                  <p className="text-sm">+598 97 971 111</p>
                 </div>
               </a>
 
