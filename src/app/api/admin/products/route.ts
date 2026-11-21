@@ -201,15 +201,7 @@ export async function POST(request: NextRequest) {
       revalidatePath(`/productos/${data.category}`);
     }
 
-    if (typeof body.lock_to_uyu === "boolean") {
-      const { setUyuLock } = await import("@/lib/uyu-lock");
-      await setUyuLock(data.id, body.lock_to_uyu);
-    }
-
-    return NextResponse.json(
-      { ...data, lock_to_uyu: body.lock_to_uyu === true },
-      { status: 201 }
-    );
+    return NextResponse.json(data, { status: 201 });
   } catch (error) {
     console.error("Error creating product:", error);
     return NextResponse.json(

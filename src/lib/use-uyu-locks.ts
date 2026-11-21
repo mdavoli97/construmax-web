@@ -10,8 +10,8 @@ export function useUyuLocks() {
     fetch("/api/uyu-locks", { cache: "no-store" })
       .then((response) => (response.ok ? response.json() : null))
       .then((body) => {
-        if (!cancelled && Array.isArray(body?.ids)) {
-          setIds(new Set(body.ids));
+        if (!cancelled && Array.isArray(body?.groupIds)) {
+          setIds(new Set(body.groupIds));
         }
       })
       .catch(() => {});

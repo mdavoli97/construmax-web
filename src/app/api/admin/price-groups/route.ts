@@ -104,9 +104,15 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    const { getUyuLockedGroupIds } = await import("@/lib/uyu-lock");
+    const lockedGroups = new Set(await getUyuLockedGroupIds());
+
     return NextResponse.json({
       success: true,
-      data: formattedGroups || [],
+      data: (formattedGroups || []).map((group) => ({
+        ...group,
+        lock_to_uyu: lockedGroups.has(group.id),
+      })),
       pagination: {
         page,
         limit,
@@ -135,6 +141,7 @@ export async function POST(request: NextRequest) {
       size = false,
       presentation = false,
       length = false,
+      lock_to_uyu = false,
       prices = [], // Array of prices to create with the group
       // Legacy support
       price_per_kg,
@@ -250,6 +257,11 @@ export async function POST(request: NextRequest) {
         );
       }
 
+      if (lock_to_uyu === true) {
+        const { setGroupUyuLock } = await import("@/lib/uyu-lock");
+        await setGroupUyuLock(newGroup.id, true);
+      }
+
       return NextResponse.json(
         {
           success: true,
@@ -257,6 +269,7 @@ export async function POST(request: NextRequest) {
             ...newGroup,
             product_count: 0,
             price_group_prices: [],
+            lock_to_uyu: lock_to_uyu === true,
           },
         },
         { status: 201 }
@@ -312,6 +325,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (lock_to_uyu === true) {
+      const { setGroupUyuLock } = await import("@/lib/uyu-lock");
+      await setGroupUyuLock(newGroup.id, true);
+    }
+
     return NextResponse.json(
       {
         success: true,
@@ -319,6 +337,7 @@ export async function POST(request: NextRequest) {
           ...newGroup,
           product_count: 0,
           price_group_prices: createdPrices || [],
+          lock_to_uyu: lock_to_uyu === true,
         },
       },
       { status: 201 }

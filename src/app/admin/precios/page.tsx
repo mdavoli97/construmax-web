@@ -44,6 +44,11 @@ interface PriceGroup {
   min_price?: number;
   max_price?: number;
   main_currency?: "USD" | "UYU";
+  lock_to_uyu?: boolean;
+  thickness?: boolean;
+  size?: boolean;
+  presentation?: boolean;
+  length?: boolean;
 }
 interface Product {
   id: string;
@@ -78,6 +83,7 @@ export default function PreciosAdminPage() {
     size: false,
     presentation: false,
     length: false,
+    lock_to_uyu: false,
   });
 
   // Form states for new price in creation
@@ -334,6 +340,39 @@ export default function PreciosAdminPage() {
     }
   };
 
+  const toggleGroupLock = async (groupId: string, locked: boolean) => {
+    const previous = priceGroups.find((group) => group.id === groupId)
+      ?.lock_to_uyu;
+    setPriceGroups((current) =>
+      current.map((group) =>
+        group.id === groupId ? { ...group, lock_to_uyu: locked } : group
+      )
+    );
+    try {
+      const response = await adminFetch(`/api/admin/price-groups/${groupId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lock_to_uyu: locked }),
+      });
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || "No se pudo guardar");
+      }
+    } catch (err) {
+      setPriceGroups((current) =>
+        current.map((group) =>
+          group.id === groupId
+            ? { ...group, lock_to_uyu: previous === true }
+            : group
+        )
+      );
+      error(
+        "No se pudo guardar",
+        err instanceof Error ? err.message : "Error desconocido"
+      );
+    }
+  };
+
   const handleCreateGroup = async () => {
     if (!newGroupForm.name.trim()) {
       error("Campos requeridos", "Por favor completa el nombre del grupo");
@@ -360,6 +399,7 @@ export default function PreciosAdminPage() {
           size: newGroupForm.size,
           presentation: newGroupForm.presentation,
           length: newGroupForm.length,
+          lock_to_uyu: newGroupForm.lock_to_uyu,
           prices: newGroupPrices.map((price) => ({
             name: price.name.trim(),
             description: price.description.trim(),
@@ -385,6 +425,7 @@ export default function PreciosAdminPage() {
             size: false,
             presentation: false,
             length: false,
+            lock_to_uyu: false,
           });
           setNewGroupPrices([]);
           setShowCreateForm(false);
@@ -666,6 +707,30 @@ export default function PreciosAdminPage() {
                       Mostrar campo "Largo"
                     </label>
                   </div>
+                  <div className="flex items-start md:col-span-2">
+                    <input
+                      id="lock-uyu-checkbox"
+                      type="checkbox"
+                      checked={newGroupForm.lock_to_uyu}
+                      onChange={(e) =>
+                        setNewGroupForm((prev) => ({
+                          ...prev,
+                          lock_to_uyu: e.target.checked,
+                        }))
+                      }
+                      className="mt-0.5 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    />
+                    <label
+                      htmlFor="lock-uyu-checkbox"
+                      className="ml-2 block text-sm text-gray-900"
+                    >
+                      Mantener siempre en pesos
+                      <span className="block text-xs text-gray-500">
+                        Los productos de este grupo se muestran en $ aunque el
+                        visitante elija dólares.
+                      </span>
+                    </label>
+                  </div>
                 </div>
               </div>
 
@@ -835,6 +900,7 @@ export default function PreciosAdminPage() {
                       size: false,
                       presentation: false,
                       length: false,
+                      lock_to_uyu: false,
                     });
                     setNewGroupPrices([]);
                     setShowAddPriceForm(false);
@@ -877,6 +943,9 @@ export default function PreciosAdminPage() {
                     </th>
                     <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider">
                       Moneda
+                    </th>
+                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider">
+                      Solo $
                     </th>
                     <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider">
                       Categoría
@@ -1019,6 +1088,17 @@ export default function PreciosAdminPage() {
                         </span>
                       </td>
                       <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
+                        <input
+                          type="checkbox"
+                          checked={group.lock_to_uyu === true}
+                          onChange={(event) =>
+                            toggleGroupLock(group.id, event.target.checked)
+                          }
+                          title="Mantener los productos de este grupo en pesos"
+                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                        />
+                      </td>
+                      <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                           {group.category}
                         </span>
@@ -1082,6 +1162,17 @@ export default function PreciosAdminPage() {
                           {group.product_count} productos •{" "}
                           {group.currency || "Múltiples monedas"}
                         </p>
+                        <label className="mt-2 inline-flex items-center gap-2 text-xs text-gray-700">
+                          <input
+                            type="checkbox"
+                            checked={group.lock_to_uyu === true}
+                            onChange={(event) =>
+                              toggleGroupLock(group.id, event.target.checked)
+                            }
+                            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                          />
+                          Solo pesos
+                        </label>
                       </div>
                     </div>
                     <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">

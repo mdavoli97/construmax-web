@@ -81,7 +81,6 @@ export default function EditProductPage() {
     brand: "",
     sku: "",
     featured: false,
-    lock_to_uyu: false,
     // Nuevos campos
     product_type: "perfiles",
     weight_per_unit: "",
@@ -164,7 +163,6 @@ export default function EditProductPage() {
             brand: productData.brand || "",
             sku: productData.sku,
             featured: productData.featured || false,
-            lock_to_uyu: productData.lock_to_uyu === true,
             // Usar campos directos de la base de datos si están disponibles, sino usar metadata
             product_type:
               productData.product_type || metadata?.product_type || "perfiles",
@@ -451,7 +449,6 @@ export default function EditProductPage() {
         brand: formData.brand.trim() || undefined,
         sku,
         featured: formData.featured,
-        lock_to_uyu: formData.lock_to_uyu,
       };
 
       let productData;
@@ -733,26 +730,6 @@ export default function EditProductPage() {
                 </label>
               </div>
 
-              <div className="flex items-start">
-                <label className="flex items-start">
-                  <input
-                    type="checkbox"
-                    name="lock_to_uyu"
-                    disabled={saving}
-                    checked={formData.lock_to_uyu}
-                    onChange={handleInputChange}
-                    className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded disabled:cursor-not-allowed"
-                  />
-                  <span className="ml-2 text-sm text-gray-900">
-                    Mantener siempre en pesos
-                    <span className="block text-xs text-gray-500">
-                      El precio cargado se muestra en $ aunque el visitante
-                      elija dólares. Sirve para carbón, portland y otros
-                      precios que no se cotizan en USD.
-                    </span>
-                  </span>
-                </label>
-              </div>
             </div>
           </div>
 

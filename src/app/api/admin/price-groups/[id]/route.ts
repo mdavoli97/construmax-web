@@ -100,11 +100,15 @@ export async function GET(
       main_price: priceValues.length > 0 ? Math.min(...priceValues) : 0,
     };
 
+    const { getUyuLockedGroupIds } = await import("@/lib/uyu-lock");
+    const lockedGroups = new Set(await getUyuLockedGroupIds());
+
     return NextResponse.json({
       success: true,
       data: {
         ...priceGroup,
         ...statistics,
+        lock_to_uyu: lockedGroups.has(id),
       },
     });
   } catch (error) {
@@ -135,6 +139,7 @@ export async function PUT(
       length,
       price_per_kg,
       currency,
+      lock_to_uyu,
     } = body;
 
     // Verificar que el grupo existe
@@ -193,6 +198,11 @@ export async function PUT(
     if (size !== undefined) updateData.size = size;
     if (presentation !== undefined) updateData.presentation = presentation;
     if (length !== undefined) updateData.length = length;
+
+    if (typeof lock_to_uyu === "boolean") {
+      const { setGroupUyuLock } = await import("@/lib/uyu-lock");
+      await setGroupUyuLock(id, lock_to_uyu);
+    }
 
     const { data: updatedGroup, error: updateError } = await supabase
       .from("price_groups")
@@ -266,7 +276,11 @@ export async function PUT(
 
     return NextResponse.json({
       success: true,
-      data: { ...updatedGroup, products_updated: productsUpdated },
+      data: {
+        ...updatedGroup,
+        products_updated: productsUpdated,
+        ...(typeof lock_to_uyu === "boolean" ? { lock_to_uyu } : {}),
+      },
       message: "Grupo actualizado exitosamente",
     });
   } catch (error) {
@@ -356,6 +370,9 @@ export async function DELETE(
         { status: 500 }
       );
     }
+
+    const { setGroupUyuLock } = await import("@/lib/uyu-lock");
+    await setGroupUyuLock(id, false);
 
     return NextResponse.json({
       success: true,

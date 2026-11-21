@@ -60,6 +60,7 @@ interface PriceGroup {
   min_group_price: number;
   max_group_price: number;
   main_price: number;
+  lock_to_uyu?: boolean;
 }
 
 interface Product {
@@ -92,6 +93,7 @@ export default function EditarGrupoPrecioPage() {
   const [size, setSize] = useState(false);
   const [presentation, setPresentation] = useState(false);
   const [length, setLength] = useState(false);
+  const [lockToUyu, setLockToUyu] = useState(false);
 
   // Form states for new price
   const [showAddPriceForm, setShowAddPriceForm] = useState(false);
@@ -158,7 +160,7 @@ export default function EditarGrupoPrecioPage() {
         setSize(group.size || false);
         setPresentation(group.presentation || false);
         setLength(group.length || false);
-        setLength(group.length || false);
+        setLockToUyu(group.lock_to_uyu === true);
       } catch (error) {
         console.error("Error fetching price group:", error);
         addNotification("error", "Error al cargar el grupo de precios");
@@ -197,6 +199,7 @@ export default function EditarGrupoPrecioPage() {
           size,
           presentation,
           length,
+          lock_to_uyu: lockToUyu,
         }),
       });
 
@@ -627,6 +630,27 @@ export default function EditarGrupoPrecioPage() {
                     className="text-sm font-medium text-gray-700"
                   >
                     Requiere largo
+                  </label>
+                </div>
+
+                <div className="flex items-start space-x-2">
+                  <input
+                    type="checkbox"
+                    id="lockToUyu"
+                    checked={lockToUyu}
+                    onChange={(e) => setLockToUyu(e.target.checked)}
+                    disabled={saving}
+                    className="mt-0.5 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                  <label
+                    htmlFor="lockToUyu"
+                    className="text-sm font-medium text-gray-700"
+                  >
+                    Mantener siempre en pesos
+                    <span className="block text-xs font-normal text-gray-500">
+                      Los productos de este grupo se muestran en $ aunque el
+                      visitante elija dólares.
+                    </span>
                   </label>
                 </div>
               </div>

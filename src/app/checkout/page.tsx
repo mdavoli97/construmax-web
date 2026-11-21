@@ -97,7 +97,9 @@ export default function CheckoutPage() {
   const uyuLocks = useUyuLocks();
   const pricedProduct = (product: Product) => ({
     ...product,
-    lock_to_uyu: product.lock_to_uyu === true || uyuLocks.has(product.id),
+    lock_to_uyu:
+      product.lock_to_uyu === true ||
+      uyuLocks.has(product.price_group_id || product.price_group?.id || ""),
   });
   const { user } = useCustomerAuth();
   const settings = useSiteSettings();

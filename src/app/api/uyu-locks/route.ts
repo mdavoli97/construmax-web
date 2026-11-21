@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { getUyuLockedIds } from "@/lib/uyu-lock";
+import { getUyuLockedGroupIds } from "@/lib/uyu-lock";
 
 export async function GET() {
-  const ids = await getUyuLockedIds();
+  const groupIds = await getUyuLockedGroupIds();
   return NextResponse.json(
-    { ids },
+    { groupIds },
     { headers: { "Cache-Control": "no-store" } }
   );
 }

@@ -1,30 +1,39 @@
 import { supabase } from "./supabase";
 import { Product, Category, Order } from "@/types";
 
-async function attachUyuLocks<T extends { id: string }>(
-  products: T[]
-): Promise<Array<T & { lock_to_uyu: boolean }>> {
+async function attachUyuLocks<
+  T extends {
+    price_group_id?: string | null;
+    price_group?: { id?: string } | { id?: string }[] | null;
+  },
+>(products: T[]): Promise<Array<T & { lock_to_uyu: boolean }>> {
   if (products.length === 0) return [];
-  let ids: string[] = [];
+  let groupIds: string[] = [];
   try {
     if (typeof window === "undefined") {
-      const { getUyuLockedIds } = await import("./uyu-lock");
-      ids = await getUyuLockedIds();
+      const { getUyuLockedGroupIds } = await import("./uyu-lock");
+      groupIds = await getUyuLockedGroupIds();
     } else {
       const response = await fetch("/api/uyu-locks", { cache: "no-store" });
       if (response.ok) {
         const body = await response.json();
-        ids = Array.isArray(body.ids) ? body.ids : [];
+        groupIds = Array.isArray(body.groupIds) ? body.groupIds : [];
       }
     }
   } catch {
-    ids = [];
+    groupIds = [];
   }
-  const locked = new Set(ids);
-  return products.map((product) => ({
-    ...product,
-    lock_to_uyu: locked.has(product.id),
-  }));
+  const locked = new Set(groupIds);
+  return products.map((product) => {
+    const joined = Array.isArray(product.price_group)
+      ? product.price_group[0]
+      : product.price_group;
+    const groupId = product.price_group_id || joined?.id || "";
+    return {
+      ...product,
+      lock_to_uyu: locked.has(groupId),
+    };
+  });
 }
 
 // Productos
@@ -256,7 +265,6 @@ export const productService = {
     size?: string | null;
     presentation?: string | null;
     length?: string | null;
-    lock_to_uyu?: boolean;
   }): Promise<Product> {
     // Obtener token de autenticación si está disponible
     const token =
@@ -311,7 +319,6 @@ export const productService = {
       size?: string | null;
       presentation?: string | null;
       length?: string | null;
-      lock_to_uyu?: boolean;
     }
   ): Promise<Product> {
     // Obtener token de autenticación si está disponible
