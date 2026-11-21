@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { LoaderFive } from "@/components/ui/loader";
 import { toast } from "sonner";
+import { adminFetch } from "@/lib/admin-fetch";
 import {
   getAdminStatusOptions,
   getStatusColorClass,
@@ -47,9 +48,24 @@ interface Order {
   mercadopago_preference_id?: string | null;
 }
 
+function formatOrderWhen(iso: string) {
+  return new Date(iso).toLocaleString("es-UY", {
+    timeZone: "America/Montevideo",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+}
+
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [query, setQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [selectedId, setSelectedId] = useState<number | null>(null);
 
   useEffect(() => {
     fetchOrders();
@@ -57,7 +73,7 @@ export default function OrdersPage() {
 
   const fetchOrders = async () => {
     try {
-      const response = await fetch("/api/admin/orders");
+      const response = await adminFetch("/api/admin/orders");
       if (response.ok) {
         const data = await response.json();
         setOrders(data);
@@ -74,7 +90,7 @@ export default function OrdersPage() {
 
   const updateOrderStatus = async (orderId: number, newStatus: string) => {
     try {
-      const response = await fetch(`/api/admin/orders/${orderId}`, {
+      const response = await adminFetch(`/api/admin/orders/${orderId}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -83,7 +99,21 @@ export default function OrdersPage() {
       });
 
       if (response.ok) {
-        toast.success("Estado de la orden actualizado");
+        const data = await response.json().catch(() => ({}));
+        const whatsappUrl = data.notification?.whatsappUrl as string | undefined;
+        toast.success(
+          data.notification?.emailSent
+            ? "Estado actualizado y email enviado"
+            : "Estado de la orden actualizado",
+          whatsappUrl
+            ? {
+                action: {
+                  label: "WhatsApp",
+                  onClick: () => window.open(whatsappUrl, "_blank"),
+                },
+              }
+            : undefined
+        );
         fetchOrders();
       } else {
         const data = await response.json().catch(() => ({}));
@@ -112,6 +142,15 @@ export default function OrdersPage() {
     return order.payment_method;
   };
 
+  const filteredOrders = orders.filter((order) => {
+    const haystack = `${order.id} ${order.customer_name} ${order.customer_email} ${order.customer_phone}`.toLowerCase();
+    const matchesQuery = !query || haystack.includes(query.trim().toLowerCase());
+    const matchesStatus =
+      statusFilter === "all" || normalizeStatus(order.status) === statusFilter;
+    return matchesQuery && matchesStatus;
+  });
+  const selected = orders.find((order) => order.id === selectedId) || null;
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -122,10 +161,35 @@ export default function OrdersPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-900">Órdenes</h1>
-        <div className="text-sm text-gray-500">
-          Total: {orders.length} órdenes
+      <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-end">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Órdenes</h1>
+          <p className="text-sm text-gray-500">
+            {filteredOrders.length} de {orders.length} órdenes
+          </p>
+        </div>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Buscar cliente, email o número"
+            className="rounded border border-gray-300 px-3 py-2 text-sm"
+          />
+          <select
+            value={statusFilter}
+            onChange={(event) => setStatusFilter(event.target.value)}
+            className="rounded border border-gray-300 px-3 py-2 text-sm"
+          >
+            <option value="all">Todos los estados</option>
+            <option value="pending">Pendiente</option>
+            <option value="pending_payment">Pago pendiente</option>
+            <option value="confirmed">Confirmado</option>
+            <option value="preparing">Preparando</option>
+            <option value="in_transit">En camino</option>
+            <option value="ready_for_pickup">Listo para retirar</option>
+            <option value="delivered">Entregado</option>
+            <option value="cancelled">Cancelado</option>
+          </select>
         </div>
       </div>
 
@@ -158,35 +222,14 @@ export default function OrdersPage() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {orders.map((order) => (
+              {filteredOrders.map((order) => (
                 <tr key={order.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900">
                       #{order.id.toString().padStart(8, "0")}
                     </div>
                     <div className="text-sm text-gray-500">
-                      {(() => {
-                        const date = new Date(order.created_at);
-                        // Ajustar UTC a hora de Uruguay (UTC-3)
-                        date.setHours(date.getHours() - 3);
-                        return date.toLocaleDateString("es-UY", {
-                          day: "2-digit",
-                          month: "2-digit",
-                          year: "numeric",
-                        });
-                      })()}
-                    </div>
-                    <div className="text-sm text-gray-500">
-                      {(() => {
-                        const date = new Date(order.created_at);
-                        // Ajustar UTC a hora de Uruguay (UTC-3)
-                        date.setHours(date.getHours() - 3);
-                        return date.toLocaleTimeString("es-UY", {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                          hour12: false,
-                        });
-                      })()}
+                      {formatOrderWhen(order.created_at)}
                     </div>
                     {order.external_reference && (
                       <div className="text-xs text-gray-400 mt-1 truncate max-w-[160px]" title={order.external_reference}>
@@ -247,6 +290,17 @@ export default function OrdersPage() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     <div className="space-y-2">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setSelectedId((current) =>
+                            current === order.id ? null : order.id
+                          )
+                        }
+                        className="block text-xs font-medium text-gray-700 underline"
+                      >
+                        {selectedId === order.id ? "Ocultar detalle" : "Ver detalle"}
+                      </button>
                       {(order.payment_method === "cash" ||
                         order.payment_method === "transfer") &&
                         ["pending", "pending_payment", "payment_failed"].includes(
@@ -289,12 +343,71 @@ export default function OrdersPage() {
           </table>
         </div>
 
-        {orders.length === 0 && (
+        {filteredOrders.length === 0 && (
           <div className="text-center py-12">
-            <div className="text-gray-500">No hay órdenes registradas</div>
+            <div className="text-gray-500">No hay órdenes para mostrar</div>
           </div>
         )}
       </div>
+
+      {selected && (
+        <div className="bg-white shadow-sm rounded-lg p-6 space-y-4">
+          <div className="flex justify-between gap-4">
+            <h2 className="text-lg font-semibold text-gray-900">
+              Pedido #{selected.id.toString().padStart(8, "0")}
+            </h2>
+            <span className="text-sm text-gray-500">
+              {formatOrderWhen(selected.created_at)}
+            </span>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-700">
+            <div>
+              <p className="font-medium text-gray-900">{selected.customer_name}</p>
+              <p>{selected.customer_email}</p>
+              <p>{selected.customer_phone}</p>
+              {selected.document_number && (
+                <p>
+                  {selected.document_type}: {selected.document_number}
+                </p>
+              )}
+              {selected.address && (
+                <p>
+                  {selected.address}
+                  {selected.city ? `, ${selected.city}` : ""}
+                </p>
+              )}
+            </div>
+            <div>
+              <p>
+                {selected.delivery_method === "pickup"
+                  ? "Retiro en local"
+                  : "Envío a domicilio"}
+              </p>
+              {selected.delivery_address && <p>{selected.delivery_address}</p>}
+              {selected.preferred_time && <p>Franja: {selected.preferred_time}</p>}
+              {selected.contact_phone && <p>Contacto: {selected.contact_phone}</p>}
+              {selected.observations && <p>Notas: {selected.observations}</p>}
+              <p className="font-medium mt-2">Total: ${selected.total.toFixed(2)}</p>
+            </div>
+          </div>
+          <div>
+            <h3 className="text-sm font-medium text-gray-900 mb-2">Ítems</h3>
+            <ul className="divide-y divide-gray-100 text-sm">
+              {(selected.items || []).map((item, index) => (
+                <li key={`${item.product_id}-${index}`} className="py-2 flex justify-between gap-4">
+                  <span>
+                    {item.quantity} × {item.product_name}
+                  </span>
+                  <span>${Number(item.total_price).toFixed(2)}</span>
+                </li>
+              ))}
+              {(!selected.items || selected.items.length === 0) && (
+                <li className="py-2 text-gray-500">Sin ítems cargados</li>
+              )}
+            </ul>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

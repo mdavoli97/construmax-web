@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { productService } from "@/lib/services";
 import { revalidatePath } from "next/cache";
+import { adminUnauthorized, requireAdmin } from "@/lib/admin-session";
 
 // GET - Obtener producto por ID
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  if (!requireAdmin(request)) return adminUnauthorized();
   try {
     const { id } = await params;
     const product = await productService.getById(id);
@@ -31,6 +33,7 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  if (!requireAdmin(request)) return adminUnauthorized();
   try {
     const { id } = await params;
     const body = await request.json();
@@ -83,6 +86,7 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  if (!requireAdmin(request)) return adminUnauthorized();
   try {
     const { id } = await params;
     // Usar cliente admin para bypassear RLS

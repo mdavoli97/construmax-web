@@ -11,9 +11,13 @@ export async function POST(request: NextRequest) {
   try {
     // Solo permitir en desarrollo
     if (process.env.NODE_ENV !== "development") {
+      return NextResponse.json({ error: "No encontrado" }, { status: 404 });
+    }
+    const { requireAdmin } = await import("@/lib/admin-session");
+    if (!requireAdmin(request)) {
       return NextResponse.json(
-        { success: false, error: "Solo disponible en desarrollo" },
-        { status: 403 }
+        { success: false, error: "No autorizado" },
+        { status: 401 }
       );
     }
 

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { productService } from "@/lib/services";
+import { adminFetch } from "@/lib/admin-fetch";
 import { Product } from "@/types";
 import { PlusIcon, PencilIcon, TrashIcon, SearchIcon } from "lucide-react";
 import { useNotifications } from "@/components/admin/NotificationProvider";
@@ -25,14 +26,10 @@ export default function ProductsAdminPage() {
     undefined
   );
   const [stockFilter, setStockFilter] = useState<string | undefined>(undefined);
+  const [categories, setCategories] = useState<
+    { slug: string; name: string }[]
+  >([]);
   const { success, error } = useNotifications();
-
-  const categories = [
-    "construccion",
-    "metalurgica",
-    "herramientas",
-    "herreria",
-  ];
 
   // Función para obtener metadata del producto
   const getProductMetadata = (product: Product) => {
@@ -89,6 +86,20 @@ export default function ProductsAdminPage() {
 
   useEffect(() => {
     loadProducts();
+    adminFetch("/api/admin/categories")
+      .then((response) => (response.ok ? response.json() : null))
+      .then((body) => {
+        const list = body?.data;
+        if (Array.isArray(list)) {
+          setCategories(
+            list.map((category: { slug: string; name: string }) => ({
+              slug: category.slug,
+              name: category.name,
+            }))
+          );
+        }
+      })
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -281,8 +292,8 @@ export default function ProductsAdminPage() {
                 </SelectTrigger>
                 <SelectContent>
                   {categories.map((category) => (
-                    <SelectItem key={category} value={category}>
-                      {category.charAt(0).toUpperCase() + category.slice(1)}
+                    <SelectItem key={category.slug} value={category.slug}>
+                      {category.name}
                     </SelectItem>
                   ))}
                 </SelectContent>

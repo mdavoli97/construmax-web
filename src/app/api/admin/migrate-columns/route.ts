@@ -6,10 +6,11 @@ export async function POST(request: NextRequest) {
   try {
     // Solo permitir en desarrollo
     if (process.env.NODE_ENV === "production") {
-      return NextResponse.json(
-        { error: "Esta API solo está disponible en desarrollo" },
-        { status: 403 }
-      );
+      return NextResponse.json({ error: "No encontrado" }, { status: 404 });
+    }
+    const { requireAdmin } = await import("@/lib/admin-session");
+    if (!requireAdmin(request)) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     }
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;

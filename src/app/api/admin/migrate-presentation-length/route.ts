@@ -8,6 +8,16 @@ const supabase = createClient(
 );
 
 export async function POST(request: NextRequest) {
+  if (process.env.NODE_ENV === "production") {
+    return NextResponse.json({ error: "No encontrado" }, { status: 404 });
+  }
+  const { requireAdmin } = await import("@/lib/admin-session");
+  if (!requireAdmin(request)) {
+    return NextResponse.json(
+      { success: false, error: "No autorizado" },
+      { status: 401 }
+    );
+  }
   try {
     console.log("Iniciando migración de columna length...");
 

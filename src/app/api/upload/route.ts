@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { uploadImageToCloudinary } from "@/lib/cloudinary";
+import { adminUnauthorized, requireAdmin } from "@/lib/admin-session";
 
 export async function POST(request: NextRequest) {
+  if (!requireAdmin(request)) return adminUnauthorized();
   try {
     const formData = await request.formData();
     const file = formData.get("file") as File;

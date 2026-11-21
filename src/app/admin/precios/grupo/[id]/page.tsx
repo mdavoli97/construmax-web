@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { adminFetch } from "@/lib/admin-fetch";
 import { useParams, useRouter } from "next/navigation";
 import { LoaderFive } from "@/components/ui/loader";
 import {
@@ -114,7 +115,7 @@ export default function EditarGrupoPrecioPage() {
   // Load categories
   const loadCategories = async () => {
     try {
-      const response = await fetch("/api/categories");
+      const response = await adminFetch("/api/categories");
       if (response.ok) {
         const result = await response.json();
         if (result.success) {
@@ -138,7 +139,7 @@ export default function EditarGrupoPrecioPage() {
     const fetchPriceGroup = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`/api/admin/price-groups/${groupId}`);
+        const response = await adminFetch(`/api/admin/price-groups/${groupId}`);
         const data = await response.json();
 
         if (!data.success) {
@@ -182,7 +183,7 @@ export default function EditarGrupoPrecioPage() {
 
     try {
       setSaving(true);
-      const response = await fetch(`/api/admin/price-groups/${groupId}`, {
+      const response = await adminFetch(`/api/admin/price-groups/${groupId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -204,7 +205,7 @@ export default function EditarGrupoPrecioPage() {
       if (data.success) {
         addNotification("success", "Grupo de precios actualizado exitosamente");
         // Reload data
-        const fetchResponse = await fetch(`/api/admin/price-groups/${groupId}`);
+        const fetchResponse = await adminFetch(`/api/admin/price-groups/${groupId}`);
         const fetchData = await fetchResponse.json();
         if (fetchData.success) {
           setPriceGroup(fetchData.data);
@@ -240,7 +241,7 @@ export default function EditarGrupoPrecioPage() {
 
     try {
       setSaving(true);
-      const response = await fetch(
+      const response = await adminFetch(
         `/api/admin/price-groups/${groupId}/prices`,
         {
           method: "POST",
@@ -267,7 +268,7 @@ export default function EditarGrupoPrecioPage() {
         setNewPriceCurrency("USD");
         setShowAddPriceForm(false);
         // Reload data
-        const fetchResponse = await fetch(`/api/admin/price-groups/${groupId}`);
+        const fetchResponse = await adminFetch(`/api/admin/price-groups/${groupId}`);
         const fetchData = await fetchResponse.json();
         if (fetchData.success) {
           setPriceGroup(fetchData.data);
@@ -294,7 +295,7 @@ export default function EditarGrupoPrecioPage() {
 
     try {
       setSaving(true);
-      const response = await fetch(
+      const response = await adminFetch(
         `/api/admin/price-groups/${groupId}/prices/${priceId}`,
         {
           method: "DELETE",
@@ -306,7 +307,7 @@ export default function EditarGrupoPrecioPage() {
       if (data.success) {
         addNotification("success", "Precio eliminado exitosamente");
         // Reload data
-        const fetchResponse = await fetch(`/api/admin/price-groups/${groupId}`);
+        const fetchResponse = await adminFetch(`/api/admin/price-groups/${groupId}`);
         const fetchData = await fetchResponse.json();
         if (fetchData.success) {
           setPriceGroup(fetchData.data);
@@ -381,7 +382,7 @@ export default function EditarGrupoPrecioPage() {
 
     try {
       setSaving(true);
-      const response = await fetch(
+      const response = await adminFetch(
         `/api/admin/price-groups/${groupId}/prices/${editingPriceId}`,
         {
           method: "PUT",
@@ -401,10 +402,15 @@ export default function EditarGrupoPrecioPage() {
       const data = await response.json();
 
       if (data.success) {
-        addNotification("success", "Precio actualizado exitosamente");
+        addNotification(
+          "success",
+          data.products_updated
+            ? `Precio actualizado y ${data.products_updated} productos recalculados`
+            : "Precio actualizado exitosamente"
+        );
         handleCancelEdit();
         // Reload data
-        const fetchResponse = await fetch(`/api/admin/price-groups/${groupId}`);
+        const fetchResponse = await adminFetch(`/api/admin/price-groups/${groupId}`);
         const fetchData = await fetchResponse.json();
         if (fetchData.success) {
           setPriceGroup(fetchData.data);

@@ -1,5 +1,7 @@
 "use client";
 
+import { adminFetch } from "@/lib/admin-fetch";
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,7 +40,7 @@ export default function CategoriesPage() {
 
   const fetchCategories = async () => {
     try {
-      const response = await fetch("/api/admin/categories");
+      const response = await adminFetch("/api/admin/categories");
       if (response.ok) {
         const data = await response.json();
         if (data.success) {
@@ -62,7 +64,7 @@ export default function CategoriesPage() {
     }
 
     try {
-      const response = await fetch("/api/admin/categories", {
+      const response = await adminFetch("/api/admin/categories", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(newCategory),
@@ -103,7 +105,7 @@ export default function CategoriesPage() {
     }
 
     try {
-      const response = await fetch(`/api/admin/categories/${editingData.id}`, {
+      const response = await adminFetch(`/api/admin/categories/${editingData.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -139,7 +141,7 @@ export default function CategoriesPage() {
     }
 
     try {
-      const response = await fetch(`/api/admin/categories/${category.id}`, {
+      const response = await adminFetch(`/api/admin/categories/${category.id}`, {
         method: "DELETE",
       });
 
@@ -155,7 +157,7 @@ export default function CategoriesPage() {
           );
 
           if (forceDelete) {
-            const forceResponse = await fetch(
+            const forceResponse = await adminFetch(
               `/api/admin/categories/${category.id}?force=true`,
               { method: "DELETE" }
             );

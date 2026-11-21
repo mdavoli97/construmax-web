@@ -21,43 +21,6 @@ function CheckoutReturnContent() {
       searchParams.get("payment_id") || searchParams.get("collection_id");
     const externalReference = searchParams.get("external_reference");
 
-    const checkPlaceToPayStatus = async (requestId: string) => {
-      try {
-        sessionStorage.removeItem("placetopay_request_id");
-
-        const response = await fetch(`/api/placetopay/session/${requestId}`);
-
-        if (!response.ok) {
-          throw new Error("Error al consultar el pago");
-        }
-
-        const data = await response.json();
-
-        if (data.status.status === "APPROVED" && data.approved) {
-          setStatus("approved");
-          clearCart();
-          setTimeout(() => {
-            router.push(
-              `/success?payment=${data.paymentReference || requestId}`
-            );
-          }, 2000);
-        } else if (data.status.status === "REJECTED") {
-          setStatus("rejected");
-          setTimeout(() => router.push("/failure"), 2000);
-        } else if (data.status.status === "PENDING") {
-          setStatus("pending");
-          setTimeout(() => router.push("/pending"), 2000);
-        } else {
-          setStatus("rejected");
-          setTimeout(() => router.push("/failure"), 2000);
-        }
-      } catch (error) {
-        console.error("Error checking PlaceToPay payment:", error);
-        setStatus("rejected");
-        setTimeout(() => router.push("/failure"), 2000);
-      }
-    };
-
     const resolveAndRedirect = (
       mapped: "approved" | "pending" | "rejected",
       redirectPaymentId?: string | null
@@ -111,23 +74,6 @@ function CheckoutReturnContent() {
       // Fallback a query params si no hay payment_id o falló la API
       const mpStatus = collectionStatus || paymentStatus;
       if (!mpStatus) {
-        let requestId =
-          searchParams.get("requestId") || searchParams.get("reference");
-
-        if (!requestId) {
-          const storedRequestId = sessionStorage.getItem(
-            "placetopay_request_id"
-          );
-          if (storedRequestId) {
-            requestId = storedRequestId;
-          }
-        }
-
-        if (requestId) {
-          await checkPlaceToPayStatus(requestId);
-          return;
-        }
-
         console.error("No payment information found");
         router.push("/failure");
         return;

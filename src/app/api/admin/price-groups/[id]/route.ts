@@ -1,6 +1,8 @@
 // API para gestionar un grupo de precios específico
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { adminUnauthorized, requireAdmin } from "@/lib/admin-session";
+import { recalculateGroupProducts } from "@/lib/recalculate-group-prices";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -11,6 +13,7 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  if (!requireAdmin(request)) return adminUnauthorized();
   try {
     const { id } = await params;
 
@@ -117,6 +120,7 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  if (!requireAdmin(request)) return adminUnauthorized();
   try {
     const { id } = await params;
     const body = await request.json();
@@ -129,12 +133,14 @@ export async function PUT(
       size,
       presentation,
       length,
+      price_per_kg,
+      currency,
     } = body;
 
     // Verificar que el grupo existe
     const { data: existingGroup, error: fetchError } = await supabase
       .from("price_groups")
-      .select("id, name")
+      .select("id, name, price_per_kg, currency")
       .eq("id", id)
       .single();
 
@@ -203,9 +209,64 @@ export async function PUT(
       );
     }
 
+    let productsUpdated = 0;
+    const nextRate =
+      price_per_kg !== undefined && price_per_kg !== null
+        ? Number(price_per_kg)
+        : null;
+    if (nextRate !== null && Number.isFinite(nextRate) && nextRate > 0) {
+      const { data: activePrices } = await supabase
+        .from("price_group_prices")
+        .select("id, price_per_kg")
+        .eq("price_group_id", id)
+        .eq("is_active", true);
+
+      const prices = activePrices || [];
+      const previousGroupRate =
+        existingGroup.price_per_kg != null
+          ? Number(existingGroup.price_per_kg)
+          : null;
+      const target =
+        prices.length === 1
+          ? prices[0]
+          : prices.find(
+              (price) =>
+                previousGroupRate != null &&
+                Math.abs(Number(price.price_per_kg) - previousGroupRate) < 0.001
+            ) || prices[0];
+      const previousRate = target
+        ? Number(target.price_per_kg)
+        : previousGroupRate;
+
+      if (target) {
+        await supabase
+          .from("price_group_prices")
+          .update({
+            price_per_kg: nextRate,
+            ...(currency ? { currency } : {}),
+          })
+          .eq("id", target.id);
+      }
+
+      await supabase
+        .from("price_groups")
+        .update({
+          price_per_kg: nextRate,
+          ...(currency ? { currency } : {}),
+        })
+        .eq("id", id);
+
+      productsUpdated = await recalculateGroupProducts(
+        supabase,
+        id,
+        previousRate,
+        nextRate
+      );
+    }
+
     return NextResponse.json({
       success: true,
-      data: updatedGroup,
+      data: { ...updatedGroup, products_updated: productsUpdated },
       message: "Grupo actualizado exitosamente",
     });
   } catch (error) {
@@ -221,6 +282,7 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  if (!requireAdmin(request)) return adminUnauthorized();
   try {
     const { id } = await params;
     const { searchParams } = new URL(request.url);

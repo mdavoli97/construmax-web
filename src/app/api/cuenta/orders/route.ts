@@ -15,9 +15,6 @@ export async function GET(request: NextRequest) {
     }
 
     const email = user.email.trim().toLowerCase();
-    // Solo pedidos desde que existe la cuenta (evita arrastrar historial
-    // de checkouts previos como invitado con el mismo email).
-    const accountCreatedAt = user.created_at;
 
     let query = supabaseAdmin
       .from("orders")
@@ -53,10 +50,6 @@ export async function GET(request: NextRequest) {
       )
       .ilike("customer_email", email)
       .order("created_at", { ascending: false });
-
-    if (accountCreatedAt) {
-      query = query.gte("created_at", accountCreatedAt);
-    }
 
     const { data: orders, error } = await query;
 

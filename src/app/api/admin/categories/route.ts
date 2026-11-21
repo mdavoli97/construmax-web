@@ -1,13 +1,15 @@
 // API para gestionar categorías de productos
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { adminUnauthorized, requireAdmin } from "@/lib/admin-session";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  if (!requireAdmin(request)) return adminUnauthorized();
   try {
     const { data: categories, error } = await supabase
       .from("categories")
@@ -43,6 +45,7 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  if (!requireAdmin(request)) return adminUnauthorized();
   try {
     const body = await request.json();
     const { name, description } = body;

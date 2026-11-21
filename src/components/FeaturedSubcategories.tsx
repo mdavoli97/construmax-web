@@ -90,11 +90,20 @@ export default function FeaturedSubcategories({
       }
     });
 
-    // Limitar a los primeros 8 grupos para la landing
+    groups.sort((a, b) => {
+      const aFeatured = a.products.some((product) => product.featured) ? 1 : 0;
+      const bFeatured = b.products.some((product) => product.featured) ? 1 : 0;
+      return bFeatured - aFeatured;
+    });
+
     setProductGroups(groups.slice(0, 8));
   };
 
   const handleSubcategoryClick = (priceGroup: PriceGroup) => {
+    if (String(priceGroup.id).startsWith("ungrouped-")) {
+      router.push(`/productos/${priceGroup.category}`);
+      return;
+    }
     router.push(`/productos/${priceGroup.category}/${priceGroup.id}`);
   };
 

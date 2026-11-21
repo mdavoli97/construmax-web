@@ -2,6 +2,15 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { Cart, CartItem, Product, CalculationDetail } from "@/types";
 
+function availableQuantity(product: Product) {
+  if (product.stock_type === "availability") {
+    return product.is_available === false ? 0 : Number.POSITIVE_INFINITY;
+  }
+  return typeof product.stock === "number"
+    ? product.stock
+    : Number.POSITIVE_INFINITY;
+}
+
 interface CartStore {
   cart: Cart;
   addItem: (
@@ -29,18 +38,21 @@ export const useCartStore = create<CartStore>()(
         quantity = 1,
         calculationDetails?: CalculationDetail[]
       ) => {
+        const max = availableQuantity(product);
+        if (max <= 0) return;
+
         set((state) => {
           const existingItem = state.cart.items.find(
             (item) => item.product.id === product.id
           );
 
           if (existingItem) {
-            // Update existing item quantity and merge calculation details if applicable
+            const nextQuantity = Math.min(existingItem.quantity + quantity, max);
             const updatedItems = state.cart.items.map((item) =>
               item.product.id === product.id
                 ? {
                     ...item,
-                    quantity: item.quantity + quantity,
+                    quantity: nextQuantity,
                     // Si hay nuevos detalles de cálculo, los agregamos o reemplazamos
                     calculationDetails:
                       calculationDetails || item.calculationDetails,
@@ -63,7 +75,7 @@ export const useCartStore = create<CartStore>()(
             // Add new item
             const newItem: CartItem = {
               product,
-              quantity,
+              quantity: Math.min(quantity, max),
               calculationDetails,
             };
 
@@ -110,7 +122,12 @@ export const useCartStore = create<CartStore>()(
           }
 
           const updatedItems = state.cart.items.map((item) =>
-            item.product.id === productId ? { ...item, quantity } : item
+            item.product.id === productId
+              ? {
+                  ...item,
+                  quantity: Math.min(quantity, availableQuantity(item.product)),
+                }
+              : item
           );
 
           const total = updatedItems.reduce(

@@ -16,6 +16,7 @@ import {
 } from "@/lib/currency";
 import { useExchangeRate } from "@/contexts/ExchangeRateContext";
 import { useCustomerAuth } from "@/contexts/CustomerAuthContext";
+import { useSiteSettings } from "@/lib/use-site-settings";
 import { Product } from "@/types";
 import {
   Select,
@@ -88,6 +89,8 @@ export default function CheckoutPage() {
 
   const { exchangeRate, displayCurrency } = useExchangeRate();
   const { user } = useCustomerAuth();
+  const settings = useSiteSettings();
+  const ivaFactor = 1 + settings.ivaRate;
 
   useEffect(() => {
     if (!user || prefilledFromAuth.current) return;
@@ -140,7 +143,7 @@ export default function CheckoutPage() {
     currency: "USD" | "UYU" = "USD"
   ) =>
     formatPriceWithCurrency(
-      price * 1.22,
+      price * ivaFactor,
       currency,
       exchangeRate || undefined,
       false,
@@ -177,30 +180,22 @@ export default function CheckoutPage() {
     }
   };
 
-  // Función para verificar si el envío es gratuito (total con IVA >= $50.000 UYU)
   const isShippingFree = () => {
     if (!exchangeRate) return false;
-
-    const totalInUYU = calculateCartTotalInUYU();
-    const totalWithIVAInUYU = totalInUYU * 1.22;
-    return totalWithIVAInUYU >= 50000;
+    return (
+      calculateCartTotalInUYU() * ivaFactor >= settings.freeShippingFromUyu
+    );
   };
 
-  // Función para calcular el costo de envío ($700 UYU + IVA = $854 UYU)
   const getShippingCostUSD = () => {
-    if (!exchangeRate) return 0.7; // Fallback aproximado
-
-    const shippingCostUYU = 700 * 1.22; // $700 + 22% IVA = $854
+    const shippingCostUYU = settings.shippingBaseUyu * ivaFactor;
+    if (!exchangeRate) return shippingCostUYU / 40;
     return shippingCostUYU / exchangeRate;
   };
 
-  // Función para verificar si el documento es requerido (total con IVA >= $30.000 UYU)
   const isDocumentRequired = () => {
     if (!exchangeRate) return false;
-
-    const totalInUYU = calculateCartTotalInUYU();
-    const totalWithIVAInUYU = totalInUYU * 1.22;
-    return totalWithIVAInUYU >= 30000;
+    return calculateCartTotalInUYU() * ivaFactor >= settings.documentFromUyu;
   };
 
   // Función para formatear la fecha
@@ -245,7 +240,10 @@ export default function CheckoutPage() {
     return days;
   };
 
-  const shippingCost = isShippingFree() ? 0 : getShippingCostUSD();
+  const shippingCost =
+    shippingData.deliveryMethod === "pickup" || isShippingFree()
+      ? 0
+      : getShippingCostUSD();
   const total = cart.total + shippingCost;
 
   const clearCustomerError = (field: string) => {
@@ -439,21 +437,28 @@ export default function CheckoutPage() {
             : null,
         subtotal: exchangeRate ? calculateCartTotalInUYU() : cart.total,
         tax: exchangeRate
-          ? calculateCartTotalInUYU() * 0.22
-          : cart.total * 0.22,
-        shipping_cost: shippingCost === 0 ? 0 : 700 * 1.22,
+          ? calculateCartTotalInUYU() * settings.ivaRate
+          : cart.total * settings.ivaRate,
+        shipping_cost: shippingCost === 0 ? 0 : settings.shippingBaseUyu * ivaFactor,
         total: exchangeRate
           ? shippingCost === 0
-            ? calculateCartTotalInUYU() * 1.22
-            : calculateCartTotalInUYU() * 1.22 + 700 * 1.22
+            ? calculateCartTotalInUYU() * ivaFactor
+            : calculateCartTotalInUYU() * ivaFactor + settings.shippingBaseUyu * ivaFactor
           : total,
-        items: cart.items.map((item) => ({
-          product_id: item.product.id,
-          product_name: item.product.name,
-          quantity: item.quantity,
-          unit_price: item.product.price,
-          total_price: item.product.price * item.quantity,
-        })),
+        items: cart.items.map((item) => {
+          const cuts = item.calculationDetails
+            ?.map((detail) => `${detail.largo} m × ${detail.cantidad}`)
+            .join(", ");
+          return {
+            product_id: item.product.id,
+            product_name: cuts
+              ? `${item.product.name} (cortes: ${cuts})`
+              : item.product.name,
+            quantity: item.quantity,
+            unit_price: item.product.price,
+            total_price: item.product.price * item.quantity,
+          };
+        }),
       };
 
       // Si el método de pago es tarjeta, usar MercadoPago Checkout Pro
@@ -461,8 +466,8 @@ export default function CheckoutPage() {
         // Calcular el total en UYU
         const totalInUYU = exchangeRate
           ? shippingCost === 0
-            ? calculateCartTotalInUYU() * 1.22
-            : calculateCartTotalInUYU() * 1.22 + 700 * 1.22
+            ? calculateCartTotalInUYU() * ivaFactor
+            : calculateCartTotalInUYU() * ivaFactor + settings.shippingBaseUyu * ivaFactor
           : total;
 
         const nameParts = customerData.name.trim().split(" ");
@@ -497,7 +502,7 @@ export default function CheckoutPage() {
               : convertUSDToUYU(
                   item.product.price,
                   exchangeRate || 1
-                )) * 1.22
+                )) * ivaFactor
           ),
         }));
 
@@ -511,7 +516,7 @@ export default function CheckoutPage() {
             category_id: "services",
             quantity: 1,
             currency_id: "UYU",
-            unit_price: Math.round(700 * 1.22), // $700 + IVA
+            unit_price: Math.round(settings.shippingBaseUyu * ivaFactor), // $700 + IVA
           });
         }
 
@@ -672,45 +677,23 @@ export default function CheckoutPage() {
       const { whatsappService } = await import("@/lib/whatsapp");
 
       // Generar URLs de WhatsApp
-      const customerWhatsAppURL = whatsappService.generateWhatsAppURL(
-        whatsappService.businessNumber,
-        whatsappService.generateCustomerMessage(orderWithItems)
-      );
-
       const adminWhatsAppURL = whatsappService.generateWhatsAppURL(
-        whatsappService.businessNumber,
+        settings.whatsapp || whatsappService.businessNumber,
         whatsappService.generateAdminMessage(orderWithItems)
       );
 
       // Simular éxito según método de pago
-      if (selectedPaymentMethod === "cash") {
-        const sendWhatsApp = confirm(
-          "¡Pedido confirmado! ¿Quieres enviar un mensaje de WhatsApp para confirmar tu pedido?"
-        );
-        console.log("Usuario acepta WhatsApp:", sendWhatsApp);
-        if (sendWhatsApp) {
-          console.log("Abriendo WhatsApp...", customerWhatsAppURL);
-          window.open(customerWhatsAppURL, "_blank");
-        }
-        alert(
-          "Te enviaremos las instrucciones para el pago en efectivo por email."
-        );
-      } else if (selectedPaymentMethod === "transfer") {
-        const sendWhatsApp = confirm(
-          "¡Pedido confirmado! ¿Quieres enviar un mensaje de WhatsApp para confirmar tu pedido?"
-        );
-        console.log("Usuario acepta WhatsApp:", sendWhatsApp);
-        if (sendWhatsApp) {
-          console.log("Abriendo WhatsApp...", customerWhatsAppURL);
-          window.open(customerWhatsAppURL, "_blank");
-        }
-        alert(
-          "Te enviaremos los datos para la transferencia bancaria por email."
-        );
+      const sendWhatsApp = confirm(
+        `Pedido #${order.id} registrado. ¿Abrir WhatsApp para enviarnos el detalle?`
+      );
+      if (sendWhatsApp) {
+        window.open(adminWhatsAppURL, "_blank");
       }
 
       clearCart();
-      router.push("/success");
+      router.push(
+        `/success?pedido=${order.id}&metodo=${selectedPaymentMethod}`
+      );
     } catch (error) {
       console.error("Error al procesar el pedido:", error);
       alert("Error al procesar el pedido. Intenta nuevamente.");
@@ -1613,7 +1596,7 @@ export default function CheckoutPage() {
                   <span className="text-gray-600">IVA (22%):</span>
                   <span className="text-gray-900">
                     {exchangeRate
-                      ? formatAmountFromUYU(calculateCartTotalInUYU() * 0.22)
+                      ? formatAmountFromUYU(calculateCartTotalInUYU() * settings.ivaRate)
                       : "-"}
                   </span>
                 </div>
@@ -1621,7 +1604,7 @@ export default function CheckoutPage() {
                   <span className="text-gray-600">Subtotal con IVA:</span>
                   <span className="text-gray-900">
                     {exchangeRate
-                      ? formatAmountFromUYU(calculateCartTotalInUYU() * 1.22)
+                      ? formatAmountFromUYU(calculateCartTotalInUYU() * ivaFactor)
                       : "-"}
                   </span>
                 </div>
@@ -1634,7 +1617,7 @@ export default function CheckoutPage() {
                   >
                     {shippingCost === 0
                       ? "Gratis"
-                      : formatAmountFromUYU(700 * 1.22)}
+                      : formatAmountFromUYU(settings.shippingBaseUyu * ivaFactor)}
                   </span>
                 </div>
                 <div className="border-t border-gray-200 pt-2">
@@ -1643,9 +1626,9 @@ export default function CheckoutPage() {
                     <span className="text-orange-600">
                       {exchangeRate
                         ? shippingCost === 0
-                          ? formatAmountFromUYU(calculateCartTotalInUYU() * 1.22)
+                          ? formatAmountFromUYU(calculateCartTotalInUYU() * ivaFactor)
                           : formatAmountFromUYU(
-                              calculateCartTotalInUYU() * 1.22 + 700 * 1.22
+                              calculateCartTotalInUYU() * ivaFactor + settings.shippingBaseUyu * ivaFactor
                             )
                         : "-"}
                     </span>

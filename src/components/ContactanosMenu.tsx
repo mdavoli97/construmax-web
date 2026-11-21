@@ -10,10 +10,12 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { whatsappService } from "@/lib/whatsapp";
+import { useSiteSettings } from "@/lib/use-site-settings";
 
 export default function ContactanosMenu() {
+  const settings = useSiteSettings();
   const whatsappUrl = whatsappService.generateWhatsAppURL(
-    whatsappService.businessNumber,
+    settings.whatsapp,
     encodeURIComponent("Hola ConstruMax, quisiera más información.")
   );
 
@@ -48,8 +50,7 @@ export default function ContactanosMenu() {
                 <MapPin className="h-4 w-4 text-orange-500 mt-0.5 shrink-0" />
                 <div>
                   <p className="font-medium text-gray-900">ConstruMax</p>
-                  <p>José Mármol 615</p>
-                  <p>Montevideo, Uruguay</p>
+                  <p>{settings.address}</p>
                 </div>
               </div>
             </div>
@@ -58,10 +59,10 @@ export default function ContactanosMenu() {
               <Phone className="h-4 w-4 text-orange-500 mt-0.5 shrink-0" />
               <div className="space-y-0.5">
                 <a
-                  href="tel:+59897971111"
+                  href={`tel:+${settings.whatsapp}`}
                   className="block font-medium hover:text-orange-600"
                 >
-                  +598 97 971 111
+                  {settings.phoneDisplay}
                 </a>
                 <a
                   href={whatsappUrl}
@@ -77,18 +78,18 @@ export default function ContactanosMenu() {
             <div className="flex gap-3 text-sm text-gray-700">
               <Mail className="h-4 w-4 text-orange-500 mt-0.5 shrink-0" />
               <a
-                href="mailto:curlamsas@gmail.com.uy"
+                href={`mailto:${settings.email}`}
                 className="hover:text-orange-600 break-all"
               >
-                curlamsas@gmail.com.uy
+                {settings.email}
               </a>
             </div>
 
             <div className="flex gap-3 text-sm text-gray-700">
               <Clock className="h-4 w-4 text-orange-500 mt-0.5 shrink-0" />
               <div>
-                <p>Lun–Vie: 8:00–12:00 / 13:30–18:30</p>
-                <p>Sábados: 8:00–13:00</p>
+                <p>{settings.hoursWeekday}</p>
+                <p>{settings.hoursSaturday}</p>
               </div>
             </div>
           </div>

@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { useSiteSettings } from "@/lib/use-site-settings";
 import {
   PhoneIcon,
   EnvelopeIcon,
@@ -6,6 +9,8 @@ import {
 } from "@heroicons/react/24/outline";
 
 export default function Footer() {
+  const settings = useSiteSettings();
+  const phoneHref = `tel:+${settings.whatsapp}`;
   return (
     <footer className="bg-gray-900 text-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
@@ -27,15 +32,15 @@ export default function Footer() {
             <div className="space-y-2">
               <div className="flex items-center text-gray-300 text-sm sm:text-base">
                 <PhoneIcon className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-orange-500 flex-shrink-0" />
-                <span>+598 97 971 111</span>
+                <a href={phoneHref}>{settings.phoneDisplay}</a>
               </div>
               <div className="flex items-center text-gray-300 text-sm sm:text-base">
                 <EnvelopeIcon className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-orange-500 flex-shrink-0" />
-                <span>curlamsas@gmail.com.uy</span>
+                <a href={`mailto:${settings.email}`}>{settings.email}</a>
               </div>
               <div className="flex items-start text-gray-300 text-sm sm:text-base">
                 <MapPinIcon className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-orange-500 mt-0.5 flex-shrink-0" />
-                <span>José Mármol 615, Montevideo, Uruguay</span>
+                <span>{settings.address}</span>
               </div>
             </div>
           </div>

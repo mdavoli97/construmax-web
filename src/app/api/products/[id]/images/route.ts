@@ -1,5 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@supabase/supabase-js";
+import { adminUnauthorized, requireAdmin } from "@/lib/admin-session";
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 export async function GET(
   request: NextRequest,
@@ -31,6 +38,7 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  if (!requireAdmin(request)) return adminUnauthorized();
   let body: Record<string, unknown> = {};
   try {
     const { id } = await params;
@@ -167,6 +175,7 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  if (!requireAdmin(request)) return adminUnauthorized();
   try {
     const { id } = await params;
     const { searchParams } = new URL(request.url);

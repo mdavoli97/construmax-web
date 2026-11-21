@@ -11,11 +11,17 @@ import CategoriesSidebar from "@/components/CategoriesSidebar";
 import UserAccountMenu from "@/components/UserAccountMenu";
 import ContactanosMenu from "@/components/ContactanosMenu";
 import CurrencySwitcher from "@/components/CurrencySwitcher";
-import { whyChooseUs } from "@/lib/benefits";
+import { whyChooseUs, withShippingBenefit } from "@/lib/benefits";
+import { useSiteSettings } from "@/lib/use-site-settings";
 import { cn } from "@/lib/utils";
 
 export default function Header() {
   const totalItems = useCartCount();
+  const settings = useSiteSettings();
+  const benefits = withShippingBenefit(
+    whyChooseUs,
+    settings.freeShippingFromUyu
+  );
   const [searchOpen, setSearchOpen] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [categoriesExpanded, setCategoriesExpanded] = useState(false);
@@ -217,7 +223,7 @@ export default function Header() {
         >
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <ul className="flex h-16 lg:h-20 items-center justify-between gap-2 sm:gap-4 overflow-x-auto">
-              {whyChooseUs.map(({ icon: Icon, title, description }) => (
+              {benefits.map(({ icon: Icon, title, description }) => (
                 <li
                   key={title}
                   className="flex min-w-0 flex-1 items-center justify-center gap-2 px-1"

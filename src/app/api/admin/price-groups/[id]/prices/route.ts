@@ -1,6 +1,7 @@
 // API para gestionar precios individuales dentro de un grupo
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { adminUnauthorized, requireAdmin } from "@/lib/admin-session";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -11,6 +12,7 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  if (!requireAdmin(request)) return adminUnauthorized();
   try {
     const { id: groupId } = await params;
     const body = await request.json();

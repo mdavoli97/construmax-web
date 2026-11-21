@@ -14,6 +14,18 @@ export type Benefit = {
   description: string;
 };
 
+export function withShippingBenefit(benefits: Benefit[], freeFrom: number) {
+  const formatted = freeFrom.toLocaleString("es-UY");
+  return benefits.map((benefit) =>
+    benefit.title === "Envío Gratis"
+      ? {
+          ...benefit,
+          description: `En compras superiores a $${formatted}`,
+        }
+      : benefit
+  );
+}
+
 export const whyChooseUs: Benefit[] = [
   {
     icon: TruckIcon,

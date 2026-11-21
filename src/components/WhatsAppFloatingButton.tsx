@@ -1,10 +1,12 @@
 "use client";
 
 import { whatsappService } from "@/lib/whatsapp";
+import { useSiteSettings } from "@/lib/use-site-settings";
 
 export default function WhatsAppFloatingButton() {
+  const settings = useSiteSettings();
   const href = whatsappService.generateWhatsAppURL(
-    whatsappService.businessNumber,
+    settings.whatsapp,
     encodeURIComponent(
       "Hola ConstruMax, quisiera consultar sobre productos / pedidos."
     )

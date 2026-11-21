@@ -1,7 +1,12 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { adminUnauthorized, requireAdmin } from "@/lib/admin-session";
 
-export async function POST() {
+export async function POST(request: NextRequest) {
+  if (process.env.NODE_ENV === "production") {
+    return NextResponse.json({ error: "No encontrado" }, { status: 404 });
+  }
+  if (!requireAdmin(request)) return adminUnauthorized();
   try {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -80,6 +85,9 @@ export async function POST() {
 }
 
 export async function GET() {
+  if (process.env.NODE_ENV === "production") {
+    return NextResponse.json({ error: "No encontrado" }, { status: 404 });
+  }
   return NextResponse.json({
     message: "Endpoint para configurar políticas RLS. Usar método POST.",
   });

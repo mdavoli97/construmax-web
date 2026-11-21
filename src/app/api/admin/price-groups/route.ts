@@ -1,6 +1,7 @@
 // API para gestionar grupos de precios
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { adminUnauthorized, requireAdmin } from "@/lib/admin-session";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -8,17 +9,20 @@ const supabase = createClient(
 );
 
 export async function GET(request: NextRequest) {
+  if (!requireAdmin(request)) return adminUnauthorized();
   try {
     const { searchParams } = new URL(request.url);
     const category = searchParams.get("category");
     const active = searchParams.get("active");
     const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "10");
+    const limit = parseInt(searchParams.get("limit") || "100");
 
-    let query = supabase.from("price_groups").select(`
+    let query = supabase.from("price_groups").select(
+      `
         id,
         name,
         description,
+        category,
         price_per_kg,
         currency,
         is_active,
@@ -28,7 +32,13 @@ export async function GET(request: NextRequest) {
         length,
         created_at,
         updated_at
-      `);
+      `,
+      { count: "exact" }
+    );
+
+    if (category) {
+      query = query.eq("category", category);
+    }
 
     // Aplicar filtros
     if (active !== null) {
@@ -114,6 +124,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  if (!requireAdmin(request)) return adminUnauthorized();
   try {
     const body = await request.json();
     const {

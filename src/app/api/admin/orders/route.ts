@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { adminUnauthorized, requireAdmin } from "@/lib/admin-session";
 
 interface OrderItem {
   product_id: string;
@@ -14,7 +15,8 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!,
 );
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  if (!requireAdmin(request)) return adminUnauthorized();
   try {
     const { data: orders, error } = await supabase
       .from("orders")
@@ -84,8 +86,25 @@ export async function POST(request: NextRequest) {
       // Campos de MercadoPago
       mercadopago_preference_id,
       external_reference,
-      status: requestStatus,
     } = body;
+
+    const allowedPayments = ["cash", "transfer", "card"];
+    if (
+      !customer_name ||
+      !customer_email ||
+      !allowedPayments.includes(payment_method) ||
+      !Array.isArray(items) ||
+      items.length === 0 ||
+      items.length > 100
+    ) {
+      return NextResponse.json(
+        { error: "Datos del pedido incompletos" },
+        { status: 400 }
+      );
+    }
+
+    // El checkout solo puede dejar el pedido pendiente. Confirmarlo es del admin.
+    const status = payment_method === "card" ? "pending_payment" : "pending";
 
     // Crear la orden
     const orderData: Record<string, unknown> = {
@@ -107,7 +126,7 @@ export async function POST(request: NextRequest) {
       tax,
       shipping_cost,
       total,
-      status: requestStatus || "pending",
+      status,
     };
 
     // Agregar campos de MercadoPago si existen

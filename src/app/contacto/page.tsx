@@ -12,8 +12,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { whatsappService } from "@/lib/whatsapp";
+import { useSiteSettings } from "@/lib/use-site-settings";
 
 export default function ContactoPage() {
+  const settings = useSiteSettings();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -27,7 +29,7 @@ export default function ContactoPage() {
     `Hola ConstruMax, soy ${name || "un cliente"}. ${message || "Quisiera más información."}`
   );
   const whatsappUrl = whatsappService.generateWhatsAppURL(
-    whatsappService.businessNumber,
+    settings.whatsapp,
     whatsappMessage
   );
 
@@ -88,24 +90,24 @@ export default function ContactoPage() {
               </h2>
 
               <a
-                href="tel:+59897971111"
+                href={`tel:+${settings.whatsapp}`}
                 className="flex items-start gap-3 text-gray-700 hover:text-orange-600 transition-colors"
               >
                 <PhoneIcon className="h-5 w-5 text-orange-500 mt-0.5 flex-shrink-0" />
                 <div>
                   <p className="font-medium">Teléfono</p>
-                  <p className="text-sm">+598 97 971 111</p>
+                  <p className="text-sm">{settings.phoneDisplay}</p>
                 </div>
               </a>
 
               <a
-                href="mailto:curlamsas@gmail.com.uy"
+                href={`mailto:${settings.email}`}
                 className="flex items-start gap-3 text-gray-700 hover:text-orange-600 transition-colors"
               >
                 <EnvelopeIcon className="h-5 w-5 text-orange-500 mt-0.5 flex-shrink-0" />
                 <div>
                   <p className="font-medium">Email</p>
-                  <p className="text-sm">curlamsas@gmail.com.uy</p>
+                  <p className="text-sm">{settings.email}</p>
                 </div>
               </a>
 
@@ -114,7 +116,7 @@ export default function ContactoPage() {
                 <div>
                   <p className="font-medium">Dirección</p>
                   <p className="text-sm">
-                    José Mármol 615, Montevideo, Uruguay
+                    {settings.address}
                   </p>
                 </div>
               </div>
@@ -123,8 +125,8 @@ export default function ContactoPage() {
                 <ClockIcon className="h-5 w-5 text-orange-500 mt-0.5 flex-shrink-0" />
                 <div>
                   <p className="font-medium">Horarios</p>
-                  <p className="text-sm">Lunes a viernes: 8:00 a 12:00 / 13:30 a 18:30</p>
-                  <p className="text-sm">Sábados: 8:00 a 13:00</p>
+                  <p className="text-sm">{settings.hoursWeekday}</p>
+                  <p className="text-sm">{settings.hoursSaturday}</p>
                 </div>
               </div>
             </div>

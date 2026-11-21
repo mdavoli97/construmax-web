@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 
 export async function GET() {
+  if (process.env.NODE_ENV === "production") {
+    return NextResponse.json({ error: "No encontrado" }, { status: 404 });
+  }
   try {
     // Probar conexión con categorías
     const { data: categories, error: catError } = await supabase

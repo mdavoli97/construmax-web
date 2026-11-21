@@ -7,6 +7,9 @@ const resend = process.env.RESEND_API_KEY
   : null;
 
 export async function POST(request: NextRequest) {
+  if (process.env.NODE_ENV === "production") {
+    return NextResponse.json({ error: "No encontrado" }, { status: 404 });
+  }
   try {
     // Verificar si Resend está configurado
     if (!resend) {

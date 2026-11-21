@@ -13,6 +13,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { StarIcon as StarIconSolid } from "@heroicons/react/24/solid";
 import { useNotifications } from "./NotificationProvider";
+import { adminFetch } from "@/lib/admin-fetch";
 
 interface ImageUploadProps {
   productId: string;
@@ -77,6 +78,8 @@ export default function ImageUpload({
       xhr.onerror = () => reject(new Error("Error de conexión"));
 
       xhr.open("POST", "/api/upload");
+      const token = localStorage.getItem("admin_auth_token");
+      if (token) xhr.setRequestHeader("Authorization", `Bearer ${token}`);
       xhr.send(formData);
     });
   };
@@ -165,7 +168,7 @@ export default function ImageUpload({
           );
 
           // Agregar a la base de datos
-          const newImage = await fetch(`/api/products/${productId}/images`, {
+          const newImage = await adminFetch(`/api/products/${productId}/images`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -250,7 +253,7 @@ export default function ImageUpload({
     setIsAddingUrl(true);
 
     try {
-      const newImage = await fetch(`/api/products/${productId}/images`, {
+      const newImage = await adminFetch(`/api/products/${productId}/images`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -275,7 +278,7 @@ export default function ImageUpload({
   const handleSetPrimary = async (imageId: string) => {
     try {
       // Actualizar en la base de datos
-      await fetch(`/api/products/${productId}/images`, {
+      await adminFetch(`/api/products/${productId}/images`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -307,7 +310,7 @@ export default function ImageUpload({
     }
 
     try {
-      await fetch(`/api/products/${productId}/images`, {
+      await adminFetch(`/api/products/${productId}/images`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -337,7 +340,7 @@ export default function ImageUpload({
     if (!confirm("¿Estás seguro de eliminar esta imagen?")) return;
 
     try {
-      await fetch(`/api/products/${productId}/images?imageId=${imageId}`, {
+      await adminFetch(`/api/products/${productId}/images?imageId=${imageId}`, {
         method: "DELETE",
       });
 

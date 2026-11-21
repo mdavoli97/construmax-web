@@ -1,6 +1,7 @@
 // API para gestionar categorías individuales - versión simplificada
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { adminUnauthorized, requireAdmin } from "@/lib/admin-session";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -11,6 +12,7 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  if (!requireAdmin(request)) return adminUnauthorized();
   try {
     const { id: categoryId } = await params;
     const body = await request.json();
@@ -82,6 +84,17 @@ export async function PUT(
       );
     }
 
+    if (existingCategory.slug && existingCategory.slug !== slugValue) {
+      await supabase
+        .from("products")
+        .update({ category: slugValue })
+        .eq("category", existingCategory.slug);
+      await supabase
+        .from("price_groups")
+        .update({ category: slugValue })
+        .eq("category", existingCategory.slug);
+    }
+
     // Agregar is_active y updated_at para compatibilidad con el frontend
     const categoryWithActive = {
       ...updatedCategory,
@@ -106,6 +119,7 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  if (!requireAdmin(request)) return adminUnauthorized();
   try {
     const { id: categoryId } = await params;
     const { searchParams } = new URL(request.url);
@@ -114,7 +128,7 @@ export async function DELETE(
     // Verificar que la categoría existe
     const { data: existingCategory, error: fetchError } = await supabase
       .from("categories")
-      .select("id, name")
+      .select("id, name, slug")
       .eq("id", categoryId)
       .single();
 
@@ -129,7 +143,7 @@ export async function DELETE(
     const { count: productCount } = await supabase
       .from("products")
       .select("*", { count: "exact", head: true })
-      .eq("category", existingCategory.name);
+      .eq("category", existingCategory.slug);
 
     if (productCount && productCount > 0 && !force) {
       return NextResponse.json(

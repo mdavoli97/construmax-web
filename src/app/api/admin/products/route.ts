@@ -2,9 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { productService } from "@/lib/services";
 import { validateProductData } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
+import { adminUnauthorized, requireAdmin } from "@/lib/admin-session";
 
 // GET - Obtener todos los productos
-export async function GET() {
+export async function GET(request: NextRequest) {
+  if (!requireAdmin(request)) return adminUnauthorized();
   try {
     const { supabase } = await import("@/lib/supabase");
 
@@ -28,6 +30,7 @@ export async function GET() {
 
 // POST - Crear nuevo producto
 export async function POST(request: NextRequest) {
+  if (!requireAdmin(request)) return adminUnauthorized();
   try {
     const body = await request.json();
 
@@ -158,6 +161,8 @@ export async function POST(request: NextRequest) {
           : true,
       thickness: body.thickness || null,
       size: body.size || null,
+      presentation: body.presentation || null,
+      length: body.length || null,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };

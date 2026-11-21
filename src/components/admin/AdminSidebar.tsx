@@ -11,6 +11,7 @@ import {
   BarChart3Icon,
   LogOutIcon,
   DollarSignIcon,
+  SettingsIcon,
 } from "lucide-react";
 
 import {
@@ -34,6 +35,7 @@ const navigation = [
   { name: "Categorías", href: "/admin/categorias", icon: TagIcon },
   { name: "Precios", href: "/admin/precios", icon: DollarSignIcon },
   { name: "Órdenes", href: "/admin/ordenes", icon: ShoppingCartIcon },
+  { name: "Ajustes", href: "/admin/ajustes", icon: SettingsIcon },
 ];
 
 // Páginas en desarrollo - deshabilitadas temporalmente

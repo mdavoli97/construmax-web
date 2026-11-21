@@ -691,8 +691,19 @@ export default function ProductFamilyPage() {
     }
 
     const quantityNum = getQuantityAsNumber();
+    if (!isInStock(product)) {
+      alert("Este producto no está disponible");
+      return;
+    }
     if (quantityNum <= 0) {
       alert("La cantidad debe ser mayor a 0");
+      return;
+    }
+    if (
+      product.stock_type !== "availability" &&
+      quantityNum > (product.stock || 0)
+    ) {
+      alert(`Solo hay ${product.stock} disponibles`);
       return;
     }
 

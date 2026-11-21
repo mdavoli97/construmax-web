@@ -5,6 +5,8 @@ import {
   canTransitionStatus,
   normalizeStatus,
 } from "@/lib/order-fulfillment";
+import { adminUnauthorized, requireAdmin } from "@/lib/admin-session";
+import { notifyOrderStatusChange } from "@/lib/order-notify";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -15,6 +17,7 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  if (!requireAdmin(request)) return adminUnauthorized();
   try {
     const body = await request.json();
     const status = typeof body.status === "string" ? body.status.trim() : "";
@@ -30,7 +33,9 @@ export async function PATCH(
 
     const { data: existing, error: fetchError } = await supabase
       .from("orders")
-      .select("id, status, delivery_method")
+      .select(
+        "id, status, delivery_method, customer_name, customer_email, customer_phone"
+      )
       .eq("id", orderId)
       .maybeSingle();
 
@@ -71,7 +76,18 @@ export async function PATCH(
       );
     }
 
-    return NextResponse.json({ success: true, order: data });
+    const notification = await notifyOrderStatusChange(
+      {
+        id: existing.id,
+        customer_name: existing.customer_name,
+        customer_email: existing.customer_email,
+        customer_phone: existing.customer_phone,
+        delivery_method: existing.delivery_method,
+      },
+      status
+    );
+
+    return NextResponse.json({ success: true, order: data, notification });
   } catch (error) {
     console.error("Error:", error);
     return NextResponse.json(

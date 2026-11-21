@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
+  if (process.env.NODE_ENV === "production") {
+    return NextResponse.json({ error: "No encontrado" }, { status: 404 });
+  }
   const diagnostics = {
     resendConfigured: !!process.env.RESEND_API_KEY,
     resendKeyPrefix: process.env.RESEND_API_KEY?.substring(0, 8),

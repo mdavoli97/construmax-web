@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { productService } from "@/lib/services";
+import { adminFetch } from "@/lib/admin-fetch";
 import { ArrowLeftIcon, SaveIcon, RefreshCw } from "lucide-react";
 import { Product, ProductImage } from "@/types";
 import ImageUpload from "@/components/admin/ImageUpload";
@@ -98,6 +99,7 @@ export default function EditProductPage() {
   // Categorías se cargan dinámicamente del API
 
   const productTypes = [
+    { value: "standard", label: "Producto estándar (precio y stock)" },
     { value: "perfiles", label: "Perfiles (precio por kg)" },
     {
       value: "chapas_conformadas",
@@ -193,7 +195,7 @@ export default function EditProductPage() {
           });
 
           // Cargar grupos de precios con sus precios múltiples
-          const response = await fetch("/api/admin/price-groups");
+          const response = await adminFetch("/api/admin/price-groups");
           if (response.ok) {
             const result = await response.json();
             if (result.success) {
@@ -223,7 +225,7 @@ export default function EditProductPage() {
           }
 
           // Cargar categorías
-          const categoriesResponse = await fetch("/api/admin/categories");
+          const categoriesResponse = await adminFetch("/api/admin/categories");
           if (categoriesResponse.ok) {
             const categoriesResult = await categoriesResponse.json();
             if (categoriesResult.success) {
@@ -238,7 +240,7 @@ export default function EditProductPage() {
 
           // Cargar imágenes del producto
           try {
-            const imagesResponse = await fetch(
+            const imagesResponse = await adminFetch(
               `/api/products/${productId}/images`
             );
             if (imagesResponse.ok) {

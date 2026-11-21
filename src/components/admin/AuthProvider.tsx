@@ -21,16 +21,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Verificar si hay un token guardado al cargar
     const token = localStorage.getItem(AUTH_TOKEN_KEY);
     if (token) {
-      // Verificar si el token es válido (en este caso, simplemente verificamos si existe)
       try {
-        const tokenData = JSON.parse(atob(token));
-        const now = Date.now();
-
-        // Token válido por 24 horas
-        if (tokenData.exp > now) {
-          setIsAuthenticated(true);
-        } else {
+        const payload = token.split(".")[0];
+        if (!token.includes(".") || !payload) {
           localStorage.removeItem(AUTH_TOKEN_KEY);
+        } else {
+          const tokenData = JSON.parse(
+            atob(payload.replace(/-/g, "+").replace(/_/g, "/"))
+          );
+          if (tokenData.role === "admin" && tokenData.exp > Date.now()) {
+            setIsAuthenticated(true);
+          } else {
+            localStorage.removeItem(AUTH_TOKEN_KEY);
+          }
         }
       } catch (error) {
         localStorage.removeItem(AUTH_TOKEN_KEY);

@@ -1,6 +1,8 @@
 // API para gestionar un precio específico dentro de un grupo
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { adminUnauthorized, requireAdmin } from "@/lib/admin-session";
+import { recalculateGroupProducts } from "@/lib/recalculate-group-prices";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -11,6 +13,7 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string; priceId: string }> }
 ) {
+  if (!requireAdmin(request)) return adminUnauthorized();
   try {
     const { id: groupId, priceId } = await params;
 
@@ -87,6 +90,7 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string; priceId: string }> }
 ) {
+  if (!requireAdmin(request)) return adminUnauthorized();
   try {
     const { id: groupId, priceId } = await params;
     const body = await request.json();
@@ -120,7 +124,7 @@ export async function PUT(
     // Verificar que el precio existe y pertenece al grupo
     const { data: existingPrice, error: fetchError } = await supabase
       .from("price_group_prices")
-      .select("id, price_group_id, is_active")
+      .select("id, price_group_id, is_active, price_per_kg")
       .eq("id", priceId)
       .eq("price_group_id", groupId)
       .single();
@@ -195,9 +199,28 @@ export async function PUT(
       );
     }
 
+    let productsUpdated = 0;
+    if (price_per_kg !== undefined) {
+      const previous = Number(existingPrice.price_per_kg);
+      const next = parseFloat(price_per_kg);
+      if (
+        Number.isFinite(previous) &&
+        Number.isFinite(next) &&
+        Math.abs(previous - next) >= 0.001
+      ) {
+        productsUpdated = await recalculateGroupProducts(
+          supabase,
+          groupId,
+          previous,
+          next
+        );
+      }
+    }
+
     return NextResponse.json({
       success: true,
       data: updatedPrice,
+      products_updated: productsUpdated,
     });
   } catch (error) {
     console.error("Error in PUT price:", error);

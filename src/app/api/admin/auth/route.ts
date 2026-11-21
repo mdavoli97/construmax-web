@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { signAdminToken } from "@/lib/admin-session";
 
 // Credenciales de admin (solo en el servidor)
 const ADMIN_CREDENTIALS = {
@@ -17,14 +18,7 @@ export async function POST(request: NextRequest) {
       ADMIN_CREDENTIALS.username && // Asegurar que no esté vacío
       ADMIN_CREDENTIALS.password // Asegurar que no esté vacío
     ) {
-      // Crear token simple (en producción usar JWT real)
-      const tokenData = {
-        username,
-        exp: Date.now() + 24 * 60 * 60 * 1000, // 24 horas
-        role: "admin",
-      };
-
-      const token = btoa(JSON.stringify(tokenData));
+      const token = signAdminToken(username);
 
       return NextResponse.json({
         success: true,

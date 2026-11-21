@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { LoaderFive } from "@/components/ui/loader";
 import Link from "next/link";
 import { productService } from "@/lib/services";
+import { adminFetch } from "@/lib/admin-fetch";
 import { Product } from "@/types";
 import {
   PlusIcon,
@@ -20,7 +21,10 @@ import {
 interface PriceGroup {
   id: string;
   name: string;
-  price_per_kg_usd: number;
+  price_per_kg?: number | null;
+  currency?: string;
+  min_price?: number;
+  main_currency?: string | null;
   category: string;
   product_count: number;
 }
@@ -29,7 +33,7 @@ interface DashboardStats {
   totalProducts: number;
   totalCategories: number;
   priceGroups: number;
-  recentProducts: number;
+  pendingPayments: number;
 }
 
 export default function AdminDashboard() {
@@ -39,7 +43,7 @@ export default function AdminDashboard() {
     totalProducts: 0,
     totalCategories: 0,
     priceGroups: 0,
-    recentProducts: 0,
+    pendingPayments: 0,
   });
   const [exchangeRate, setExchangeRate] = useState<number | null>(null);
   const [exchangeRateUpdated, setExchangeRateUpdated] = useState<string>("");
@@ -58,7 +62,7 @@ export default function AdminDashboard() {
 
   const loadExchangeRate = async () => {
     try {
-      const exchangeResponse = await fetch("/api/exchange-rate");
+      const exchangeResponse = await adminFetch("/api/exchange-rate");
 
       if (exchangeResponse.ok) {
         const exchangeData = await exchangeResponse.json();
@@ -90,7 +94,11 @@ export default function AdminDashboard() {
       setProducts(productsData);
 
       // Cargar grupos de precio
-      const priceGroupsResponse = await fetch("/api/admin/price-groups");
+      const priceGroupsResponse = await adminFetch(
+        "/api/admin/price-groups?limit=200"
+      );
+      const ordersResponse = await adminFetch("/api/admin/orders");
+      const ordersData = ordersResponse.ok ? await ordersResponse.json() : [];
       const priceGroupsData = priceGroupsResponse.ok
         ? await priceGroupsResponse.json()
         : { data: [] };
@@ -101,13 +109,18 @@ export default function AdminDashboard() {
 
       // Calcular estadísticas
       const categories = new Set(productsData.map((p) => p.category));
-      const recentProducts = Math.min(productsData.length, 5);
+      const pendingPayments = (Array.isArray(ordersData) ? ordersData : []).filter(
+        (order: { status?: string }) =>
+          ["pending", "pending_payment", "payment_failed"].includes(
+            order.status || ""
+          )
+      ).length;
 
       setStats({
         totalProducts: productsData.length,
         totalCategories: categories.size,
         priceGroups: priceGroupsData.data?.length || 0,
-        recentProducts,
+        pendingPayments,
       });
     } catch (error) {
       console.error("Error loading dashboard data:", error);
@@ -225,10 +238,10 @@ export default function AdminDashboard() {
             </div>
             <div className="ml-3 sm:ml-4">
               <p className="text-xs sm:text-sm font-medium text-gray-600">
-                Recientes
+                Pagos por confirmar
               </p>
               <p className="text-xl sm:text-2xl font-semibold text-gray-900">
-                {stats.recentProducts}
+                {stats.pendingPayments}
               </p>
             </div>
           </div>
@@ -474,7 +487,11 @@ export default function AdminDashboard() {
                       </div>
                       <div className="text-right">
                         <p className="text-sm font-medium text-gray-900">
-                          ${group.price_per_kg_usd}/kg
+                          $
+                          {Number(
+                            group.min_price ?? group.price_per_kg ?? 0
+                          ).toFixed(2)}{" "}
+                          {group.main_currency || group.currency || ""}/kg
                         </p>
                         <p className="text-xs text-gray-500">
                           {group.product_count} productos

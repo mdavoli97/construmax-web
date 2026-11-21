@@ -10,6 +10,7 @@ import {
   TrashIcon,
 } from "lucide-react";
 import { useNotifications } from "@/components/admin/NotificationProvider";
+import { adminFetch } from "@/lib/admin-fetch";
 import {
   Select,
   SelectContent,
@@ -164,7 +165,7 @@ export default function PreciosAdminPage() {
 
   const loadCategories = async () => {
     try {
-      const response = await fetch("/api/categories");
+      const response = await adminFetch("/api/categories");
       if (response.ok) {
         const result = await response.json();
         if (result.success) {
@@ -183,7 +184,7 @@ export default function PreciosAdminPage() {
 
   const loadPriceGroups = async () => {
     try {
-      const response = await fetch("/api/admin/price-groups");
+      const response = await adminFetch("/api/admin/price-groups");
       if (response.ok) {
         const result = await response.json();
         if (result.success) {
@@ -207,7 +208,7 @@ export default function PreciosAdminPage() {
 
   const loadProducts = async () => {
     try {
-      const response = await fetch("/api/admin/products");
+      const response = await adminFetch("/api/admin/products");
       if (response.ok) {
         const data = await response.json();
         setProducts(data);
@@ -268,7 +269,7 @@ export default function PreciosAdminPage() {
       updateData.presentation = editPresentation;
       updateData.length = editLength;
 
-      const response = await fetch(`/api/admin/price-groups/${groupId}`, {
+      const response = await adminFetch(`/api/admin/price-groups/${groupId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -346,7 +347,7 @@ export default function PreciosAdminPage() {
 
     setSaving(true);
     try {
-      const response = await fetch("/api/admin/price-groups", {
+      const response = await adminFetch("/api/admin/price-groups", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -433,7 +434,7 @@ export default function PreciosAdminPage() {
         ? `/api/admin/price-groups/${groupId}?force=true`
         : `/api/admin/price-groups/${groupId}`;
 
-      const response = await fetch(url, {
+      const response = await adminFetch(url, {
         method: "DELETE",
       });
 

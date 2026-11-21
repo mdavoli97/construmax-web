@@ -9,15 +9,17 @@ import {
   websiteSchema,
   siteNavigationSchema,
 } from "@/lib/schemas";
-import { whyChooseUs } from "@/lib/benefits";
+import { whyChooseUs, withShippingBenefit } from "@/lib/benefits";
+import { getSiteSettings } from "@/lib/site-settings";
 
 // Forzar revalidación en cada request para productos destacados
 export const revalidate = 0;
 
 export default async function HomePage() {
-  const [categories, products] = await Promise.all([
+  const [categories, products, settings] = await Promise.all([
     categoryService.getAll(),
     productService.getAll(),
+    getSiteSettings(),
   ]);
 
   return (
@@ -89,7 +91,7 @@ export default async function HomePage() {
               ¿Por qué elegirnos?
             </p>
             <ul className="grid grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 max-w-5xl mx-auto">
-              {whyChooseUs.map(({ icon: Icon, title, description }) => (
+              {withShippingBenefit(whyChooseUs, settings.freeShippingFromUyu).map(({ icon: Icon, title, description }) => (
                 <li
                   key={title}
                   className="text-center sm:text-left sm:flex sm:gap-3 sm:items-start"
