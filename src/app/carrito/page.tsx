@@ -29,6 +29,7 @@ import {
 } from "@/types";
 import ProductImage from "@/components/ProductImage";
 import CheckoutAuthModal from "@/components/CheckoutAuthModal";
+import { useSiteSettings } from "@/lib/use-site-settings";
 
 export default function CarritoPage() {
   const router = useRouter();
@@ -41,6 +42,7 @@ export default function CarritoPage() {
   }>({});
 
   const { exchangeRate, displayCurrency } = useExchangeRate();
+  const settings = useSiteSettings();
   const uyuLocks = useUyuLocks();
   const pricedProduct = (product: Product) => ({
     ...product,
@@ -572,9 +574,10 @@ export default function CarritoPage() {
                 <button
                   type="button"
                   onClick={handleProceedToPayment}
-                  className="w-full bg-orange-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-orange-700 transition-colors text-center block"
+                  disabled={!settings.salesOpen}
+                  className="w-full bg-orange-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-orange-700 transition-colors text-center block disabled:bg-gray-400 disabled:cursor-not-allowed"
                 >
-                  Proceder al Pago
+                  {settings.salesOpen ? "Proceder al Pago" : "Sitio en mantenimiento"}
                 </button>
 
                 <Link

@@ -7,6 +7,7 @@ import { NotificationProvider } from "@/components/admin/NotificationProvider";
 import { Toaster } from "@/components/ui/sonner";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
+import SalesSwitch from "@/components/admin/SalesSwitch";
 
 export default function AdminLayout({
   children,
@@ -24,6 +25,7 @@ export default function AdminLayout({
                 <SidebarTrigger className="-ml-1" />
                 <Separator orientation="vertical" className="mr-2 h-4" />
                 <h1 className="text-lg font-semibold">Admin Panel</h1>
+                <SalesSwitch />
               </header>
               <div className="flex flex-1 flex-col p-4 bg-background">
                 {children}

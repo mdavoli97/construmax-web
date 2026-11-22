@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { adminUnauthorized, requireAdmin } from "@/lib/admin-session";
+import { getSiteSettings, SALES_CLOSED_MESSAGE } from "@/lib/site-settings";
 
 interface OrderItem {
   product_id: string;
@@ -61,6 +62,14 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const settings = await getSiteSettings();
+    if (!settings.salesOpen) {
+      return NextResponse.json(
+        { error: SALES_CLOSED_MESSAGE },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json();
 
     const {

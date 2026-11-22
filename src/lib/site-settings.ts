@@ -1,4 +1,3 @@
-import { createClient } from "@supabase/supabase-js";
 
 export type SiteSettings = {
   phoneDisplay: string;
@@ -11,6 +10,7 @@ export type SiteSettings = {
   freeShippingFromUyu: number;
   documentFromUyu: number;
   ivaRate: number;
+  salesOpen: boolean;
 };
 
 export const DEFAULT_SITE_SETTINGS: SiteSettings = {
@@ -24,7 +24,11 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
   freeShippingFromUyu: 50000,
   documentFromUyu: 30000,
   ivaRate: 0.22,
+  salesOpen: true,
 };
+
+export const SALES_CLOSED_MESSAGE =
+  "El sitio está en mantenimiento y por ahora no tomamos pedidos por la web. Escribinos por WhatsApp y te ayudamos.";
 
 const SETTINGS_BUCKET = "site-settings";
 const SETTINGS_FILE = "default.json";
@@ -83,40 +87,73 @@ export function mergeSettings(partial: unknown): SiteSettings {
       1,
       Math.max(0, asNumber(source.ivaRate, DEFAULT_SITE_SETTINGS.ivaRate))
     ),
+    salesOpen:
+      typeof source.salesOpen === "boolean"
+        ? source.salesOpen
+        : DEFAULT_SITE_SETTINGS.salesOpen,
   };
 }
 
-function adminClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+function storageHeaders() {
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+  return {
+    Authorization: `Bearer ${key}`,
+    apikey: key,
+  };
 }
 
-export async function getSiteSettings(): Promise<SiteSettings> {
+function storageUrl(cacheBust = false) {
+  const base = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/${SETTINGS_BUCKET}/${SETTINGS_FILE}`;
+  return cacheBust ? `${base}?t=${Date.now()}` : base;
+}
+
+async function readStoredSettings(): Promise<SiteSettings | null> {
   try {
-    const supabase = adminClient();
-    const { data, error } = await supabase.storage
-      .from(SETTINGS_BUCKET)
-      .download(SETTINGS_FILE);
-    if (error || !data) return DEFAULT_SITE_SETTINGS;
-    return mergeSettings(JSON.parse(await data.text()));
+    const response = await fetch(storageUrl(true), {
+      cache: "no-store",
+      headers: storageHeaders(),
+    });
+    if (response.status === 400 || response.status === 404) {
+      return DEFAULT_SITE_SETTINGS;
+    }
+    if (!response.ok) return null;
+    return mergeSettings(JSON.parse(await response.text()));
   } catch {
-    return DEFAULT_SITE_SETTINGS;
+    return null;
   }
 }
 
+export async function getSiteSettings(): Promise<SiteSettings> {
+  return (await readStoredSettings()) ?? DEFAULT_SITE_SETTINGS;
+}
+
 export async function saveSiteSettings(input: unknown) {
-  const settings = mergeSettings(input);
-  const supabase = adminClient();
-  const { error } = await supabase.storage
-    .from(SETTINGS_BUCKET)
-    .upload(SETTINGS_FILE, JSON.stringify(settings), {
-      upsert: true,
-      contentType: "application/json",
-    });
-  if (error) {
-    return { settings, error };
+  const current = await readStoredSettings();
+  if (!current) {
+    return {
+      settings: DEFAULT_SITE_SETTINGS,
+      error: new Error("No se pudieron leer los ajustes actuales"),
+    };
+  }
+  const incoming =
+    input && typeof input === "object" ? (input as Partial<SiteSettings>) : {};
+  const settings = mergeSettings({ ...current, ...incoming });
+  const response = await fetch(storageUrl(), {
+    method: "POST",
+    cache: "no-store",
+    headers: {
+      ...storageHeaders(),
+      "Content-Type": "application/json",
+      "cache-control": "0",
+      "x-upsert": "true",
+    },
+    body: JSON.stringify(settings),
+  });
+  if (!response.ok) {
+    return {
+      settings,
+      error: new Error("No se pudieron guardar los ajustes"),
+    };
   }
   return { settings, error: null };
 }

@@ -10,9 +10,18 @@ import {
   resolveMercadoPagoCheckoutUrl,
   shouldUseSandboxCheckoutUrl,
 } from "@/lib/mercadopago-sandbox";
+import { getSiteSettings, SALES_CLOSED_MESSAGE } from "@/lib/site-settings";
 
 export async function POST(request: NextRequest) {
   try {
+    const settings = await getSiteSettings();
+    if (!settings.salesOpen) {
+      return NextResponse.json(
+        { error: SALES_CLOSED_MESSAGE },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json();
 
     const {

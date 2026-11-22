@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { adminUnauthorized, requireAdmin } from "@/lib/admin-session";
+import { categorySlug } from "@/lib/category-slug";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -76,12 +77,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Crear la nueva categoría
-    const slugValue = name
-      .trim()
-      .toLowerCase()
-      .replace(/\s+/g, "-")
-      .replace(/ñ/g, "n")
-      .replace(/[^\w-]/g, "");
+    const slugValue = categorySlug(name);
     const { data: newCategory, error } = await supabase
       .from("categories")
       .insert({

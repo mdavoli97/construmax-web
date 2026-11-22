@@ -5,6 +5,7 @@ import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import WhatsAppFloatingButton from "@/components/WhatsAppFloatingButton";
+import SalesClosedNotice from "@/components/SalesClosedNotice";
 import { usePathname } from "next/navigation";
 import { ExchangeRateProvider } from "@/contexts/ExchangeRateContext";
 import { CustomerAuthProvider } from "@/contexts/CustomerAuthContext";
@@ -107,6 +108,7 @@ export default function ClientLayout({
         <ExchangeRateProvider>
           <CustomerAuthProvider>
             {!isAdminRoute && <Header />}
+            {!isAdminRoute && <SalesClosedNotice />}
             <main
               className={
                 isAdminRoute ? "" : "flex-1 w-full lg:pl-[60px]"

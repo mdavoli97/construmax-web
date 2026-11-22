@@ -10,8 +10,9 @@ import { toast } from "sonner";
 import { LoaderFive } from "@/components/ui/loader";
 
 interface Category {
-  id: number;
+  id: string;
   name: string;
+  slug: string;
   description: string | null;
   is_active: boolean; // Para compatibilidad, siempre será true
   created_at: string;
@@ -19,7 +20,7 @@ interface Category {
 }
 
 interface EditingCategory {
-  id: number;
+  id: string;
   name: string;
   description: string;
 }
@@ -27,7 +28,14 @@ interface EditingCategory {
 export default function CategoriesPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<Category | null>(null);
+  const [moveTo, setMoveTo] = useState("");
+  const [pendingCounts, setPendingCounts] = useState({
+    products: 0,
+    groups: 0,
+  });
+  const [deleting, setDeleting] = useState(false);
   const [editingData, setEditingData] = useState<EditingCategory | null>(null);
   const [newCategory, setNewCategory] = useState({
     name: "",
@@ -131,8 +139,9 @@ export default function CategoriesPage() {
     }
   };
 
-  const handleDelete = async (category: Category) => {
+  const handleDelete = async (category: Category, destination = "") => {
     if (
+      !destination &&
       !confirm(
         `¿Estás seguro de que quieres eliminar la categoría "${category.name}"?`
       )
@@ -140,43 +149,65 @@ export default function CategoriesPage() {
       return;
     }
 
+    setDeleting(true);
     try {
-      const response = await adminFetch(`/api/admin/categories/${category.id}`, {
-        method: "DELETE",
-      });
+      const params = new URLSearchParams();
+      if (destination) {
+        params.set("force", "true");
+        params.set("moveTo", destination);
+      }
+      const query = params.toString();
+      const response = await adminFetch(
+        `/api/admin/categories/${category.id}${query ? `?${query}` : ""}`,
+        { method: "DELETE" }
+      );
 
       const data = await response.json();
       if (data.success) {
         setCategories(categories.filter((cat) => cat.id !== category.id));
+        setPendingDelete(null);
+        setMoveTo("");
         toast.success(data.message || "Categoría eliminada exitosamente");
-      } else {
-        // Si hay productos asociados, mostrar opción de forzar eliminación
-        if (data.productCount) {
-          const forceDelete = confirm(
-            `${data.error}\n\n¿Quieres eliminar la categoría de todas formas? Los productos quedarán sin categoría.`
-          );
-
-          if (forceDelete) {
-            const forceResponse = await adminFetch(
-              `/api/admin/categories/${category.id}?force=true`,
-              { method: "DELETE" }
-            );
-            const forceData = await forceResponse.json();
-
-            if (forceData.success) {
-              setCategories(categories.filter((cat) => cat.id !== category.id));
-              toast.success(forceData.message);
-            } else {
-              toast.error(forceData.error);
-            }
-          }
-        } else {
-          toast.error(data.error || "Error al eliminar categoría");
-        }
+        return;
       }
+
+      if (data.requiresMove) {
+        setPendingDelete(category);
+        setPendingCounts({
+          products: data.productCount || 0,
+          groups: data.groupCount || 0,
+        });
+        setMoveTo("");
+        toast("Elegí la categoría que va a recibir los productos");
+        return;
+      }
+
+      if (data.groupCount && !destination) {
+        const forceDelete = confirm(
+          `${data.error}\n\n¿Eliminarla de todas formas? Los grupos de precios quedarán sin categoría.`
+        );
+        if (forceDelete) {
+          const forceResponse = await adminFetch(
+            `/api/admin/categories/${category.id}?force=true`,
+            { method: "DELETE" }
+          );
+          const forceData = await forceResponse.json();
+          if (forceData.success) {
+            setCategories(categories.filter((cat) => cat.id !== category.id));
+            toast.success(forceData.message);
+          } else {
+            toast.error(forceData.error || "Error al eliminar categoría");
+          }
+        }
+        return;
+      }
+
+      toast.error(data.error || "Error al eliminar categoría");
     } catch (error) {
       console.error("Error deleting category:", error);
       toast.error("Error al eliminar categoría");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -224,6 +255,66 @@ export default function CategoriesPage() {
           </Button>
         </div>
       </div>
+
+      {pendingDelete && (
+        <div className="border border-amber-300 bg-amber-50 rounded-lg p-4 space-y-3">
+          <p className="font-medium text-amber-950">
+            Para eliminar «{pendingDelete.name}» hay que mover lo que tiene
+            adentro
+          </p>
+          <p className="text-sm text-amber-900">
+            Tiene {pendingCounts.products} producto
+            {pendingCounts.products === 1 ? "" : "s"}
+            {pendingCounts.groups > 0
+              ? ` y ${pendingCounts.groups} grupo${
+                  pendingCounts.groups === 1 ? "" : "s"
+                } de precios`
+              : ""}
+            . Elegí la categoría que los va a recibir.
+          </p>
+          {categories.filter((cat) => cat.id !== pendingDelete.id).length ===
+          0 ? (
+            <p className="text-sm text-amber-900">
+              Creá otra categoría antes de eliminar esta. Los productos tienen
+              que quedar en alguna.
+            </p>
+          ) : (
+            <div className="flex flex-col sm:flex-row gap-3">
+              <select
+                className="h-9 rounded-md border bg-white px-3 text-sm"
+                value={moveTo}
+                onChange={(e) => setMoveTo(e.target.value)}
+              >
+                <option value="">Elegir categoría</option>
+                {categories
+                  .filter((cat) => cat.id !== pendingDelete.id)
+                  .map((cat) => (
+                    <option key={cat.id} value={cat.slug}>
+                      {cat.name}
+                    </option>
+                  ))}
+              </select>
+              <Button
+                onClick={() => handleDelete(pendingDelete, moveTo)}
+                disabled={!moveTo || deleting}
+                variant="destructive"
+              >
+                Eliminar y mover
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setPendingDelete(null);
+                  setMoveTo("");
+                }}
+                disabled={deleting}
+              >
+                Cancelar
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Tabla de categorías */}
       <div className="border rounded-lg overflow-hidden">
@@ -319,6 +410,7 @@ export default function CategoriesPage() {
                             size="sm"
                             variant="destructive"
                             onClick={() => handleDelete(category)}
+                            disabled={deleting}
                             className="flex items-center gap-1"
                           >
                             <Trash2 className="h-3 w-3" />
@@ -344,8 +436,8 @@ export default function CategoriesPage() {
             <ul className="mt-1 text-blue-700 space-y-1">
               <li>• Las categorías se utilizan para organizar los productos</li>
               <li>
-                • Al eliminar una categoría con productos, los productos
-                quedarán sin categoría
+                • Si la categoría tiene productos, hay que moverlos a otra
+                antes de eliminarla
               </li>
               <li>• Los nombres de categoría deben ser únicos</li>
             </ul>

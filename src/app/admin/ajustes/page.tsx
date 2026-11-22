@@ -36,16 +36,18 @@ export default function AjustesPage() {
   const save = async () => {
     setSaving(true);
     try {
+      const payload: Partial<SiteSettings> = {
+        ...form,
+        shippingBaseUyu: Number(form.shippingBaseUyu),
+        freeShippingFromUyu: Number(form.freeShippingFromUyu),
+        documentFromUyu: Number(form.documentFromUyu),
+        ivaRate: Number(form.ivaRate),
+      };
+      delete payload.salesOpen;
       const response = await adminFetch("/api/admin/settings", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...form,
-          shippingBaseUyu: Number(form.shippingBaseUyu),
-          freeShippingFromUyu: Number(form.freeShippingFromUyu),
-          documentFromUyu: Number(form.documentFromUyu),
-          ivaRate: Number(form.ivaRate),
-        }),
+        body: JSON.stringify(payload),
       });
       const body = await response.json();
       if (!response.ok || !body.success) {

@@ -22,6 +22,7 @@ import {
 import { useExchangeRate } from "@/contexts/ExchangeRateContext";
 import { useCustomerAuth } from "@/contexts/CustomerAuthContext";
 import { useSiteSettings } from "@/lib/use-site-settings";
+import { SALES_CLOSED_MESSAGE } from "@/lib/site-settings";
 import { useUyuLocks } from "@/lib/use-uyu-locks";
 import { Product } from "@/types";
 import {
@@ -399,6 +400,11 @@ export default function CheckoutPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (!settings.salesOpen) {
+      alert(SALES_CLOSED_MESSAGE);
+      return;
+    }
+
     if (!selectedPaymentMethod) {
       setPaymentError("Seleccioná un método de pago");
       setCurrentStep(1);
@@ -595,7 +601,8 @@ export default function CheckoutPage() {
         });
 
         if (!response.ok) {
-          throw new Error("Error al crear la orden");
+          const errorData = await response.json().catch(() => null);
+          throw new Error(errorData?.error || "Error al crear la orden");
         }
 
         // Guardar datos en sessionStorage para recuperarlos al volver
@@ -632,7 +639,8 @@ export default function CheckoutPage() {
       });
 
       if (!response.ok) {
-        throw new Error("Error al crear la orden");
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.error || "Error al crear la orden");
       }
 
       const result = await response.json();
@@ -712,7 +720,11 @@ export default function CheckoutPage() {
       );
     } catch (error) {
       console.error("Error al procesar el pedido:", error);
-      alert("Error al procesar el pedido. Intenta nuevamente.");
+      alert(
+        error instanceof Error && error.message
+          ? error.message
+          : "Error al procesar el pedido. Intenta nuevamente."
+      );
     } finally {
       setIsProcessing(false);
     }
@@ -1545,14 +1557,16 @@ export default function CheckoutPage() {
                   <form onSubmit={handleSubmit} noValidate>
                     <button
                       type="submit"
-                      disabled={isProcessing}
+                      disabled={isProcessing || !settings.salesOpen}
                       className="w-full bg-orange-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-orange-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
                     >
                       {isProcessing
                         ? "PROCESANDO..."
-                        : selectedPaymentMethod === "card"
-                          ? "PROCEDER AL PAGO"
-                          : "CONFIRMAR PEDIDO"}
+                        : !settings.salesOpen
+                          ? "SITIO EN MANTENIMIENTO"
+                          : selectedPaymentMethod === "card"
+                            ? "PROCEDER AL PAGO"
+                            : "CONFIRMAR PEDIDO"}
                     </button>
                   </form>
                 </div>
