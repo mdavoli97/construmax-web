@@ -104,6 +104,11 @@ export default function BannersPage() {
           Las fotos aparecen debajo del inicio y se van pasando solas. El enlace
           es opcional: si lo completás, la foto lleva a esa página.
         </p>
+        <p className="mt-3 rounded-lg border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-gray-700">
+          Medida recomendada: <strong>1920 × 730 px</strong> (relación 21:8),
+          en horizontal, JPG o PNG, hasta 5 MB. Dejá el texto y el logo al
+          centro: en el celular se recortan los costados.
+        </p>
       </div>
 
       <label className="inline-flex cursor-pointer items-center rounded-lg bg-orange-600 px-4 py-2 text-sm font-medium text-white">
