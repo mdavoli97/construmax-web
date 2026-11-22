@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { categoryService, productService } from "@/lib/services";
-import FeaturedSubcategories from "@/components/FeaturedSubcategories";
+import { productService } from "@/lib/services";
+import FeaturedProducts from "@/components/FeaturedProducts";
 import StructuredData from "@/components/StructuredData";
 import TypingText from "@/components/ui/shadcn-io/typing-text";
 import {
@@ -11,16 +11,20 @@ import {
 } from "@/lib/schemas";
 import { whyChooseUs, withShippingBenefit } from "@/lib/benefits";
 import { getSiteSettings } from "@/lib/site-settings";
+import { getBanners } from "@/lib/banners";
+import { getFeaturedProductIds } from "@/lib/featured-products";
+import PromoCarousel from "@/components/PromoCarousel";
 
 // Forzar revalidación en cada request para productos destacados
 export const revalidate = 0;
 
 export default async function HomePage() {
-  const [categories, products, settings] = await Promise.all([
-    categoryService.getAll(),
-    productService.getAll(),
+  const [settings, banners, featuredIds] = await Promise.all([
     getSiteSettings(),
+    getBanners(),
+    getFeaturedProductIds(),
   ]);
+  const featuredProducts = await productService.getByIds(featuredIds);
 
   return (
     <div className="min-h-screen">
@@ -37,7 +41,7 @@ export default async function HomePage() {
       {/* Hero Section */}
       <section className="relative overflow-hidden bg-gradient-to-b from-orange-50/80 via-white to-white text-gray-900">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(252,94,20,0.12),_transparent_55%)]" />
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 lg:py-20">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
           <div className="text-center max-w-3xl mx-auto">
             <div className="mb-4 sm:mb-5 flex h-[5.5rem] sm:h-[6.5rem] md:h-[7.5rem] lg:h-[9rem] items-center justify-center overflow-hidden">
               <TypingText
@@ -57,35 +61,15 @@ export default async function HomePage() {
                 cursorClassName="text-orange-600"
               />
             </div>
-            <p className="text-lg sm:text-xl text-gray-600 mb-8">
+            <p className="text-lg sm:text-xl text-gray-600">
               Encontrá los mejores precios del mercado.
             </p>
-            <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
-              <Link
-                href="/productos"
-                className="inline-flex items-center justify-center px-6 py-3 text-sm font-medium text-white bg-orange-600 rounded-lg hover:bg-orange-700 transition-colors shadow-sm"
-              >
-                Nuestros Productos
-              </Link>
-              <Link
-                href="/productos/construccion"
-                className="inline-flex items-center justify-center px-6 py-3 text-sm font-medium text-orange-600 bg-white border border-orange-200 rounded-lg hover:border-orange-300 hover:bg-orange-50 transition-colors"
-              >
-                Construcción
-              </Link>
-              <Link
-                href="/productos/metalurgica"
-                className="inline-flex items-center justify-center px-6 py-3 text-sm font-medium text-orange-600 bg-white border border-orange-200 rounded-lg hover:border-orange-300 hover:bg-orange-50 transition-colors"
-              >
-                Metalúrgica
-              </Link>
-            </div>
           </div>
 
           {/* Por qué elegirnos — al ocultarse, aparece la barra sticky del header */}
           <div
             id="why-choose-us"
-            className="mt-12 sm:mt-16 pt-10 border-t border-orange-100/80"
+            className="mt-8 pt-6 border-t border-orange-100/80"
           >
             <p className="text-center text-sm font-semibold uppercase tracking-wide text-orange-600 mb-6">
               ¿Por qué elegirnos?
@@ -112,10 +96,12 @@ export default async function HomePage() {
         </div>
       </section>
 
+      <PromoCarousel banners={banners} />
+
       {/* Featured Subcategories Section */}
       <section className="py-10 sm:py-14 px-2 sm:px-0 bg-gradient-to-br from-gray-50 via-white to-orange-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <FeaturedSubcategories products={products} categories={categories} />
+          <FeaturedProducts products={featuredProducts} />
           <div className="text-center mt-10 sm:mt-12">
             <Link
               href="/productos"

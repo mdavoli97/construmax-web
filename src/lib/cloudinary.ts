@@ -15,7 +15,8 @@ cloudinary.config({
  */
 export async function uploadImageToCloudinary(
   file: File,
-  folder: string = "products"
+  folder: string = "products",
+  preset: "product" | "banner" = "product"
 ): Promise<string> {
   try {
     // Convertir File a base64
@@ -24,14 +25,18 @@ export async function uploadImageToCloudinary(
     const base64 = buffer.toString("base64");
     const dataURI = `data:${file.type};base64,${base64}`;
 
+    const size =
+      preset === "banner"
+        ? { width: 1920, height: 720 }
+        : { width: 800, height: 800 };
+
     // Subir a Cloudinary
     const result = await cloudinary.uploader.upload(dataURI, {
       folder: folder,
       resource_type: "image",
       transformation: [
         {
-          width: 800,
-          height: 800,
+          ...size,
           crop: "limit",
           quality: "auto:good",
           format: "auto",

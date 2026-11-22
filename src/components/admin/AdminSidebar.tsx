@@ -12,6 +12,8 @@ import {
   LogOutIcon,
   DollarSignIcon,
   SettingsIcon,
+  ImagesIcon,
+  StarIcon,
 } from "lucide-react";
 
 import {
@@ -35,6 +37,8 @@ const navigation = [
   { name: "Categorías", href: "/admin/categorias", icon: TagIcon },
   { name: "Precios", href: "/admin/precios", icon: DollarSignIcon },
   { name: "Órdenes", href: "/admin/ordenes", icon: ShoppingCartIcon },
+  { name: "Banners", href: "/admin/banners", icon: ImagesIcon },
+  { name: "Portada", href: "/admin/destacados", icon: StarIcon },
   { name: "Ajustes", href: "/admin/ajustes", icon: SettingsIcon },
 ];
 

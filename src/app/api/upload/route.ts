@@ -7,6 +7,8 @@ export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
     const file = formData.get("file") as File;
+    const preset = formData.get("preset") === "banner" ? "banner" : "product";
+    const folder = preset === "banner" ? "banners" : "products";
 
     if (!file) {
       return NextResponse.json(
@@ -33,7 +35,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Subir a Cloudinary
-    const imageUrl = await uploadImageToCloudinary(file, "products");
+    const imageUrl = await uploadImageToCloudinary(file, folder, preset);
 
     return NextResponse.json({
       success: true,

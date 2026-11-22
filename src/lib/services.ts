@@ -161,6 +161,35 @@ export const productService = {
     }
   },
 
+  async getByIds(ids: string[]): Promise<Product[]> {
+    if (ids.length === 0) return [];
+    try {
+      const { data, error } = await supabase
+        .from("products")
+        .select(
+          `
+          *,
+          price_group:price_groups(
+            id,
+            currency,
+            price_per_kg
+          )
+        `
+        )
+        .in("id", ids);
+
+      if (error) throw error;
+      const byId = new Map((data || []).map((product) => [product.id, product]));
+      const ordered = ids
+        .map((id) => byId.get(id))
+        .filter((product): product is Product => Boolean(product));
+      return attachUyuLocks(ordered);
+    } catch (error) {
+      console.warn("Error fetching products by id:", error);
+      return [];
+    }
+  },
+
   // Obtener productos destacados
   async getFeatured(): Promise<Product[]> {
     try {
